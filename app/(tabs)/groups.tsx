@@ -31,6 +31,13 @@ const groups = [
     icon: "book",
     color: "#002147",
   },
+  {
+    university: "Middle East Technical University",
+    description: "A group for METU graduates to connect and network.",
+    members: 210,
+    icon: "building",
+    color: "#a51c30",
+  },
 ];
 
 export default function GroupsScreen() {
