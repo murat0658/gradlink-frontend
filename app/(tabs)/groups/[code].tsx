@@ -1,7 +1,13 @@
 import { useLocalSearchParams } from "expo-router";
-import { StyleSheet, View as RNView } from "react-native";
+import {
+  StyleSheet,
+  View as RNView,
+  TouchableOpacity,
+  Modal,
+} from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
+import React, { useState, useEffect } from "react";
 
 const groups = [
   {
@@ -56,9 +62,29 @@ const groups = [
   },
 ];
 
+// Module-level variable to persist subscriptions for the session
+const sessionSubscriptions = new Set<string>();
+
 export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
   const group = groups.find((g) => g.code === code);
+  const [subscribed, setSubscribed] = useState(false);
+  const [showUnsubModal, setShowUnsubModal] = useState(false);
+
+  useEffect(() => {
+    setSubscribed(sessionSubscriptions.has(code as string));
+  }, [code]);
+
+  const handleSubscribe = () => {
+    sessionSubscriptions.add(code as string);
+    setSubscribed(true);
+  };
+
+  const handleUnsubscribe = () => {
+    sessionSubscriptions.delete(code as string);
+    setSubscribed(false);
+    setShowUnsubModal(false);
+  };
 
   if (!group) {
     return (
@@ -102,6 +128,54 @@ export default function GroupInfoScreen() {
         />
         <Text style={styles.infoText}>{group.location}</Text>
       </RNView>
+      {subscribed ? (
+        <>
+          <TouchableOpacity
+            style={[styles.subscribeButton, styles.unsubscribeButton]}
+            onPress={() => setShowUnsubModal(true)}
+          >
+            <Text style={styles.subscribeButtonText}>Unsubscribe</Text>
+          </TouchableOpacity>
+          <Modal
+            visible={showUnsubModal}
+            transparent
+            animationType="none"
+            onRequestClose={() => setShowUnsubModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>
+                  Unsubscribe from {group.university}?
+                </Text>
+                <Text style={styles.modalDesc}>
+                  Are you sure you want to unsubscribe from this group?
+                </Text>
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={handleUnsubscribe}
+                  >
+                    <Text style={styles.modalButtonText}>Yes</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalCancelButton]}
+                    onPress={() => setShowUnsubModal(false)}
+                  >
+                    <Text style={styles.modalCancelButtonText}>No</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        </>
+      ) : (
+        <TouchableOpacity
+          style={styles.subscribeButton}
+          onPress={handleSubscribe}
+        >
+          <Text style={styles.subscribeButtonText}>Subscribe</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -149,5 +223,82 @@ const styles = StyleSheet.create({
     color: "#ef4444",
     fontWeight: "bold",
     marginTop: 40,
+  },
+  subscribeButton: {
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    marginTop: 24,
+    alignItems: "center",
+  },
+  unsubscribeButton: {
+    backgroundColor: "#ef4444",
+  },
+  subscribeButtonDisabled: {
+    backgroundColor: "#a7f3d0",
+  },
+  subscribeButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: 320,
+    maxWidth: "90%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#22223b",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalDesc: {
+    fontSize: 15,
+    color: "#374151",
+    marginBottom: 18,
+    textAlign: "center",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 16,
+  },
+  modalButton: {
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    marginHorizontal: 8,
+    alignItems: "center",
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  modalCancelButton: {
+    backgroundColor: "#a7f3d0",
+  },
+  modalCancelButtonText: {
+    color: "#22223b",
+    fontWeight: "bold",
+    fontSize: 15,
   },
 });
