@@ -1,35 +1,172 @@
-import { StyleSheet } from "react-native";
-
-import EditScreenInfo from "@/components/EditScreenInfo";
+import { StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
+
+const plans: {
+  name: string;
+  price: string;
+  features: string[];
+  color: string;
+  icon: React.ComponentProps<typeof FontAwesome>["name"];
+}[] = [
+  {
+    name: "Basic",
+    price: "$5/mo",
+    features: ["1 Project", "Basic Support", "Community Access"],
+    color: "#e0e7ff",
+    icon: "user",
+  },
+  {
+    name: "Pro",
+    price: "$15/mo",
+    features: ["10 Projects", "Priority Support", "Advanced Analytics"],
+    color: "#bae6fd",
+    icon: "star",
+  },
+  {
+    name: "Premium",
+    price: "$30/mo",
+    features: ["Unlimited Projects", "24/7 Support", "Custom Integrations"],
+    color: "#fcd34d",
+    icon: "diamond",
+  },
+];
 
 export default function TabTwoScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View
-        style={styles.separator}
-        lightColor="#eee"
-        darkColor="rgba(255,255,255,0.1)"
-      />
-      <EditScreenInfo path="app/(tabs)/two/index.tsx" />
-    </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.header}>Choose Your Plan</Text>
+      <View style={styles.plansContainer}>
+        {plans.map((plan) => (
+          <View
+            key={plan.name}
+            style={[styles.card, { backgroundColor: plan.color }]}
+          >
+            <View style={styles.iconCircle}>
+              <FontAwesome name={plan.icon} size={36} color="#4f46e5" />
+            </View>
+            <Text style={styles.planName}>{plan.name}</Text>
+            <Text style={styles.price}>{plan.price}</Text>
+            <View style={styles.featuresArea}>
+              <Text style={styles.featuresTitle}>Features</Text>
+              <View style={styles.featuresList}>
+                {plan.features.map((feature) => (
+                  <View key={feature} style={styles.featureRow}>
+                    <FontAwesome
+                      name="check-circle"
+                      size={18}
+                      color="#22c55e"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={styles.feature}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <TouchableOpacity style={styles.button}>
+              <Text style={styles.buttonText}>Subscribe</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#f9fafb",
   },
-  title: {
-    fontSize: 20,
+  header: {
+    fontSize: 28,
     fontWeight: "bold",
+    marginBottom: 24,
+    color: "#22223b",
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: "80%",
+  plansContainer: {
+    width: "100%",
+    flexDirection: "column",
+    gap: 32,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+    marginBottom: 8,
+  },
+  iconCircle: {
+    backgroundColor: "#fff",
+    borderRadius: 50,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  planName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 4,
+    color: "#22223b",
+  },
+  price: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 16,
+    color: "#4f46e5",
+  },
+  featuresArea: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    width: "100%",
+    marginBottom: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  featuresTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#4f46e5",
+    textAlign: "left",
+  },
+  featuresList: {
+    width: "100%",
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  feature: {
+    fontSize: 15,
+    color: "#22223b",
+  },
+  button: {
+    backgroundColor: "#4f46e5",
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
