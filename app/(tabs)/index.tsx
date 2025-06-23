@@ -1,31 +1,139 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, ScrollView, View as RNView } from "react-native";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Text, View } from "@/components/Themed";
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+const timeline = [
+  {
+    title: "Account Created",
+    date: "2023-01-01",
+    description: "You joined GradLink and created your account.",
+    icon: "user-plus",
+    color: "#4f46e5",
+  },
+  {
+    title: "First Project",
+    date: "2023-02-15",
+    description: "You started your first project on the platform.",
+    icon: "folder-open",
+    color: "#22c55e",
+  },
+  {
+    title: "Upgraded to Pro",
+    date: "2023-03-10",
+    description: "You upgraded your subscription to Pro.",
+    icon: "star",
+    color: "#f59e42",
+  },
+  {
+    title: "Completed Project",
+    date: "2023-04-05",
+    description: "You completed your first project. Congratulations!",
+    icon: "check-circle",
+    color: "#10b981",
+  },
+];
 
 export default function TabOneScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.header}>Your Timeline</Text>
+      <View style={styles.timelineContainer}>
+        {timeline.map((event, idx) => (
+          <RNView key={event.title} style={styles.eventRow}>
+            <View style={styles.iconColumn}>
+              <View
+                style={[styles.iconCircle, { backgroundColor: event.color }]}
+              >
+                <FontAwesome name={event.icon as any} size={22} color="#fff" />
+              </View>
+              {idx < timeline.length - 1 && (
+                <View style={styles.verticalLine} />
+              )}
+            </View>
+            <View style={styles.eventContent}>
+              <Text style={styles.eventTitle}>{event.title}</Text>
+              <Text style={styles.eventDate}>{event.date}</Text>
+              <Text style={styles.eventDescription}>{event.description}</Text>
+            </View>
+          </RNView>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    padding: 24,
+    backgroundColor: "#f9fafb",
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 32,
+    color: "#22223b",
+  },
+  timelineContainer: {
+    width: "100%",
+    flexDirection: "column",
+    gap: 32,
+  },
+  eventRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+    minHeight: 80,
+  },
+  iconColumn: {
+    alignItems: "center",
+    width: 40,
+    position: "relative",
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+    zIndex: 1,
+  },
+  verticalLine: {
+    width: 4,
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#e5e7eb",
+    marginTop: 2,
+    borderRadius: 2,
+    zIndex: 0,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  eventContent: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginLeft: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#22223b",
+    marginBottom: 2,
+  },
+  eventDate: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginBottom: 6,
+  },
+  eventDescription: {
+    fontSize: 15,
+    color: "#374151",
   },
 });
