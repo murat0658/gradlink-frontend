@@ -44,6 +44,16 @@ const groups = [
     founded: 1096,
     location: "Oxford, England",
   },
+  {
+    code: "metu",
+    university: "Middle East Technical University",
+    description: "A group for METU graduates to connect and network.",
+    members: 210,
+    icon: "building",
+    color: "#a51c30",
+    founded: 1956,
+    location: "Ankara, Turkey",
+  },
 ];
 
 export default function GroupInfoScreen() {
