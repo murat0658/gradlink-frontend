@@ -11,6 +11,7 @@ import {
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import React, { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 
 const initialUser = {
   name: "Jane Doe",
@@ -52,6 +53,7 @@ export default function ProfileScreen() {
     email: user.email,
     phone: user.phone,
     countryCode: user.countryCode,
+    avatar: user.avatar,
   });
   const [touched, setTouched] = useState<{ email?: boolean; phone?: boolean }>(
     {}
@@ -76,10 +78,34 @@ export default function ProfileScreen() {
     setTouched({});
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets && result.assets[0]?.uri) {
+      setForm((f) => ({ ...f, avatar: result.assets[0].uri }));
+    }
+  };
+
   return (
     <View style={styles.container}>
       <RNView style={styles.profileCard}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
+        {editMode ? (
+          <TouchableOpacity
+            onPress={pickImage}
+            style={styles.avatarEditWrapper}
+          >
+            <Image source={{ uri: form.avatar }} style={styles.avatar} />
+            <View style={styles.avatarEditIcon}>
+              <FontAwesome name="camera" size={18} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <Image source={{ uri: user.avatar }} style={styles.avatar} />
+        )}
         {editMode ? (
           <>
             <TextInput
@@ -427,5 +453,21 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#22c55e",
+  },
+  avatarEditWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  avatarEditIcon: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    backgroundColor: "#4f46e5",
+    borderRadius: 16,
+    padding: 4,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
 });
