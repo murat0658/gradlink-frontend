@@ -1,8 +1,10 @@
 import { StyleSheet, ScrollView, View as RNView } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
-import * as groupModule from "./groups/[code]";
+import { groups } from "./groups/[code]";
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { RootState, selectSubscriptions } from "../store";
 
 type TimelineEvent = {
   title: string;
@@ -44,19 +46,6 @@ const staticTimeline: TimelineEvent[] = [
   },
 ];
 
-let groups: Group[] = [];
-let sessionSubscriptions: Set<string> = new Set();
-try {
-  if (Array.isArray(groupModule.groups)) {
-    groups = groupModule.groups;
-  }
-  if (groupModule.sessionSubscriptions instanceof Set) {
-    sessionSubscriptions = groupModule.sessionSubscriptions;
-  }
-} catch (e) {
-  // fallback to empty
-}
-
 type News = {
   title: string;
   date: string;
@@ -75,25 +64,28 @@ type Group = {
   news?: News[];
 };
 
-const subscribedGroupNews = groups
-  .filter((g: Group) => sessionSubscriptions.has(g.code))
-  .flatMap((g: Group) =>
-    (g.news || []).map((news: News) => ({
-      title: news.title,
-      date: news.date,
-      description: news.content,
-      icon: g.icon,
-      color: g.color,
-      group: g.university,
-    }))
+export default function TabOneScreen() {
+  const subscriptions = useSelector((state: RootState) =>
+    selectSubscriptions(state)
+  );
+  // Aggregate news from all subscribed groups
+  const subscribedGroupNews = groups
+    .filter((g: Group) => subscriptions.includes(g.code))
+    .flatMap((g: Group) =>
+      (g.news || []).map((news: News) => ({
+        title: news.title,
+        date: news.date,
+        description: news.content,
+        icon: g.icon,
+        color: g.color,
+        group: g.university,
+      }))
+    );
+  // Merge and sort all events by date descending
+  const timeline = [...staticTimeline, ...subscribedGroupNews].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-// Merge and sort all events by date descending
-const timeline = [...staticTimeline, ...subscribedGroupNews].sort(
-  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-);
-
-export default function TabOneScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Your Timeline</Text>

@@ -8,7 +8,14 @@ import {
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  RootState,
+  subscribe,
+  unsubscribe,
+  selectSubscriptions,
+} from "../../store";
 
 const groups = [
   {
@@ -103,29 +110,24 @@ const groups = [
   },
 ];
 
-// Module-level variable to persist subscriptions for the session
-const sessionSubscriptions = new Set<string>();
-
-export { groups, sessionSubscriptions };
+export { groups };
 
 export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
   const group = groups.find((g) => g.code === code);
-  const [subscribed, setSubscribed] = useState(false);
-  const [showUnsubModal, setShowUnsubModal] = useState(false);
-
-  useEffect(() => {
-    setSubscribed(sessionSubscriptions.has(code as string));
-  }, [code]);
+  const dispatch = useDispatch();
+  const subscriptions = useSelector((state: RootState) =>
+    selectSubscriptions(state)
+  );
+  const subscribed = subscriptions.includes(code as string);
+  const [showUnsubModal, setShowUnsubModal] = React.useState(false);
 
   const handleSubscribe = () => {
-    sessionSubscriptions.add(code as string);
-    setSubscribed(true);
+    dispatch(subscribe(code as string));
   };
 
   const handleUnsubscribe = () => {
-    sessionSubscriptions.delete(code as string);
-    setSubscribed(false);
+    dispatch(unsubscribe(code as string));
     setShowUnsubModal(false);
   };
 
