@@ -285,7 +285,12 @@ export default function GroupInfoScreen() {
       {/* News Section (only if subscribed) */}
       {subscribed && group.news && group.news.length > 0 && (
         <View style={styles.newsSection}>
-          <Text style={styles.newsHeader}>Group News</Text>
+          <Text style={styles.newsHeader}>Latest News & Updates</Text>
+          <View style={styles.newsHeaderAccent} />
+          <Text style={styles.newsSubtitle}>
+            Stay up to date with announcements, events, and highlights from this
+            group.
+          </Text>
           {group.news.map((item, idx) => (
             <View key={item.title + item.date} style={styles.newsItem}>
               <Text style={styles.newsTitle}>{item.title}</Text>
@@ -472,9 +477,27 @@ const styles = StyleSheet.create({
   newsHeader: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#4f46e5",
-    marginBottom: 18,
+    color: "#22223b",
+    marginBottom: 4,
     letterSpacing: 0.5,
+    textAlign: "left",
+    paddingLeft: 2,
+  },
+  newsHeaderAccent: {
+    width: 44,
+    height: 4,
+    backgroundColor: "#4f46e5",
+    borderRadius: 2,
+    marginBottom: 16,
+    marginTop: 2,
+    marginLeft: 2,
+  },
+  newsSubtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 10,
+    marginLeft: 2,
+    textAlign: "left",
   },
   newsItem: {
     marginBottom: 18,
