@@ -12,6 +12,8 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import React, { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
+import { useSelector } from "react-redux";
+import { selectDonated } from "../store";
 
 const initialUser = {
   name: "Jane Doe",
@@ -19,7 +21,6 @@ const initialUser = {
   phone: "555-123-4567",
   countryCode: "+1",
   avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-  donated: 125.5,
 };
 
 const COUNTRY_CODES = [
@@ -46,6 +47,7 @@ function validatePhone(phone: string) {
 }
 
 export default function ProfileScreen() {
+  const donated = useSelector(selectDonated);
   const [user, setUser] = useState(initialUser);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
@@ -261,7 +263,9 @@ export default function ProfileScreen() {
           style={{ marginBottom: 8 }}
         />
         <Text style={styles.donationLabel}>Total Donated</Text>
-        <Text style={styles.donationAmount}>${user.donated.toFixed(2)}</Text>
+        <Text style={styles.donationAmount}>
+          ${(donated as number).toFixed(2)}
+        </Text>
       </View>
     </View>
   );

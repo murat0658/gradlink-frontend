@@ -17,6 +17,7 @@ import {
   subscribe,
   unsubscribe,
   selectSubscriptions,
+  incrementDonation,
 } from "../../store";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -351,6 +352,7 @@ export default function GroupInfoScreen() {
           style={styles.donateButton}
           onPress={() => {
             if (selectedAmount) {
+              dispatch(incrementDonation(selectedAmount));
               Toast.show({
                 type: "success",
                 text1: "Thank you!",

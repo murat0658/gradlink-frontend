@@ -17,13 +17,27 @@ const subscriptionsSlice = createSlice({
   },
 });
 
+// User slice for donation value
+const userSlice = createSlice({
+  name: "user",
+  initialState: { donated: 0 },
+  reducers: {
+    incrementDonation: (state, action: PayloadAction<number>) => {
+      state.donated += action.payload;
+    },
+  },
+});
+
 export const { subscribe, unsubscribe } = subscriptionsSlice.actions;
+export const { incrementDonation } = userSlice.actions;
 export const selectSubscriptions = (state: RootState) => state.subscriptions;
+export const selectDonated = (state: RootState) => state.user.donated;
 
 export const store = configureStore({
   reducer: {
     placeholder: placeholderReducer,
     subscriptions: subscriptionsSlice.reducer,
+    user: userSlice.reducer,
   },
 });
 
