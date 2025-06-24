@@ -38,6 +38,21 @@ const groups = [
         date: "2024-05-15",
         content: "Harvard announces a new research grant for alumni projects.",
       },
+      {
+        title: "Spring Career Fair Success",
+        date: "2024-04-10",
+        content: "Over 100 companies attended the Harvard Spring Career Fair.",
+      },
+      {
+        title: "Alumni Spotlight: Dr. Jane Smith",
+        date: "2024-03-22",
+        content: "Dr. Jane Smith receives the Distinguished Alumni Award.",
+      },
+      {
+        title: "Harvard Innovation Lab Expansion",
+        date: "2024-02-18",
+        content: "The i-lab expands to support more student startups.",
+      },
     ],
   },
   {
@@ -54,6 +69,21 @@ const groups = [
         title: "Stanford Tech Fair",
         date: "2024-06-10",
         content: "Showcase your startup at the Stanford Tech Fair!",
+      },
+      {
+        title: "Alumni Panel: Women in STEM",
+        date: "2024-05-05",
+        content: "Join our panel discussion with leading women in STEM fields.",
+      },
+      {
+        title: "Stanford Homecoming Announced",
+        date: "2024-04-20",
+        content: "Save the date for the annual Stanford Homecoming weekend.",
+      },
+      {
+        title: "New AI Research Center Opens",
+        date: "2024-03-30",
+        content: "Stanford opens a new center dedicated to AI research.",
       },
     ],
   },
@@ -72,6 +102,31 @@ const groups = [
         date: "2024-05-20",
         content: "Congratulations to the winners of the 2024 MIT Hackathon!",
       },
+      {
+        title: "Robotics Lab Receives Funding",
+        date: "2024-04-12",
+        content: "MIT's Robotics Lab secures $5M in new research funding.",
+      },
+      {
+        title: "Alumni Networking Night",
+        date: "2024-03-28",
+        content: "Network with fellow MIT alumni at our spring event.",
+      },
+      {
+        title: "MIT Energy Conference",
+        date: "2024-02-15",
+        content: "Register for the annual MIT Energy Conference.",
+      },
+      {
+        title: "Startup Incubator Launch",
+        date: "2024-01-25",
+        content: "MIT launches a new incubator for tech startups.",
+      },
+      {
+        title: "Alumni Spotlight: Dr. Alan Turing",
+        date: "2023-12-10",
+        content: "Celebrating the achievements of Dr. Alan Turing.",
+      },
     ],
   },
   {
@@ -89,6 +144,26 @@ const groups = [
         date: "2024-07-01",
         content: "Register for the Oxford Global Summit this summer.",
       },
+      {
+        title: "Alumni Book Club Launch",
+        date: "2024-05-22",
+        content: "Join the new Oxford Alumni Book Club.",
+      },
+      {
+        title: "Oxford Science Festival",
+        date: "2024-04-14",
+        content: "Experience the annual Oxford Science Festival.",
+      },
+      {
+        title: "Distinguished Alumni Lecture",
+        date: "2024-03-10",
+        content: "Attend the lecture by Nobel Laureate Dr. Emily Carter.",
+      },
+      {
+        title: "Oxford Rowing Team Wins",
+        date: "2024-02-05",
+        content: "Oxford's rowing team wins the annual regatta.",
+      },
     ],
   },
   {
@@ -105,6 +180,40 @@ const groups = [
         title: "METU Alumni Picnic",
         date: "2024-06-15",
         content: "Join the annual METU alumni picnic in Ankara!",
+      },
+      {
+        title: "Career Day Announced",
+        date: "2024-05-10",
+        content:
+          "METU Career Day will host top employers from Turkey and abroad.",
+      },
+      {
+        title: "Alumni Mentorship Program",
+        date: "2024-04-18",
+        content:
+          "Become a mentor or mentee in the new METU mentorship program.",
+      },
+      {
+        title: "Spring Festival Success",
+        date: "2024-03-25",
+        content: "The METU Spring Festival saw record attendance this year.",
+      },
+      {
+        title: "Research Symposium",
+        date: "2024-02-12",
+        content: "Submit your paper for the METU Research Symposium.",
+      },
+      {
+        title: "Alumni Spotlight: Dr. Elif Yılmaz",
+        date: "2024-01-30",
+        content:
+          "Dr. Elif Yılmaz recognized for her contributions to engineering.",
+      },
+      {
+        title: "New Campus Library Opens",
+        date: "2023-12-20",
+        content:
+          "The new METU campus library is now open to students and alumni.",
       },
     ],
   },
