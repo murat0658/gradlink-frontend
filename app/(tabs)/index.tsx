@@ -88,7 +88,13 @@ export default function TabOneScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Your Timeline</Text>
+      <View style={styles.headerArea}>
+        <Text style={styles.header}>Your Timeline</Text>
+        <View style={styles.headerAccent} />
+        <Text style={styles.headerSubtitle}>
+          See your activity and news from groups you follow.
+        </Text>
+      </View>
       <View style={styles.timelineContainer}>
         {timeline.map((event: TimelineEvent, idx) => (
           <RNView key={event.title + event.date} style={styles.eventRow}>
@@ -129,11 +135,32 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: "#f9fafb",
   },
+  headerArea: {
+    marginBottom: 24,
+    marginTop: 8,
+    width: "100%",
+    alignSelf: "flex-start",
+  },
   header: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 32,
     color: "#22223b",
+    letterSpacing: 0.5,
+    textAlign: "left",
+    marginBottom: 2,
+  },
+  headerAccent: {
+    width: 44,
+    height: 4,
+    backgroundColor: "#4f46e5",
+    borderRadius: 2,
+    marginBottom: 10,
+    marginTop: 2,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: "#6b7280",
+    textAlign: "left",
   },
   timelineContainer: {
     width: "100%",
