@@ -7,15 +7,18 @@ import {
   ScrollView,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { Text, View } from "@/components/Themed";
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
+import Toast from "react-native-toast-message";
 import {
   RootState,
   subscribe,
   unsubscribe,
   selectSubscriptions,
 } from "../../store";
+import { LinearGradient } from "expo-linear-gradient";
 
 const groups = [
   {
@@ -221,6 +224,8 @@ const groups = [
 
 export { groups };
 
+const DONATION_AMOUNTS = [5, 10, 20, 50];
+
 export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
   const group = groups.find((g) => g.code === code);
@@ -230,6 +235,9 @@ export default function GroupInfoScreen() {
   );
   const subscribed = subscriptions.includes(code as string);
   const [showUnsubModal, setShowUnsubModal] = React.useState(false);
+  const [selectedAmount, setSelectedAmount] = React.useState<number | null>(
+    null
+  );
 
   const handleSubscribe = () => {
     dispatch(subscribe(code as string));
@@ -300,6 +308,68 @@ export default function GroupInfoScreen() {
           ))}
         </View>
       )}
+      {/* Donation Section */}
+      <LinearGradient
+        colors={["#a18fff", "#6dd5fa", "#f9fafb"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.donationSection}
+      >
+        <FontAwesome5
+          name="hand-holding-heart"
+          size={38}
+          color="#7c3aed"
+          style={styles.donationIcon}
+        />
+        <Text style={styles.donationHeader}>Support This Group</Text>
+        <Text style={styles.donationSubheader}>
+          Choose an amount to donate:
+        </Text>
+        <View style={styles.donationOptions}>
+          {DONATION_AMOUNTS.map((amt) => (
+            <TouchableOpacity
+              key={amt}
+              style={[
+                styles.donationOption,
+                selectedAmount === amt && styles.donationOptionSelected,
+              ]}
+              onPress={() => setSelectedAmount(amt)}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.donationOptionText,
+                  selectedAmount === amt && styles.donationOptionTextSelected,
+                ]}
+              >
+                ${amt}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity
+          style={styles.donateButton}
+          onPress={() => {
+            if (selectedAmount) {
+              Toast.show({
+                type: "success",
+                text1: "Thank you!",
+                text2: `You have donated $${selectedAmount} to ${group.university}.`,
+              });
+              setSelectedAmount(null);
+            } else {
+              Toast.show({
+                type: "info",
+                text1: "Select an amount",
+                text2: "Please select a donation amount.",
+              });
+            }
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.donateButtonText}>Donate</Text>
+        </TouchableOpacity>
+      </LinearGradient>
       {subscribed ? (
         <>
           <TouchableOpacity
@@ -529,5 +599,94 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#374151",
     lineHeight: 21,
+  },
+  donationSection: {
+    marginTop: 32,
+    width: "100%",
+    alignItems: "center",
+    borderRadius: 22,
+    padding: 26,
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: "#a18fff",
+    marginBottom: 28,
+  },
+  donationIcon: {
+    marginBottom: 8,
+  },
+  donationHeader: {
+    fontSize: 23,
+    fontWeight: "bold",
+    color: "#7c3aed",
+    marginBottom: 7,
+    textAlign: "center",
+    letterSpacing: 0.3,
+  },
+  donationSubheader: {
+    fontSize: 15,
+    color: "#6b7280",
+    marginBottom: 18,
+    textAlign: "center",
+  },
+  donationOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginBottom: 20,
+    gap: 16,
+    width: "100%",
+  },
+  donationOption: {
+    backgroundColor: "#ede9fe",
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderWidth: 2,
+    borderColor: "#c4b5fd",
+    minWidth: 68,
+    alignItems: "center",
+    marginBottom: 8,
+    shadowColor: "#a18fff",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  donationOptionSelected: {
+    borderColor: "#7c3aed",
+    backgroundColor: "#d1c4e9",
+    shadowColor: "#7c3aed",
+    shadowOpacity: 0.22,
+  },
+  donationOptionText: {
+    fontSize: 18,
+    color: "#4b2995",
+    fontWeight: "bold",
+  },
+  donationOptionTextSelected: {
+    color: "#7c3aed",
+  },
+  donateButton: {
+    backgroundColor: "#7c3aed",
+    borderRadius: 12,
+    paddingHorizontal: 42,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 8,
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  donateButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+    letterSpacing: 0.6,
   },
 });
