@@ -4,6 +4,7 @@ import {
   View as RNView,
   TouchableOpacity,
   Modal,
+  ScrollView,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
@@ -137,7 +138,7 @@ export default function GroupInfoScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <RNView style={[styles.iconCircle, { backgroundColor: group.color }]}>
         <FontAwesome name={group.icon as any} size={40} color="#fff" />
       </RNView>
@@ -231,15 +232,12 @@ export default function GroupInfoScreen() {
           <Text style={styles.subscribeButtonText}>Subscribe</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
     padding: 32,
     backgroundColor: "#f9fafb",
   },
