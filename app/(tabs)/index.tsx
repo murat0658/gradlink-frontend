@@ -1,8 +1,19 @@
 import { StyleSheet, ScrollView, View as RNView } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
+import * as groupModule from "./groups/[code]";
+import React, { useEffect, useState } from "react";
 
-const timeline = [
+type TimelineEvent = {
+  title: string;
+  date: string;
+  description: string;
+  icon: string;
+  color: string;
+  group?: string;
+};
+
+const staticTimeline: TimelineEvent[] = [
   {
     title: "Account Created",
     date: "2023-01-01",
@@ -33,13 +44,62 @@ const timeline = [
   },
 ];
 
+let groups: Group[] = [];
+let sessionSubscriptions: Set<string> = new Set();
+try {
+  if (Array.isArray(groupModule.groups)) {
+    groups = groupModule.groups;
+  }
+  if (groupModule.sessionSubscriptions instanceof Set) {
+    sessionSubscriptions = groupModule.sessionSubscriptions;
+  }
+} catch (e) {
+  // fallback to empty
+}
+
+type News = {
+  title: string;
+  date: string;
+  content: string;
+};
+
+type Group = {
+  code: string;
+  university: string;
+  description: string;
+  members: number;
+  icon: string;
+  color: string;
+  founded: number;
+  location: string;
+  news?: News[];
+};
+
+const subscribedGroupNews = groups
+  .filter((g: Group) => sessionSubscriptions.has(g.code))
+  .flatMap((g: Group) =>
+    (g.news || []).map((news: News) => ({
+      title: news.title,
+      date: news.date,
+      description: news.content,
+      icon: g.icon,
+      color: g.color,
+      group: g.university,
+    }))
+  );
+
+// Merge and sort all events by date descending
+const timeline = [...staticTimeline, ...subscribedGroupNews].sort(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+);
+
 export default function TabOneScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Your Timeline</Text>
       <View style={styles.timelineContainer}>
-        {timeline.map((event, idx) => (
-          <RNView key={event.title} style={styles.eventRow}>
+        {timeline.map((event: TimelineEvent, idx) => (
+          <RNView key={event.title + event.date} style={styles.eventRow}>
             <View style={styles.iconColumn}>
               <View
                 style={[styles.iconCircle, { backgroundColor: event.color }]}
@@ -53,6 +113,13 @@ export default function TabOneScreen() {
             <View style={styles.eventContent}>
               <Text style={styles.eventTitle}>{event.title}</Text>
               <Text style={styles.eventDate}>{event.date}</Text>
+              {"group" in event && event.group && (
+                <Text
+                  style={{ fontSize: 13, color: "#4f46e5", marginBottom: 4 }}
+                >
+                  {event.group}
+                </Text>
+              )}
               <Text style={styles.eventDescription}>{event.description}</Text>
             </View>
           </RNView>

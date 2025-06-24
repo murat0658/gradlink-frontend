@@ -19,6 +19,18 @@ const groups = [
     color: "#a51c30",
     founded: 1636,
     location: "Cambridge, MA, USA",
+    news: [
+      {
+        title: "Harvard Alumni Meetup 2024",
+        date: "2024-06-01",
+        content: "Join us for the annual alumni meetup in Cambridge!",
+      },
+      {
+        title: "New Research Grant Announced",
+        date: "2024-05-15",
+        content: "Harvard announces a new research grant for alumni projects.",
+      },
+    ],
   },
   {
     code: "stanford",
@@ -29,6 +41,13 @@ const groups = [
     color: "#8c1515",
     founded: 1885,
     location: "Stanford, CA, USA",
+    news: [
+      {
+        title: "Stanford Tech Fair",
+        date: "2024-06-10",
+        content: "Showcase your startup at the Stanford Tech Fair!",
+      },
+    ],
   },
   {
     code: "mit",
@@ -39,6 +58,13 @@ const groups = [
     color: "#a2a2a1",
     founded: 1861,
     location: "Cambridge, MA, USA",
+    news: [
+      {
+        title: "MIT Hackathon Winners",
+        date: "2024-05-20",
+        content: "Congratulations to the winners of the 2024 MIT Hackathon!",
+      },
+    ],
   },
   {
     code: "oxford",
@@ -49,6 +75,13 @@ const groups = [
     color: "#002147",
     founded: 1096,
     location: "Oxford, England",
+    news: [
+      {
+        title: "Oxford Global Summit",
+        date: "2024-07-01",
+        content: "Register for the Oxford Global Summit this summer.",
+      },
+    ],
   },
   {
     code: "metu",
@@ -59,11 +92,20 @@ const groups = [
     color: "#a51c30",
     founded: 1956,
     location: "Ankara, Turkey",
+    news: [
+      {
+        title: "METU Alumni Picnic",
+        date: "2024-06-15",
+        content: "Join the annual METU alumni picnic in Ankara!",
+      },
+    ],
   },
 ];
 
 // Module-level variable to persist subscriptions for the session
 const sessionSubscriptions = new Set<string>();
+
+export { groups, sessionSubscriptions };
 
 export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
@@ -128,6 +170,19 @@ export default function GroupInfoScreen() {
         />
         <Text style={styles.infoText}>{group.location}</Text>
       </RNView>
+      {/* News Section (only if subscribed) */}
+      {subscribed && group.news && group.news.length > 0 && (
+        <View style={styles.newsSection}>
+          <Text style={styles.newsHeader}>Group News</Text>
+          {group.news.map((item, idx) => (
+            <View key={item.title + item.date} style={styles.newsItem}>
+              <Text style={styles.newsTitle}>{item.title}</Text>
+              <Text style={styles.newsDate}>{item.date}</Text>
+              <Text style={styles.newsContent}>{item.content}</Text>
+            </View>
+          ))}
+        </View>
+      )}
       {subscribed ? (
         <>
           <TouchableOpacity
@@ -300,5 +355,31 @@ const styles = StyleSheet.create({
     color: "#22223b",
     fontWeight: "bold",
     fontSize: 15,
+  },
+  newsSection: {
+    marginTop: 24,
+    width: "100%",
+  },
+  newsHeader: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#22223b",
+    marginBottom: 12,
+  },
+  newsItem: {
+    marginBottom: 12,
+  },
+  newsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#22223b",
+  },
+  newsDate: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  newsContent: {
+    fontSize: 15,
+    color: "#374151",
   },
 });
