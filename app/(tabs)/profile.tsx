@@ -10,10 +10,15 @@ import {
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { useSelector } from "react-redux";
-import { selectDonated } from "../store";
+import {
+  selectDonated,
+  selectToken,
+  API_BASE_URL,
+  getUserIdFromToken,
+} from "../store";
 
 const initialUser = {
   name: "Jane Doe",
@@ -48,6 +53,8 @@ function validatePhone(phone: string) {
 
 export default function ProfileScreen() {
   const donated = useSelector(selectDonated);
+  const token = useSelector(selectToken);
+  const userId = getUserIdFromToken(token);
   const [user, setUser] = useState(initialUser);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
@@ -73,11 +80,68 @@ export default function ProfileScreen() {
       c.name.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
-  const handleSave = () => {
+  useEffect(() => {
+    // TODO: Replace with actual user id extraction
+    if (!userId || !token) return;
+    const fetchProfile = async () => {
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+          method: "GET",
+          headers,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setUser(data);
+        setForm({
+          name: data.name,
+          email: data.email,
+          phone: data.phoneNumber?.replace(data.countryCode || "", "") || "",
+          countryCode: data.countryCode || "+1",
+          avatar: data.avatar || initialUser.avatar,
+        });
+      } catch (err) {
+        // Optionally handle error
+      }
+    };
+    fetchProfile();
+  }, [userId, token]);
+
+  const handleSave = async () => {
     if (!canSave) return;
-    setUser({ ...user, ...form });
-    setEditMode(false);
-    setTouched({});
+    if (!userId) {
+      alert("User ID not found. Cannot update profile.");
+      return;
+    }
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phoneNumber: form.countryCode + form.phone,
+          avatar: form.avatar,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        alert(data.message || "Failed to update profile.");
+        return;
+      }
+      setUser({ ...user, ...form });
+      setEditMode(false);
+      setTouched({});
+    } catch (err) {
+      alert("Could not connect to server. Please try again later.");
+    }
   };
 
   const pickImage = async () => {

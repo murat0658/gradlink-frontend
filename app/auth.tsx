@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
-import { setAuthenticated, setToken } from "./store";
+import { setAuthenticated, setToken, API_BASE_URL } from "./store";
 import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
@@ -28,7 +28,7 @@ export default function AuthScreen() {
     }
     setError("");
     try {
-      const response = await fetch("http://localhost:8080/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

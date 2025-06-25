@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
-import { setAuthenticated } from "./store";
+import { setAuthenticated, API_BASE_URL } from "./store";
 import { useRouter, Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
@@ -64,7 +64,7 @@ export default function SignupScreen() {
     }
     setError("");
     try {
-      const response = await fetch("http://192.168.1.102:8080/auth/register", {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
