@@ -20,7 +20,11 @@ const subscriptionsSlice = createSlice({
 // User slice for donation value
 const userSlice = createSlice({
   name: "user",
-  initialState: { donated: 0, isAuthenticated: false },
+  initialState: {
+    donated: 0,
+    isAuthenticated: false,
+    token: null as string | null,
+  },
   reducers: {
     incrementDonation: (state, action: PayloadAction<number>) => {
       state.donated += action.payload;
@@ -28,15 +32,20 @@ const userSlice = createSlice({
     setAuthenticated: (state, action: PayloadAction<boolean>) => {
       state.isAuthenticated = action.payload;
     },
+    setToken: (state, action: PayloadAction<string | null>) => {
+      state.token = action.payload;
+    },
   },
 });
 
 export const { subscribe, unsubscribe } = subscriptionsSlice.actions;
-export const { incrementDonation, setAuthenticated } = userSlice.actions;
+export const { incrementDonation, setAuthenticated, setToken } =
+  userSlice.actions;
 export const selectSubscriptions = (state: RootState) => state.subscriptions;
 export const selectDonated = (state: RootState) => state.user.donated;
 export const selectIsAuthenticated = (state: RootState) =>
   state.user.isAuthenticated;
+export const selectToken = (state: RootState) => state.user.token;
 
 export const store = configureStore({
   reducer: {

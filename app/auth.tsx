@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
-import { setAuthenticated } from "./store";
-import { useRouter, Link } from "expo-router";
+import { setAuthenticated, setToken } from "./store";
+import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 export default function AuthScreen() {
@@ -19,16 +19,36 @@ export default function AuthScreen() {
   const [error, setError] = useState("");
   const dispatch = useDispatch();
   const router = useRouter();
+  const { msg } = useLocalSearchParams();
 
-  const handleLogin = () => {
-    // Simple validation (replace with real auth in production)
+  const handleLogin = async () => {
     if (email.trim() === "" || password.trim() === "") {
       setError("Please enter both email and password.");
       return;
     }
-    // Simulate login success
-    dispatch(setAuthenticated(true));
-    router.replace("/(tabs)");
+    setError("");
+    try {
+      const response = await fetch("http://localhost:8080/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.message || "Login failed. Please try again.");
+        return;
+      }
+      const data = await response.json();
+      if (!data.token) {
+        setError("No token received. Please try again.");
+        return;
+      }
+      dispatch(setToken(data.token));
+      dispatch(setAuthenticated(true));
+      router.replace("/(tabs)");
+    } catch (err) {
+      setError("Could not connect to server. Please try again later.");
+    }
   };
 
   return (
@@ -45,6 +65,7 @@ export default function AuthScreen() {
         />
         <Text style={styles.title}>Welcome to GradLink</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
+        {msg ? <Text style={styles.success}>{msg}</Text> : null}
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -154,5 +175,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
     alignSelf: "flex-start",
+  },
+  success: {
+    color: "#22c55e",
+    fontSize: 15,
+    marginBottom: 8,
+    alignSelf: "flex-start",
+    fontWeight: "bold",
   },
 });

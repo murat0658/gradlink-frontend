@@ -79,9 +79,13 @@ export default function SignupScreen() {
         setError(data.message || "Registration failed. Please try again.");
         return;
       }
-      // Simulate signup success
-      dispatch(setAuthenticated(true));
-      router.replace("/(tabs)");
+      // Registration succeeded, route to sign in
+      setError("");
+      router.replace({
+        pathname: "/auth",
+        params: { msg: "Registration successful! Please sign in." },
+      });
+      return;
     } catch (err) {
       setError("Could not connect to server. Please try again later.");
     }
