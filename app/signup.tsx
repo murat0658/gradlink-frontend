@@ -51,7 +51,7 @@ export default function SignupScreen() {
       c.name.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (
       name.trim() === "" ||
       email.trim() === "" ||
@@ -62,9 +62,29 @@ export default function SignupScreen() {
       setError("Please fill in all fields with valid information.");
       return;
     }
-    // Simulate signup success
-    dispatch(setAuthenticated(true));
-    router.replace("/(tabs)");
+    setError("");
+    try {
+      const response = await fetch("http://localhost:8080/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          phoneNumber: countryCode + phone,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.message || "Registration failed. Please try again.");
+        return;
+      }
+      // Simulate signup success
+      dispatch(setAuthenticated(true));
+      router.replace("/(tabs)");
+    } catch (err) {
+      setError("Could not connect to server. Please try again later.");
+    }
   };
 
   return (
