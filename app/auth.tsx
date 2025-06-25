@@ -10,7 +10,7 @@ import {
 import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
 import { setAuthenticated } from "./store";
-import { useRouter } from "expo-router";
+import { useRouter, Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 export default function AuthScreen() {
@@ -70,6 +70,23 @@ export default function AuthScreen() {
         >
           <Text style={styles.buttonText}>Sign In</Text>
         </TouchableOpacity>
+        <View
+          style={{
+            marginTop: 18,
+            flexDirection: "row",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: "#6b7280", fontSize: 15 }}>
+            Don't have an account?{" "}
+          </Text>
+          <Link
+            href="./signup"
+            style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
+          >
+            Sign up
+          </Link>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
