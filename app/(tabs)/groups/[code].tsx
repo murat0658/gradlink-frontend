@@ -282,9 +282,44 @@ export default function GroupInfoScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <RNView style={[styles.iconCircle, { backgroundColor: group.color }]}>
-        <FontAwesome name={group.icon as any} size={40} color="#fff" />
-      </RNView>
+      <View style={styles.headerWrapper}>
+        <View style={styles.headerButtonRow}>
+          {subscribed ? (
+            <TouchableOpacity
+              style={[styles.stylishSubscribeButton, styles.unsubscribeButton]}
+              onPress={() => setShowUnsubModal(true)}
+              activeOpacity={0.85}
+            >
+              <FontAwesome
+                name="check"
+                size={16}
+                color="#fff"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.stylishSubscribeButtonText}>Subscribed</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.stylishSubscribeButton}
+              onPress={handleSubscribe}
+              activeOpacity={0.85}
+            >
+              <FontAwesome
+                name="plus"
+                size={16}
+                color="#fff"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.stylishSubscribeButtonText}>Subscribe</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.logoWrapper}>
+          <View style={[styles.iconCircle, { backgroundColor: group.color }]}>
+            <FontAwesome name={group.icon as any} size={40} color="#fff" />
+          </View>
+        </View>
+      </View>
       <Text style={styles.university}>{group.university}</Text>
       <Text style={styles.description}>{group.description}</Text>
       <RNView style={styles.infoRow}>
@@ -471,54 +506,40 @@ export default function GroupInfoScreen() {
           <Text style={styles.donateButtonText}>Donate</Text>
         </TouchableOpacity>
       </LinearGradient>
-      {/* Subscribe/Unsubscribe Section (always visible) */}
-      {subscribed ? (
-        <>
-          <TouchableOpacity
-            style={[styles.subscribeButton, styles.unsubscribeButton]}
-            onPress={() => setShowUnsubModal(true)}
-          >
-            <Text style={styles.subscribeButtonText}>Unsubscribe</Text>
-          </TouchableOpacity>
-          <Modal
-            visible={showUnsubModal}
-            transparent
-            animationType="none"
-            onRequestClose={() => setShowUnsubModal(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>
-                  Unsubscribe from {group.university}?
-                </Text>
-                <Text style={styles.modalDesc}>
-                  Are you sure you want to unsubscribe from this group?
-                </Text>
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={styles.modalButton}
-                    onPress={handleUnsubscribe}
-                  >
-                    <Text style={styles.modalButtonText}>Yes</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.modalCancelButton]}
-                    onPress={() => setShowUnsubModal(false)}
-                  >
-                    <Text style={styles.modalCancelButtonText}>No</Text>
-                  </TouchableOpacity>
-                </View>
+      {/* Remove subscribe/unsubscribe button from below the tabs */}
+      {/* Remove Modal for unsubscribe confirmation from here, move it to the top-level if needed */}
+      {subscribed && (
+        <Modal
+          visible={showUnsubModal}
+          transparent
+          animationType="none"
+          onRequestClose={() => setShowUnsubModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                Unsubscribe from {group.university}?
+              </Text>
+              <Text style={styles.modalDesc}>
+                Are you sure you want to unsubscribe from this group?
+              </Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={handleUnsubscribe}
+                >
+                  <Text style={styles.modalButtonText}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => setShowUnsubModal(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>No</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </Modal>
-        </>
-      ) : (
-        <TouchableOpacity
-          style={styles.subscribeButton}
-          onPress={handleSubscribe}
-        >
-          <Text style={styles.subscribeButtonText}>Subscribe</Text>
-        </TouchableOpacity>
+          </View>
+        </Modal>
       )}
     </ScrollView>
   );
@@ -816,5 +837,48 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: "#fff",
+  },
+  headerWrapper: {
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 8,
+    position: "relative",
+    width: "100%",
+  },
+  headerButtonRow: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    marginBottom: 8,
+    minHeight: 36,
+  },
+  logoWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    marginBottom: 4,
+  },
+  stylishSubscribeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4f46e5",
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    shadowColor: "#4f46e5",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+    minWidth: 110,
+    minHeight: 36,
+    zIndex: 2,
+  },
+  stylishSubscribeButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+    letterSpacing: 0.2,
   },
 });

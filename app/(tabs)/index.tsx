@@ -64,27 +64,85 @@ type Group = {
   news?: News[];
 };
 
+type Event = {
+  title: string;
+  date: string;
+  description: string;
+};
+
+type Topic = {
+  title: string;
+  posts: number;
+  date: string; // We'll add a date for sorting
+};
+
 export default function TabOneScreen() {
   const subscriptions = useSelector((state: RootState) =>
     selectSubscriptions(state)
   );
   // Aggregate news from all subscribed groups
-  const subscribedGroupNews = groups
-    .filter((g: Group) => subscriptions.includes(g.code))
-    .flatMap((g: Group) =>
-      (g.news || []).map((news: News) => ({
-        title: news.title,
-        date: news.date,
-        description: news.content,
-        icon: g.icon,
-        color: g.color,
-        group: g.university,
-      }))
-    );
-  // Merge and sort all events by date descending
-  const timeline = [...staticTimeline, ...subscribedGroupNews].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  const subscribedGroups = groups.filter((g: Group) =>
+    subscriptions.includes(g.code)
   );
+  const subscribedGroupNews = subscribedGroups.flatMap((g: Group) =>
+    (g.news || []).map((news: News) => ({
+      title: news.title,
+      date: news.date,
+      description: news.content,
+      icon: g.icon,
+      color: g.color,
+      group: g.university,
+      type: "news",
+    }))
+  );
+  // Aggregate events (placeholder, same as in group page)
+  const groupEvents: Event[] = [
+    {
+      title: "Annual Meetup",
+      date: "2024-07-10",
+      description: "Join us for our annual group meetup!",
+    },
+    {
+      title: "Webinar: Career Growth",
+      date: "2024-08-05",
+      description: "A webinar on career growth strategies.",
+    },
+  ];
+  const subscribedGroupEvents = subscribedGroups.flatMap((g: Group) =>
+    groupEvents.map((event) => ({
+      title: event.title,
+      date: event.date,
+      description: event.description,
+      icon: "calendar",
+      color: g.color,
+      group: g.university,
+      type: "event",
+    }))
+  );
+  // Aggregate topics (placeholder, same as in group page, assign a recent date for sorting)
+  const groupTopics: Topic[] = [
+    { title: "Networking", posts: 12, date: "2024-07-01" },
+    { title: "Job Opportunities", posts: 8, date: "2024-06-20" },
+    { title: "Research", posts: 5, date: "2024-06-10" },
+  ];
+  const subscribedGroupTopics = subscribedGroups.flatMap((g: Group) =>
+    groupTopics.map((topic) => ({
+      title: topic.title,
+      date: topic.date,
+      description: `${topic.posts} posts`,
+      icon: "comments",
+      color: g.color,
+      group: g.university,
+      type: "topic",
+    }))
+  );
+  // Merge and sort all events by date descending
+  const timeline = [
+    ...staticTimeline,
+    ...subscribedGroupNews,
+    ...subscribedGroupEvents,
+    ...subscribedGroupTopics,
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -96,8 +154,11 @@ export default function TabOneScreen() {
         </Text>
       </View>
       <View style={styles.timelineContainer}>
-        {timeline.map((event: TimelineEvent, idx) => (
-          <RNView key={event.title + event.date} style={styles.eventRow}>
+        {timeline.map((event: any, idx) => (
+          <RNView
+            key={event.title + event.date + event.type + (event.group || "")}
+            style={styles.eventRow}
+          >
             <View style={styles.iconColumn}>
               <View
                 style={[styles.iconCircle, { backgroundColor: event.color }]}
