@@ -79,14 +79,9 @@ export default function TabTwoScreen() {
               >
                 <FontAwesome name="close" size={22} color="#4f46e5" />
               </TouchableOpacity>
-              <Text style={styles.header}>Join Group: Choose a Plan</Text>
-              <View style={styles.headerAccent} />
-              <Text style={styles.headerSubtitle}>
-                Select a plan to join this group. Payment required.
-              </Text>
               <ScrollView
                 contentContainerStyle={styles.plansContainer}
-                style={{ maxHeight: 400 }}
+                style={{ flex: 1, width: "100%" }}
               >
                 {plans.map((plan) => {
                   const [pressed, setPressed] = useState(false);
@@ -191,25 +186,28 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   header: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "bold",
     color: "#22223b",
     letterSpacing: 0.5,
-    textAlign: "left",
+    textAlign: "center",
     marginBottom: 2,
+    marginTop: 8,
   },
   headerAccent: {
     width: 44,
     height: 4,
     backgroundColor: "#4f46e5",
     borderRadius: 2,
-    marginBottom: 10,
+    marginBottom: 14,
     marginTop: 2,
+    alignSelf: "center",
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: "#6b7280",
-    textAlign: "left",
+    textAlign: "center",
+    marginBottom: 18,
   },
   plansContainer: {
     width: "100%",
@@ -301,23 +299,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   modalOverlay: {
+    flex: 1,
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(30,41,59,0.45)",
     zIndex: 10,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
   },
   modalGradient: {
-    borderRadius: 32,
-    padding: 2,
-    width: "92%",
-    maxWidth: 440,
+    flex: 1,
+    width: "100%",
+    height: "100%",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     shadowColor: "#7c3aed",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
@@ -325,25 +323,19 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   modalContent: {
+    flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 28,
-    padding: 32,
     width: "100%",
-    maxWidth: 420,
+    height: "100%",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 8,
-    maxHeight: 600,
     justifyContent: "flex-start",
     position: "relative",
+    paddingTop: 48,
   },
   closeButton: {
     position: "absolute",
-    top: 18,
-    right: 18,
+    top: 24,
+    right: 24,
     zIndex: 2,
     backgroundColor: "#f3f4f6",
     borderRadius: 16,
@@ -353,37 +345,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 2,
-  },
-  header: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#22223b",
-    letterSpacing: 0.5,
-    textAlign: "center",
-    marginBottom: 2,
-    marginTop: 8,
-  },
-  headerAccent: {
-    width: 44,
-    height: 4,
-    backgroundColor: "#4f46e5",
-    borderRadius: 2,
-    marginBottom: 14,
-    marginTop: 2,
-    alignSelf: "center",
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: "#6b7280",
-    textAlign: "center",
-    marginBottom: 18,
-  },
-  plansContainer: {
-    width: "100%",
-    flexDirection: "column",
-    gap: 32,
-    paddingBottom: 8,
-    alignItems: "center",
   },
   cardPressed: {
     shadowOpacity: 0.22,
