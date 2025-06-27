@@ -5,11 +5,12 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { Text, View } from "@/components/Themed";
-import React from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Toast from "react-native-toast-message";
 import {
@@ -239,6 +240,9 @@ export default function GroupInfoScreen() {
   const [selectedAmount, setSelectedAmount] = React.useState<number | null>(
     null
   );
+  const [activeTab, setActiveTab] = useState<"news" | "events" | "topics">(
+    "news"
+  );
 
   const handleSubscribe = () => {
     dispatch(subscribe(code as string));
@@ -248,6 +252,25 @@ export default function GroupInfoScreen() {
     dispatch(unsubscribe(code as string));
     setShowUnsubModal(false);
   };
+
+  // Placeholder data for events and topics
+  const events = [
+    {
+      title: "Annual Meetup",
+      date: "2024-07-10",
+      description: "Join us for our annual group meetup!",
+    },
+    {
+      title: "Webinar: Career Growth",
+      date: "2024-08-05",
+      description: "A webinar on career growth strategies.",
+    },
+  ];
+  const topics = [
+    { title: "Networking", posts: 12 },
+    { title: "Job Opportunities", posts: 8 },
+    { title: "Research", posts: 5 },
+  ];
 
   if (!group) {
     return (
@@ -291,25 +314,101 @@ export default function GroupInfoScreen() {
         />
         <Text style={styles.infoText}>{group.location}</Text>
       </RNView>
-      {/* News Section (only if subscribed) */}
-      {subscribed && group.news && group.news.length > 0 && (
+      {/* Tabs */}
+      <RNView style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "news" && styles.activeTab]}
+          onPress={() => setActiveTab("news")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "news" && styles.activeTabText,
+            ]}
+          >
+            News
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "events" && styles.activeTab]}
+          onPress={() => setActiveTab("events")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "events" && styles.activeTabText,
+            ]}
+          >
+            Events
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "topics" && styles.activeTab]}
+          onPress={() => setActiveTab("topics")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "topics" && styles.activeTabText,
+            ]}
+          >
+            Topics
+          </Text>
+        </TouchableOpacity>
+      </RNView>
+      {/* Tab Content */}
+      {activeTab === "news" &&
+        subscribed &&
+        group.news &&
+        group.news.length > 0 && (
+          <View style={styles.newsSection}>
+            <Text style={styles.newsHeader}>Latest News & Updates</Text>
+            <View style={styles.newsHeaderAccent} />
+            <Text style={styles.newsSubtitle}>
+              Stay up to date with announcements, events, and highlights from
+              this group.
+            </Text>
+            {group.news.map((item, idx) => (
+              <View key={item.title + item.date} style={styles.newsItem}>
+                <Text style={styles.newsTitle}>{item.title}</Text>
+                <Text style={styles.newsDate}>{item.date}</Text>
+                <Text style={styles.newsContent}>{item.content}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      {activeTab === "events" && (
         <View style={styles.newsSection}>
-          <Text style={styles.newsHeader}>Latest News & Updates</Text>
+          <Text style={styles.newsHeader}>Upcoming Events</Text>
           <View style={styles.newsHeaderAccent} />
           <Text style={styles.newsSubtitle}>
-            Stay up to date with announcements, events, and highlights from this
-            group.
+            See what's happening soon in this group.
           </Text>
-          {group.news.map((item, idx) => (
-            <View key={item.title + item.date} style={styles.newsItem}>
-              <Text style={styles.newsTitle}>{item.title}</Text>
-              <Text style={styles.newsDate}>{item.date}</Text>
-              <Text style={styles.newsContent}>{item.content}</Text>
+          {events.map((event, idx) => (
+            <View key={event.title + event.date} style={styles.newsItem}>
+              <Text style={styles.newsTitle}>{event.title}</Text>
+              <Text style={styles.newsDate}>{event.date}</Text>
+              <Text style={styles.newsContent}>{event.description}</Text>
             </View>
           ))}
         </View>
       )}
-      {/* Donation Section */}
+      {activeTab === "topics" && (
+        <View style={styles.newsSection}>
+          <Text style={styles.newsHeader}>Discussion Topics</Text>
+          <View style={styles.newsHeaderAccent} />
+          <Text style={styles.newsSubtitle}>
+            Join the conversation on these topics.
+          </Text>
+          {topics.map((topic, idx) => (
+            <View key={topic.title} style={styles.newsItem}>
+              <Text style={styles.newsTitle}>{topic.title}</Text>
+              <Text style={styles.newsContent}>{topic.posts} posts</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {/* Donation Section (always visible) */}
       <LinearGradient
         colors={["#a18fff", "#6dd5fa", "#f9fafb"]}
         start={{ x: 0, y: 0 }}
@@ -372,6 +471,7 @@ export default function GroupInfoScreen() {
           <Text style={styles.donateButtonText}>Donate</Text>
         </TouchableOpacity>
       </LinearGradient>
+      {/* Subscribe/Unsubscribe Section (always visible) */}
       {subscribed ? (
         <>
           <TouchableOpacity
@@ -690,5 +790,31 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 18,
     letterSpacing: 0.6,
+  },
+  tabBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 28,
+    marginBottom: 8,
+    backgroundColor: "#ede9fe",
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  activeTab: {
+    backgroundColor: "#4f46e5",
+  },
+  tabText: {
+    color: "#4f46e5",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  activeTabText: {
+    color: "#fff",
   },
 });
