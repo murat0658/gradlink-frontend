@@ -1,7 +1,7 @@
 import { StyleSheet, ScrollView, View as RNView } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
-import { groups } from "./groups/[code]";
+import { groups } from "./groups/[code]/index";
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState, selectSubscriptions } from "../store";

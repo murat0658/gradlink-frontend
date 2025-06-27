@@ -1,4 +1,10 @@
+// React and hooks
+import React, { useState } from "react";
+
+// Expo Router
 import { useLocalSearchParams, useRouter } from "expo-router";
+
+// React Native components
 import {
   StyleSheet,
   View as RNView,
@@ -8,12 +14,16 @@ import {
   Dimensions,
   TextInput,
 } from "react-native";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import { Text, View } from "@/components/Themed";
-import React, { useState } from "react";
+
+// Third-party libraries
 import { useSelector, useDispatch } from "react-redux";
 import Toast from "react-native-toast-message";
+import { LinearGradient } from "expo-linear-gradient";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+
+// Local components
+import { Text, View } from "@/components/Themed";
 import {
   RootState,
   subscribe,
@@ -23,8 +33,7 @@ import {
   joinGroup,
   leaveGroup,
   selectJoinedGroups,
-} from "../../store";
-import { LinearGradient } from "expo-linear-gradient";
+} from "../../../store";
 
 const groups = [
   {
@@ -232,6 +241,13 @@ export { groups };
 
 const DONATION_AMOUNTS = [5, 10, 20, 50];
 
+// Add a type for topic posts
+type TopicPost = {
+  author: string;
+  content: string;
+  date: string;
+};
+
 export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
   const group = groups.find((g) => g.code === code);
@@ -252,10 +268,19 @@ export default function GroupInfoScreen() {
   const [activeTab, setActiveTab] = useState<"news" | "events" | "topics">(
     "news"
   );
-  const [groupNews, setGroupNews] = useState(group.news || []);
   const [newsContent, setNewsContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newsHeader, setNewsHeader] = useState("");
+
+  if (!group) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.notFound}>Group not found.</Text>
+      </View>
+    );
+  }
+
+  const [groupNews, setGroupNews] = useState(group.news || []);
 
   const handleSubscribe = () => {
     dispatch(subscribe(code as string));
@@ -284,14 +309,6 @@ export default function GroupInfoScreen() {
     { title: "Job Opportunities", posts: 8 },
     { title: "Research", posts: 5 },
   ];
-
-  if (!group) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.notFound}>Group not found.</Text>
-      </View>
-    );
-  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -580,10 +597,19 @@ export default function GroupInfoScreen() {
             Join the conversation on these topics.
           </Text>
           {topics.map((topic, idx) => (
-            <View key={topic.title} style={styles.newsItem}>
+            <TouchableOpacity
+              key={topic.title}
+              style={styles.topicItem}
+              onPress={() => {
+                router.push({
+                  pathname: `./topic/${encodeURIComponent(topic.title)}`,
+                });
+              }}
+              activeOpacity={0.85}
+            >
               <Text style={styles.newsTitle}>{topic.title}</Text>
               <Text style={styles.newsContent}>{topic.posts} posts</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -1137,5 +1163,114 @@ const styles = StyleSheet.create({
   charCount: {
     fontSize: 13,
     color: "#888",
+  },
+  topicItem: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  topicModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(30,41,59,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  topicModalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 22,
+    width: "100%",
+    maxWidth: 420,
+    alignItems: "flex-start",
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 12,
+    position: "relative",
+  },
+  topicModalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#4f46e5",
+    marginBottom: 10,
+  },
+  topicModalClose: {
+    position: "absolute",
+    top: 18,
+    right: 18,
+    zIndex: 2,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 16,
+    padding: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  topicPostsList: {
+    width: "100%",
+    marginBottom: 18,
+    maxHeight: 220,
+  },
+  topicPostItem: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+  },
+  topicPostAuthor: {
+    fontWeight: "bold",
+    color: "#4f46e5",
+    marginBottom: 2,
+  },
+  topicPostDate: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 4,
+  },
+  topicPostContent: {
+    fontSize: 15,
+    color: "#22223b",
+  },
+  topicPostForm: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    width: "100%",
+    marginTop: 8,
+  },
+  topicPostInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#22223b",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    minHeight: 36,
+    maxHeight: 80,
+    marginRight: 8,
+  },
+  topicPostButton: {
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    alignItems: "center",
+  },
+  topicPostButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
   },
 });

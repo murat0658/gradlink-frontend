@@ -23,7 +23,7 @@ import {
   selectJoinedGroups,
 } from "../store";
 import { useRouter } from "expo-router";
-import { groups } from "./groups/[code]";
+import { groups } from "./groups/[code]/index";
 
 const initialUser = {
   name: "Jane Doe",
