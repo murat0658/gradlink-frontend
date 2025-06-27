@@ -12,13 +12,16 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import React, { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   selectDonated,
   selectToken,
   API_BASE_URL,
   getUserIdFromToken,
+  setAuthenticated,
+  setToken,
 } from "../store";
+import { useRouter } from "expo-router";
 
 const initialUser = {
   name: "Jane Doe",
@@ -69,6 +72,8 @@ export default function ProfileScreen() {
   );
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
+  const dispatch = useDispatch();
+  const router = useRouter();
 
   const emailValid = validateEmail(form.email);
   const phoneValid = validatePhone(form.phone);
@@ -154,6 +159,24 @@ export default function ProfileScreen() {
     if (!result.canceled && result.assets && result.assets[0]?.uri) {
       setForm((f) => ({ ...f, avatar: result.assets[0].uri }));
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+    } catch (err) {
+      // Optionally handle error
+    }
+    dispatch(setToken(null));
+    dispatch(setAuthenticated(false));
+    router.replace("/auth");
   };
 
   return (

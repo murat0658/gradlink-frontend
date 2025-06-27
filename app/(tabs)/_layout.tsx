@@ -5,6 +5,14 @@ import { Pressable, Text, View, StyleSheet } from "react-native";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setAuthenticated,
+  setToken,
+  selectToken,
+  API_BASE_URL,
+} from "../store";
+import { useRouter } from "expo-router";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -55,6 +63,42 @@ const headerTitleStyles = StyleSheet.create({
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+  const token = useSelector(selectToken);
+  const dispatch = useDispatch();
+
+  const LogoutButton = () => {
+    const handleLogout = async () => {
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+      } catch (err) {
+        // Optionally handle error
+      }
+      dispatch(setToken(null));
+      dispatch(setAuthenticated(false));
+      router.replace("/auth");
+    };
+    return (
+      <Pressable onPress={handleLogout} style={{ marginRight: 16 }}>
+        {({ pressed }) => (
+          <FontAwesome
+            name="sign-out"
+            size={24}
+            color="#4f46e5"
+            style={{ opacity: pressed ? 0.5 : 1 }}
+          />
+        )}
+      </Pressable>
+    );
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -128,6 +172,7 @@ export default function TabLayout() {
           headerTitle: () => (
             <HeaderTitle title="Profile" icon="user-circle" color="#4f46e5" />
           ),
+          headerRight: () => <LogoutButton />,
         }}
       />
     </Tabs>
