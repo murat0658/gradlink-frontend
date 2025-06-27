@@ -6,6 +6,7 @@ import {
   Modal,
   ScrollView,
   Dimensions,
+  TextInput,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -251,6 +252,10 @@ export default function GroupInfoScreen() {
   const [activeTab, setActiveTab] = useState<"news" | "events" | "topics">(
     "news"
   );
+  const [groupNews, setGroupNews] = useState(group.news || []);
+  const [newsContent, setNewsContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newsHeader, setNewsHeader] = useState("");
 
   const handleSubscribe = () => {
     dispatch(subscribe(code as string));
@@ -442,26 +447,115 @@ export default function GroupInfoScreen() {
         </TouchableOpacity>
       </RNView>
       {/* Tab Content */}
-      {activeTab === "news" &&
-        subscribed &&
-        group.news &&
-        group.news.length > 0 && (
-          <View style={styles.newsSection}>
-            <Text style={styles.newsHeader}>Latest News & Updates</Text>
-            <View style={styles.newsHeaderAccent} />
-            <Text style={styles.newsSubtitle}>
-              Stay up to date with announcements, events, and highlights from
-              this group.
-            </Text>
-            {group.news.map((item, idx) => (
-              <View key={item.title + item.date} style={styles.newsItem}>
-                <Text style={styles.newsTitle}>{item.title}</Text>
+      {activeTab === "news" && subscribed && (
+        <View style={styles.newsSection}>
+          {/* Redesigned Twitter-like Share News Form */}
+          <View style={styles.shareNewsCard}>
+            <View style={styles.shareNewsRow}>
+              <View style={styles.avatarWrapper}>
+                <FontAwesome name="user-circle" size={38} color="#a5b4fc" />
+              </View>
+              <View style={styles.shareNewsFields}>
+                <TextInput
+                  style={styles.shareNewsHeaderInput}
+                  value={newsHeader}
+                  onChangeText={setNewsHeader}
+                  placeholder="Add a headline (optional)"
+                  placeholderTextColor="#b6b6b6"
+                  maxLength={80}
+                  returnKeyType="next"
+                />
+                <TextInput
+                  style={styles.shareNewsContentInput}
+                  value={newsContent}
+                  onChangeText={setNewsContent}
+                  placeholder="What's happening?"
+                  placeholderTextColor="#aaa"
+                  multiline
+                  maxLength={280}
+                />
+                <View style={styles.shareNewsFooterRow}>
+                  <Text style={styles.charCount}>{newsContent.length}/280</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.shareNewsButton,
+                      (!newsContent.trim() || isSubmitting) && { opacity: 0.5 },
+                    ]}
+                    onPress={async () => {
+                      if (!newsContent.trim()) {
+                        Toast.show({
+                          type: "info",
+                          text1: "Please enter some content.",
+                        });
+                        return;
+                      }
+                      setIsSubmitting(true);
+                      setTimeout(() => {
+                        setGroupNews([
+                          {
+                            title: newsHeader,
+                            date: new Date().toISOString().slice(0, 10),
+                            content: newsContent,
+                          },
+                          ...groupNews,
+                        ]);
+                        const groupIndex = groups.findIndex(
+                          (g) => g.code === code
+                        );
+                        if (groupIndex !== -1) {
+                          groups[groupIndex].news = [
+                            {
+                              title: newsHeader,
+                              date: new Date().toISOString().slice(0, 10),
+                              content: newsContent,
+                            },
+                            ...groups[groupIndex].news,
+                          ];
+                        }
+                        setNewsHeader("");
+                        setNewsContent("");
+                        setIsSubmitting(false);
+                        Toast.show({
+                          type: "success",
+                          text1: "News shared!",
+                        });
+                      }, 500);
+                    }}
+                    activeOpacity={0.85}
+                    disabled={!newsContent.trim() || isSubmitting}
+                  >
+                    <Text style={styles.shareNewsButtonText}>
+                      {isSubmitting ? "Sharing..." : "Share"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+          <Text style={styles.newsHeader}>Latest News & Updates</Text>
+          <View style={styles.newsHeaderAccent} />
+          <Text style={styles.newsSubtitle}>
+            Stay up to date with announcements, events, and highlights from this
+            group.
+          </Text>
+          {groupNews.length === 0 ? (
+            <Text style={{ color: "#888", marginTop: 12 }}>No news yet.</Text>
+          ) : (
+            groupNews.map((item, idx) => (
+              <View
+                key={item.content + item.date + idx}
+                style={styles.newsItem}
+              >
+                {item.title ? (
+                  <Text style={styles.newsTitle}>{item.title}</Text>
+                ) : null}
                 <Text style={styles.newsDate}>{item.date}</Text>
                 <Text style={styles.newsContent}>{item.content}</Text>
               </View>
-            ))}
-          </View>
-        )}
+            ))
+          )}
+        </View>
+      )}
       {activeTab === "events" && (
         <View style={styles.newsSection}>
           <Text style={styles.newsHeader}>Upcoming Events</Text>
@@ -972,5 +1066,76 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
     letterSpacing: 0.2,
+  },
+  shareNewsCard: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 28,
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#e0e7ff",
+  },
+  shareNewsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  avatarWrapper: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  shareNewsFields: {
+    flex: 1,
+  },
+  shareNewsHeaderInput: {
+    fontSize: 16,
+    color: "#22223b",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  shareNewsContentInput: {
+    fontSize: 16,
+    color: "#22223b",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    minHeight: 48,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginBottom: 8,
+  },
+  shareNewsFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+  shareNewsButton: {
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  shareNewsButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  charCount: {
+    fontSize: 13,
+    color: "#888",
   },
 });
