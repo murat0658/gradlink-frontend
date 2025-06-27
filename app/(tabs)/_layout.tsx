@@ -135,22 +135,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="two/index"
-        options={{
-          title: "Subscription",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="credit-card" color={color} />
-          ),
-          headerTitle: () => (
-            <HeaderTitle
-              title="Subscription"
-              icon="credit-card"
-              color="#22c55e"
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="groups"
         options={{
           title: "Groups",

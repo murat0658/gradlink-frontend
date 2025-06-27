@@ -20,8 +20,10 @@ import {
   getUserIdFromToken,
   setAuthenticated,
   setToken,
+  selectJoinedGroups,
 } from "../store";
 import { useRouter } from "expo-router";
+import { groups } from "./groups/[code]";
 
 const initialUser = {
   name: "Jane Doe",
@@ -74,6 +76,7 @@ export default function ProfileScreen() {
   const [countrySearch, setCountrySearch] = useState("");
   const dispatch = useDispatch();
   const router = useRouter();
+  const joinedGroups = useSelector(selectJoinedGroups);
 
   const emailValid = validateEmail(form.email);
   const phoneValid = validatePhone(form.phone);
@@ -182,6 +185,28 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <RNView style={styles.profileCard}>
+        {/* Joined Badges */}
+        {joinedGroups.length > 0 && (
+          <View style={styles.badgeRow}>
+            {joinedGroups.map((code) => {
+              const group = groups.find((g) => g.code === code);
+              if (!group) return null;
+              return (
+                <View key={code} style={styles.joinedBadge}>
+                  <FontAwesome
+                    name="users"
+                    size={14}
+                    color="#fff"
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={styles.joinedBadgeText}>
+                    {group.university} Joined
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
         {editMode ? (
           <TouchableOpacity
             onPress={pickImage}
@@ -560,5 +585,30 @@ const styles = StyleSheet.create({
     padding: 4,
     borderWidth: 2,
     borderColor: "#fff",
+  },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+    justifyContent: "center",
+  },
+  joinedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4f46e5",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginLeft: 0,
+    minWidth: 70,
+    minHeight: 32,
+    marginBottom: 4,
+  },
+  joinedBadgeText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
 });

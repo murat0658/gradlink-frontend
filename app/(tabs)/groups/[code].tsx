@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   StyleSheet,
   View as RNView,
@@ -19,6 +19,9 @@ import {
   unsubscribe,
   selectSubscriptions,
   incrementDonation,
+  joinGroup,
+  leaveGroup,
+  selectJoinedGroups,
 } from "../../store";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -236,6 +239,11 @@ export default function GroupInfoScreen() {
     selectSubscriptions(state)
   );
   const subscribed = subscriptions.includes(code as string);
+  const joinedGroups = useSelector((state: RootState) =>
+    selectJoinedGroups(state)
+  );
+  const joined = joinedGroups.includes(code as string);
+  const router = useRouter();
   const [showUnsubModal, setShowUnsubModal] = React.useState(false);
   const [selectedAmount, setSelectedAmount] = React.useState<number | null>(
     null
@@ -285,19 +293,61 @@ export default function GroupInfoScreen() {
       <View style={styles.headerWrapper}>
         <View style={styles.headerButtonRow}>
           {subscribed ? (
-            <TouchableOpacity
-              style={[styles.stylishSubscribeButton, styles.unsubscribeButton]}
-              onPress={() => setShowUnsubModal(true)}
-              activeOpacity={0.85}
-            >
-              <FontAwesome
-                name="check"
-                size={16}
-                color="#fff"
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.stylishSubscribeButtonText}>Subscribed</Text>
-            </TouchableOpacity>
+            joined ? (
+              <TouchableOpacity
+                style={styles.leaveButton}
+                onPress={() => dispatch(leaveGroup(code as string))}
+                activeOpacity={0.85}
+              >
+                <FontAwesome
+                  name="user-times"
+                  size={14}
+                  color="#fff"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.leaveButtonText}>Leave</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.stylishSubscribeButton,
+                    styles.unsubscribeButton,
+                    { marginRight: 8 },
+                  ]}
+                  onPress={() => setShowUnsubModal(true)}
+                  activeOpacity={0.85}
+                >
+                  <FontAwesome
+                    name="check"
+                    size={16}
+                    color="#fff"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.stylishSubscribeButtonText}>
+                    Subscribed
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.joinButton}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/subscriptions",
+                      params: { joinGroup: code, fromGroup: "1" },
+                    })
+                  }
+                  activeOpacity={0.85}
+                >
+                  <FontAwesome
+                    name="user-plus"
+                    size={14}
+                    color="#fff"
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={styles.joinButtonText}>Join</Text>
+                </TouchableOpacity>
+              </>
+            )
           ) : (
             <TouchableOpacity
               style={styles.stylishSubscribeButton}
@@ -879,6 +929,48 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 15,
+    letterSpacing: 0.2,
+  },
+  joinButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#22c55e",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    shadowColor: "#22c55e",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+    minWidth: 70,
+    minHeight: 32,
+  },
+  joinButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+  leaveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ef4444",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+    minWidth: 70,
+    minHeight: 32,
+  },
+  leaveButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
     letterSpacing: 0.2,
   },
 });

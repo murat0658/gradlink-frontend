@@ -17,6 +17,20 @@ const subscriptionsSlice = createSlice({
   },
 });
 
+// Slice for joined groups
+const joinedGroupsSlice = createSlice({
+  name: "joinedGroups",
+  initialState: [] as string[], // array of group codes
+  reducers: {
+    joinGroup: (state, action: PayloadAction<string>) => {
+      if (!state.includes(action.payload)) state.push(action.payload);
+    },
+    leaveGroup: (state, action: PayloadAction<string>) => {
+      return state.filter((code) => code !== action.payload);
+    },
+  },
+});
+
 // User slice for donation value
 const userSlice = createSlice({
   name: "user",
@@ -39,9 +53,11 @@ const userSlice = createSlice({
 });
 
 export const { subscribe, unsubscribe } = subscriptionsSlice.actions;
+export const { joinGroup, leaveGroup } = joinedGroupsSlice.actions;
 export const { incrementDonation, setAuthenticated, setToken } =
   userSlice.actions;
 export const selectSubscriptions = (state: RootState) => state.subscriptions;
+export const selectJoinedGroups = (state: RootState) => state.joinedGroups;
 export const selectDonated = (state: RootState) => state.user.donated;
 export const selectIsAuthenticated = (state: RootState) =>
   state.user.isAuthenticated;
@@ -51,6 +67,7 @@ export const store = configureStore({
   reducer: {
     placeholder: placeholderReducer,
     subscriptions: subscriptionsSlice.reducer,
+    joinedGroups: joinedGroupsSlice.reducer,
     user: userSlice.reducer,
   },
 });
