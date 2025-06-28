@@ -12,6 +12,7 @@ import "react-native-reanimated";
 import { Provider } from "react-redux";
 import { store } from "./store";
 import Toast from "react-native-toast-message";
+import { NotificationService } from "./services/NotificationService";
 
 import { useColorScheme } from "@/components/useColorScheme";
 
@@ -34,6 +35,21 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
   const colorScheme = useColorScheme();
+
+  // Initialize notifications
+  useEffect(() => {
+    const initializeNotifications = async () => {
+      try {
+        await NotificationService.requestPermissions();
+        await NotificationService.setupNotificationListeners();
+        console.log("Notifications initialized successfully");
+      } catch (error) {
+        console.log("Error initializing notifications:", error);
+      }
+    };
+
+    initializeNotifications();
+  }, []);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {

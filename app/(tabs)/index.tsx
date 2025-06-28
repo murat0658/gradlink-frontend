@@ -1,10 +1,26 @@
-import { StyleSheet, ScrollView, View as RNView } from "react-native";
+import {
+  StyleSheet,
+  ScrollView,
+  View as RNView,
+  TouchableOpacity,
+} from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import { groups } from "./groups/[code]/index";
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import { RootState, selectSubscriptions } from "../store";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  RootState,
+  selectSubscriptions,
+  selectEvents,
+  selectEnrollments,
+  selectNotifications,
+  selectUnreadNotifications,
+  addNotification,
+  markAsRead,
+  isEventComingSoon,
+  createEventNotification,
+} from "../store";
 
 type TimelineEvent = {
   title: string;
@@ -80,6 +96,43 @@ export default function TabOneScreen() {
   const subscriptions = useSelector((state: RootState) =>
     selectSubscriptions(state)
   );
+  const events = useSelector(selectEvents);
+  const enrollments = useSelector(selectEnrollments);
+  const notifications = useSelector(selectNotifications);
+  const unreadNotifications = useSelector(selectUnreadNotifications);
+  const dispatch = useDispatch();
+
+  // Check for upcoming events and create notifications
+  useEffect(() => {
+    const checkUpcomingEvents = () => {
+      const enrolledEvents = events.filter((event) =>
+        enrollments.includes(event.id)
+      );
+
+      enrolledEvents.forEach((event) => {
+        if (isEventComingSoon(event)) {
+          // Check if notification already exists for this event
+          const existingNotification = notifications.find(
+            (n) => n.type === "event" && n.eventId === event.id
+          );
+
+          if (!existingNotification) {
+            const notification = createEventNotification(event);
+            dispatch(addNotification(notification));
+          }
+        }
+      });
+    };
+
+    // Check immediately
+    checkUpcomingEvents();
+
+    // Check every 30 minutes
+    const interval = setInterval(checkUpcomingEvents, 30 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [events, enrollments, notifications, dispatch]);
+
   // Aggregate news from all subscribed groups
   const subscribedGroups = groups.filter((g: Group) =>
     subscriptions.includes(g.code)
@@ -95,31 +148,7 @@ export default function TabOneScreen() {
       type: "news",
     }))
   );
-  // Aggregate events (placeholder, same as in group page)
-  const groupEvents: Event[] = [
-    {
-      title: "Annual Meetup",
-      date: "2024-07-10",
-      description: "Join us for our annual group meetup!",
-    },
-    {
-      title: "Webinar: Career Growth",
-      date: "2024-08-05",
-      description: "A webinar on career growth strategies.",
-    },
-  ];
-  const subscribedGroupEvents = subscribedGroups.flatMap((g: Group) =>
-    groupEvents.map((event) => ({
-      title: event.title,
-      date: event.date,
-      description: event.description,
-      icon: "calendar",
-      color: g.color,
-      group: g.university,
-      type: "event",
-    }))
-  );
-  // Aggregate topics (placeholder, same as in group page, assign a recent date for sorting)
+  // Aggregate events (placeholder, same as in group page, assign a recent date for sorting)
   const groupTopics: Topic[] = [
     { title: "Networking", posts: 12, date: "2024-07-01" },
     { title: "Job Opportunities", posts: 8, date: "2024-06-20" },
@@ -140,12 +169,41 @@ export default function TabOneScreen() {
   const timeline = [
     ...staticTimeline,
     ...subscribedGroupNews,
-    ...subscribedGroupEvents,
     ...subscribedGroupTopics,
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  const handleNotificationPress = (notificationId: string) => {
+    dispatch(markAsRead(notificationId));
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* Notification Banner */}
+      {unreadNotifications.length > 0 && (
+        <View style={styles.notificationBanner}>
+          <FontAwesome
+            name="bell"
+            size={20}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.notificationText}>
+            {unreadNotifications.length} upcoming event
+            {unreadNotifications.length !== 1 ? "s" : ""}
+          </Text>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => {
+              unreadNotifications.forEach((notification) => {
+                dispatch(markAsRead(notification.id));
+              });
+            }}
+          >
+            <Text style={styles.notificationButtonText}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.headerArea}>
         <Text style={styles.header}>Your Timeline</Text>
         <View style={styles.headerAccent} />
@@ -195,6 +253,37 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     padding: 24,
     backgroundColor: "#f9fafb",
+  },
+  notificationBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4f46e5",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  notificationText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
+  },
+  notificationButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  notificationButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
   headerArea: {
     marginBottom: 24,

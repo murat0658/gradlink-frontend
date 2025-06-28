@@ -1,7 +1,24 @@
-import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  configureStore,
+  createSlice,
+  PayloadAction,
+  createSelector,
+} from "@reduxjs/toolkit";
+import { NotificationService } from "./services/NotificationService";
 
 // Placeholder reducer (can be removed later)
 const placeholderReducer = (state = {}, action: any) => state;
+
+// Notification interface
+export interface Notification {
+  id: string;
+  type: "event" | "general";
+  title: string;
+  message: string;
+  eventId?: string;
+  timestamp: string;
+  isRead: boolean;
+}
 
 // Event interface
 export interface Event {
@@ -17,6 +34,29 @@ export interface Event {
   groupName: string;
   isEnrolled?: boolean;
 }
+
+// Slice for notifications
+const notificationsSlice = createSlice({
+  name: "notifications",
+  initialState: [] as Notification[],
+  reducers: {
+    addNotification: (state, action: PayloadAction<Notification>) => {
+      state.unshift(action.payload); // Add to beginning
+    },
+    markAsRead: (state, action: PayloadAction<string>) => {
+      const notification = state.find((n) => n.id === action.payload);
+      if (notification) {
+        notification.isRead = true;
+      }
+    },
+    removeNotification: (state, action: PayloadAction<string>) => {
+      return state.filter((n) => n.id !== action.payload);
+    },
+    clearAllNotifications: (state) => {
+      return [];
+    },
+  },
+});
 
 // Slice for events
 const eventsSlice = createSlice({
@@ -40,6 +80,11 @@ const eventsSlice = createSlice({
       if (event && event.enrolledCount < event.capacity) {
         event.enrolledCount += 1;
         event.isEnrolled = true;
+
+        // Schedule push notification for the event
+        NotificationService.scheduleEventNotification(event).catch((error) => {
+          console.log("Error scheduling push notification:", error);
+        });
       }
     },
     unenrollFromEvent: (state, action: PayloadAction<string>) => {
@@ -47,6 +92,13 @@ const eventsSlice = createSlice({
       if (event && event.enrolledCount > 0) {
         event.enrolledCount -= 1;
         event.isEnrolled = false;
+
+        // Cancel push notifications for the event
+        NotificationService.cancelEventNotifications(event.id).catch(
+          (error) => {
+            console.log("Error canceling push notifications:", error);
+          }
+        );
       }
     },
   },
@@ -127,6 +179,12 @@ export const {
   unenrollFromEvent,
 } = eventsSlice.actions;
 export const { enroll, unenroll } = enrollmentsSlice.actions;
+export const {
+  addNotification,
+  markAsRead,
+  removeNotification,
+  clearAllNotifications,
+} = notificationsSlice.actions;
 
 export const selectSubscriptions = (state: RootState) => state.subscriptions;
 export const selectJoinedGroups = (state: RootState) => state.joinedGroups;
@@ -136,6 +194,11 @@ export const selectIsAuthenticated = (state: RootState) =>
 export const selectToken = (state: RootState) => state.user.token;
 export const selectEvents = (state: RootState) => state.events;
 export const selectEnrollments = (state: RootState) => state.enrollments;
+export const selectNotifications = (state: RootState) => state.notifications;
+export const selectUnreadNotifications = createSelector(
+  [selectNotifications],
+  (notifications) => notifications.filter((n) => !n.isRead)
+);
 
 export const store = configureStore({
   reducer: {
@@ -145,6 +208,7 @@ export const store = configureStore({
     user: userSlice.reducer,
     events: eventsSlice.reducer,
     enrollments: enrollmentsSlice.reducer,
+    notifications: notificationsSlice.reducer,
   },
 });
 
@@ -161,4 +225,32 @@ export function getUserIdFromToken(token: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+// Helper function to check if event is coming up soon (within 24 hours)
+export function isEventComingSoon(event: Event): boolean {
+  const now = new Date();
+  const eventTime = new Date(event.startTime);
+  const diffHours = (eventTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+  return diffHours > 0 && diffHours <= 24;
+}
+
+// Helper function to generate notification for upcoming event
+export function createEventNotification(event: Event): Notification {
+  const eventTime = new Date(event.startTime);
+  const hoursUntilEvent = Math.floor(
+    (eventTime.getTime() - new Date().getTime()) / (1000 * 60 * 60)
+  );
+
+  return {
+    id: `event-${event.id}-${Date.now()}`,
+    type: "event",
+    title: "Upcoming Event",
+    message: `${event.title} starts in ${hoursUntilEvent} hour${
+      hoursUntilEvent !== 1 ? "s" : ""
+    }!`,
+    eventId: event.id,
+    timestamp: new Date().toISOString(),
+    isRead: false,
+  };
 }

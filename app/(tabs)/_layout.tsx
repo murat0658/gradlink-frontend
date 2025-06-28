@@ -11,6 +11,7 @@ import {
   setToken,
   selectToken,
   API_BASE_URL,
+  selectUnreadNotifications,
 } from "../store";
 import { useRouter } from "expo-router";
 
@@ -18,9 +19,43 @@ import { useRouter } from "expo-router";
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
+  showBadge?: boolean;
+  badgeCount?: number;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  return (
+    <View style={{ position: "relative" }}>
+      <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />
+      {props.showBadge && props.badgeCount && props.badgeCount > 0 && (
+        <View style={tabBarIconStyles.badge}>
+          <Text style={tabBarIconStyles.badgeText}>
+            {props.badgeCount > 99 ? "99+" : props.badgeCount.toString()}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
+
+const tabBarIconStyles = StyleSheet.create({
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -8,
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+});
 
 type HeaderTitleProps = {
   title: string;
@@ -65,6 +100,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const token = useSelector(selectToken);
+  const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
 
   const LogoutButton = () => {
@@ -113,7 +149,12 @@ export default function TabLayout() {
         options={{
           title: "Timeline",
           tabBarIcon: ({ color }) => (
-            <TabBarIcon name="clock-o" color={color} />
+            <TabBarIcon
+              name="clock-o"
+              color={color}
+              showBadge={true}
+              badgeCount={unreadNotifications.length}
+            />
           ),
           headerTitle: () => (
             <HeaderTitle title="Timeline" icon="clock-o" color="#4f46e5" />

@@ -30,6 +30,7 @@ import {
 } from "../store";
 import { useRouter } from "expo-router";
 import { groups } from "./groups/[code]/index";
+import { NotificationService } from "../services/NotificationService";
 
 const initialUser = {
   name: "Jane Doe",
@@ -207,6 +208,16 @@ export default function ProfileScreen() {
     dispatch(unenrollFromEvent(eventId));
     dispatch(unenroll(eventId));
     alert(`You have unenrolled from "${eventTitle}"`);
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      await NotificationService.sendTestNotification();
+      alert("Test notification sent! Check your device notifications.");
+    } catch (error) {
+      console.log("Error sending test notification:", error);
+      alert("Failed to send test notification. Check console for details.");
+    }
   };
 
   return (
@@ -414,6 +425,21 @@ export default function ProfileScreen() {
                 style={{ marginRight: 6 }}
               />
               <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.testNotificationButton}
+              onPress={handleTestNotification}
+            >
+              <FontAwesome
+                name="bell"
+                size={16}
+                color="#fff"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.testNotificationButtonText}>
+                Test Notification
+              </Text>
             </TouchableOpacity>
           </>
         )}
@@ -855,6 +881,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   unenrollButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  testNotificationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  testNotificationButtonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 15,
