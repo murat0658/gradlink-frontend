@@ -1,7 +1,13 @@
 import React from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, Tabs } from "expo-router";
-import { Pressable, Text, View, StyleSheet } from "react-native";
+import {
+  Pressable,
+  Text,
+  View,
+  StyleSheet,
+  View as RNView,
+} from "react-native";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
@@ -96,6 +102,27 @@ const headerTitleStyles = StyleSheet.create({
   },
 });
 
+const headerNotificationBadgeStyles = StyleSheet.create({
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -8,
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+});
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
@@ -149,29 +176,49 @@ export default function TabLayout() {
         options={{
           title: "Timeline",
           tabBarIcon: ({ color }) => (
-            <TabBarIcon
-              name="clock-o"
-              color={color}
-              showBadge={true}
-              badgeCount={unreadNotifications.length}
-            />
+            <TabBarIcon name="clock-o" color={color} />
           ),
           headerTitle: () => (
             <HeaderTitle title="Timeline" icon="clock-o" color="#4f46e5" />
           ),
           headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? "light"].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+            <RNView style={{ flexDirection: "row", alignItems: "center" }}>
+              <Link href="/notifications" asChild>
+                <Pressable style={{ marginRight: 15 }}>
+                  {({ pressed }) => (
+                    <RNView style={{ position: "relative" }}>
+                      <FontAwesome
+                        name="bell"
+                        size={25}
+                        color={Colors[colorScheme ?? "light"].text}
+                        style={{ opacity: pressed ? 0.5 : 1 }}
+                      />
+                      {unreadNotifications.length > 0 && (
+                        <RNView style={headerNotificationBadgeStyles.badge}>
+                          <Text style={headerNotificationBadgeStyles.badgeText}>
+                            {unreadNotifications.length > 99
+                              ? "99+"
+                              : unreadNotifications.length.toString()}
+                          </Text>
+                        </RNView>
+                      )}
+                    </RNView>
+                  )}
+                </Pressable>
+              </Link>
+              <Link href="/modal" asChild>
+                <Pressable>
+                  {({ pressed }) => (
+                    <FontAwesome
+                      name="info-circle"
+                      size={25}
+                      color={Colors[colorScheme ?? "light"].text}
+                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                    />
+                  )}
+                </Pressable>
+              </Link>
+            </RNView>
           ),
         }}
       />

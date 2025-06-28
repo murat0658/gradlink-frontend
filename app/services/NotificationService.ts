@@ -1,6 +1,8 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { Event } from "../store";
+import { store } from "../store";
+import { addNotification } from "../store";
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -61,6 +63,21 @@ export class NotificationService {
           trigger: null, // Immediate notification
         });
 
+        // Also add to Redux store for the notifications screen
+        const notification = {
+          id: `push-${event.id}-${Date.now()}`,
+          type: "event" as const,
+          title: "Event Scheduled",
+          message: `${event.title} is scheduled for ${hoursUntilEvent} hour${
+            hoursUntilEvent !== 1 ? "s" : ""
+          } from now!`,
+          eventId: event.id,
+          timestamp: new Date().toISOString(),
+          isRead: false,
+        };
+
+        store.dispatch(addNotification(notification));
+
         console.log(`Scheduled notification for event: ${event.title}`);
       } catch (error) {
         console.log("Error scheduling notification:", error);
@@ -119,6 +136,19 @@ export class NotificationService {
         },
         trigger: null,
       });
+
+      // Also add to Redux store
+      const notification = {
+        id: `test-${Date.now()}`,
+        type: "general" as const,
+        title: "Test Notification",
+        message: "This is a test push notification!",
+        timestamp: new Date().toISOString(),
+        isRead: false,
+      };
+
+      store.dispatch(addNotification(notification));
+
       console.log("Test notification sent successfully");
     } catch (error) {
       console.log("Error sending test notification:", error);

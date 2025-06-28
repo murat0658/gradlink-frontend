@@ -77,6 +77,10 @@ export default function RootLayout() {
             name="subscriptions"
             options={{ presentation: "modal", title: "Subscription" }}
           />
+          <Stack.Screen
+            name="notifications"
+            options={{ presentation: "modal", title: "Notifications" }}
+          />
         </Stack>
         <Toast />
       </ThemeProvider>
