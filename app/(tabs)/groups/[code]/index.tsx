@@ -1,5 +1,5 @@
 // React and hooks
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // Expo Router
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -33,6 +33,15 @@ import {
   joinGroup,
   leaveGroup,
   selectJoinedGroups,
+  selectDonated,
+  Event,
+  addEvent,
+  enrollInEvent,
+  unenrollFromEvent,
+  enroll,
+  unenroll,
+  selectEvents,
+  selectEnrollments,
 } from "../../../store";
 
 const groups = [
@@ -260,6 +269,8 @@ export default function GroupInfoScreen() {
     selectJoinedGroups(state)
   );
   const joined = joinedGroups.includes(code as string);
+  const events = useSelector(selectEvents);
+  const enrollments = useSelector(selectEnrollments);
   const router = useRouter();
   const [showUnsubModal, setShowUnsubModal] = React.useState(false);
   const [selectedAmount, setSelectedAmount] = React.useState<number | null>(
@@ -282,6 +293,123 @@ export default function GroupInfoScreen() {
 
   const [groupNews, setGroupNews] = useState(group.news || []);
 
+  // Initialize events for this group if they don't exist
+  useEffect(() => {
+    const groupEvents = events.filter((e) => e.groupCode === code);
+    if (groupEvents.length === 0) {
+      // Add sample events for this group with recent dates (June 2025 onwards)
+      const sampleEvents: Event[] = [
+        {
+          id: `${code}-event-1`,
+          title: "Alumni Networking Mixer",
+          description:
+            "Join fellow alumni for an evening of networking, drinks, and meaningful connections. Perfect opportunity to expand your professional network.",
+          startTime: "2025-06-25T19:00:00Z",
+          endTime: "2025-06-25T22:00:00Z",
+          location: "Downtown Conference Center",
+          capacity: 80,
+          enrolledCount: 23,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+        {
+          id: `${code}-event-2`,
+          title: "Tech Industry Panel Discussion",
+          description:
+            "Hear from successful alumni working in tech companies. Learn about industry trends, career paths, and get your questions answered.",
+          startTime: "2025-07-03T14:00:00Z",
+          endTime: "2025-07-03T16:30:00Z",
+          location: "Virtual (Zoom)",
+          capacity: 150,
+          enrolledCount: 67,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+        {
+          id: `${code}-event-3`,
+          title: "Summer Career Fair 2025",
+          description:
+            "Connect with top employers from various industries. Bring your resume and make lasting impressions with potential employers.",
+          startTime: "2025-07-15T10:00:00Z",
+          endTime: "2025-07-15T17:00:00Z",
+          location: "Main Campus Gymnasium",
+          capacity: 300,
+          enrolledCount: 189,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+        {
+          id: `${code}-event-4`,
+          title: "Startup Pitch Competition",
+          description:
+            "Watch alumni entrepreneurs pitch their innovative ideas. Network with investors and fellow entrepreneurs.",
+          startTime: "2025-07-28T18:00:00Z",
+          endTime: "2025-07-28T21:00:00Z",
+          location: "Innovation Hub",
+          capacity: 120,
+          enrolledCount: 45,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+        {
+          id: `${code}-event-5`,
+          title: "Research Collaboration Workshop",
+          description:
+            "Explore opportunities for research collaboration with fellow alumni. Share your research interests and find potential collaborators.",
+          startTime: "2025-08-10T09:00:00Z",
+          endTime: "2025-08-10T12:00:00Z",
+          location: "Science Building, Room 205",
+          capacity: 60,
+          enrolledCount: 18,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+        {
+          id: `${code}-event-6`,
+          title: "Leadership Development Seminar",
+          description:
+            "Enhance your leadership skills with expert-led workshops. Perfect for mid-career professionals looking to advance.",
+          startTime: "2025-08-22T13:00:00Z",
+          endTime: "2025-08-22T17:00:00Z",
+          location: "Virtual (Microsoft Teams)",
+          capacity: 100,
+          enrolledCount: 34,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+        {
+          id: `${code}-event-7`,
+          title: "Summer Alumni Picnic",
+          description:
+            "Enjoy a relaxing afternoon with fellow alumni and their families. Great food, games, and networking in a casual setting.",
+          startTime: "2025-09-06T12:00:00Z",
+          endTime: "2025-09-06T16:00:00Z",
+          location: "Campus Park",
+          capacity: 200,
+          enrolledCount: 78,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+        {
+          id: `${code}-event-8`,
+          title: "Industry-Specific Roundtables",
+          description:
+            "Join focused discussions with alumni in your industry. Share insights, challenges, and opportunities.",
+          startTime: "2025-09-20T15:00:00Z",
+          endTime: "2025-09-20T18:00:00Z",
+          location: "Business School, Various Rooms",
+          capacity: 80,
+          enrolledCount: 29,
+          groupCode: code as string,
+          groupName: group.university,
+        },
+      ];
+      sampleEvents.forEach((event) => dispatch(addEvent(event)));
+    }
+  }, [code, group.university, events.length, dispatch]);
+
+  const groupEvents = events.filter((e) => e.groupCode === code);
+
   const handleSubscribe = () => {
     dispatch(subscribe(code as string));
   };
@@ -291,19 +419,40 @@ export default function GroupInfoScreen() {
     setShowUnsubModal(false);
   };
 
-  // Placeholder data for events and topics
-  const events = [
-    {
-      title: "Annual Meetup",
-      date: "2024-07-10",
-      description: "Join us for our annual group meetup!",
-    },
-    {
-      title: "Webinar: Career Growth",
-      date: "2024-08-05",
-      description: "A webinar on career growth strategies.",
-    },
-  ];
+  const handleEnroll = (eventId: string) => {
+    dispatch(enrollInEvent(eventId));
+    dispatch(enroll(eventId));
+    Toast.show({
+      type: "success",
+      text1: "Enrolled!",
+      text2: "You have successfully enrolled in this event.",
+    });
+  };
+
+  const handleUnenroll = (eventId: string) => {
+    dispatch(unenrollFromEvent(eventId));
+    dispatch(unenroll(eventId));
+    Toast.show({
+      type: "info",
+      text1: "Unenrolled",
+      text2: "You have unenrolled from this event.",
+    });
+  };
+
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      full: date.toLocaleString(),
+    };
+  };
+
+  const isEventFull = (event: Event) => event.enrolledCount >= event.capacity;
+  const isEventPast = (event: Event) => new Date(event.endTime) < new Date();
+  const isEnrolledInEvent = (eventId: string) => enrollments.includes(eventId);
+
+  // Placeholder data for topics
   const topics = [
     { title: "Networking", posts: 12 },
     { title: "Job Opportunities", posts: 8 },
@@ -578,15 +727,103 @@ export default function GroupInfoScreen() {
           <Text style={styles.newsHeader}>Upcoming Events</Text>
           <View style={styles.newsHeaderAccent} />
           <Text style={styles.newsSubtitle}>
-            See what's happening soon in this group.
+            Join events organized by this group. Enroll to secure your spot!
           </Text>
-          {events.map((event, idx) => (
-            <View key={event.title + event.date} style={styles.newsItem}>
-              <Text style={styles.newsTitle}>{event.title}</Text>
-              <Text style={styles.newsDate}>{event.date}</Text>
-              <Text style={styles.newsContent}>{event.description}</Text>
-            </View>
-          ))}
+          {groupEvents.length === 0 ? (
+            <Text style={{ color: "#888", marginTop: 12 }}>
+              No events scheduled.
+            </Text>
+          ) : (
+            groupEvents.map((event) => {
+              const dateTime = formatDateTime(event.startTime);
+              const isPast = isEventPast(event);
+              const isFull = isEventFull(event);
+              const isEnrolled = isEnrolledInEvent(event.id);
+
+              return (
+                <View key={event.id} style={styles.eventItem}>
+                  <View style={styles.eventHeader}>
+                    <Text style={styles.eventTitle}>{event.title}</Text>
+                    {isPast && (
+                      <View style={styles.eventStatusBadge}>
+                        <Text style={styles.eventStatusText}>Past</Text>
+                      </View>
+                    )}
+                    {isFull && !isPast && (
+                      <View
+                        style={[
+                          styles.eventStatusBadge,
+                          { backgroundColor: "#ef4444" },
+                        ]}
+                      >
+                        <Text style={styles.eventStatusText}>Full</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.eventDescription}>
+                    {event.description}
+                  </Text>
+                  <View style={styles.eventDetails}>
+                    <View style={styles.eventDetailRow}>
+                      <FontAwesome name="calendar" size={14} color="#6b7280" />
+                      <Text style={styles.eventDetailText}>
+                        {dateTime.date}
+                      </Text>
+                    </View>
+                    <View style={styles.eventDetailRow}>
+                      <FontAwesome name="clock-o" size={14} color="#6b7280" />
+                      <Text style={styles.eventDetailText}>
+                        {dateTime.time}
+                      </Text>
+                    </View>
+                    <View style={styles.eventDetailRow}>
+                      <FontAwesome
+                        name="map-marker"
+                        size={14}
+                        color="#6b7280"
+                      />
+                      <Text style={styles.eventDetailText}>
+                        {event.location}
+                      </Text>
+                    </View>
+                    <View style={styles.eventDetailRow}>
+                      <FontAwesome name="users" size={14} color="#6b7280" />
+                      <Text style={styles.eventDetailText}>
+                        {event.enrolledCount}/{event.capacity} enrolled
+                      </Text>
+                    </View>
+                  </View>
+                  {!isPast && (
+                    <TouchableOpacity
+                      style={[
+                        styles.enrollButton,
+                        isEnrolled && styles.enrolledButton,
+                        isFull && !isEnrolled && styles.disabledButton,
+                      ]}
+                      onPress={() => {
+                        if (isEnrolled) {
+                          handleUnenroll(event.id);
+                        } else if (!isFull) {
+                          handleEnroll(event.id);
+                        }
+                      }}
+                      disabled={isFull && !isEnrolled}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={[
+                          styles.enrollButtonText,
+                          isEnrolled && styles.enrolledButtonText,
+                        ]}
+                      >
+                        {isEnrolled ? "Enrolled" : isFull ? "Full" : "Enroll"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })
+          )}
         </View>
       )}
       {activeTab === "topics" && (
@@ -1272,5 +1509,95 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 15,
+  },
+  eventItem: {
+    marginBottom: 18,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    borderLeftWidth: 5,
+    borderLeftColor: "#4f46e5",
+    maxWidth: "100%",
+  },
+  eventHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    flexWrap: "wrap",
+  },
+  eventTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#22223b",
+    marginRight: 8,
+    flex: 1,
+    flexWrap: "wrap",
+  },
+  eventStatusBadge: {
+    backgroundColor: "#4f46e5",
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  eventStatusText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  eventDescription: {
+    fontSize: 15,
+    color: "#374151",
+    marginBottom: 8,
+    flexWrap: "wrap",
+    lineHeight: 20,
+  },
+  eventDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  eventDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  eventDetailText: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginLeft: 4,
+    flexShrink: 1,
+    flexWrap: "wrap",
+  },
+  enrollButton: {
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  enrolledButton: {
+    backgroundColor: "#22c55e",
+  },
+  enrollButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  enrolledButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  disabledButton: {
+    backgroundColor: "#a7f3d0",
   },
 });

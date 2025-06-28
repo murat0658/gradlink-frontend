@@ -3,6 +3,69 @@ import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
 // Placeholder reducer (can be removed later)
 const placeholderReducer = (state = {}, action: any) => state;
 
+// Event interface
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  startTime: string; // ISO string
+  endTime: string; // ISO string
+  location: string;
+  capacity: number;
+  enrolledCount: number;
+  groupCode: string;
+  groupName: string;
+  isEnrolled?: boolean;
+}
+
+// Slice for events
+const eventsSlice = createSlice({
+  name: "events",
+  initialState: [] as Event[],
+  reducers: {
+    addEvent: (state, action: PayloadAction<Event>) => {
+      state.push(action.payload);
+    },
+    updateEvent: (state, action: PayloadAction<Event>) => {
+      const index = state.findIndex((e) => e.id === action.payload.id);
+      if (index !== -1) {
+        state[index] = action.payload;
+      }
+    },
+    removeEvent: (state, action: PayloadAction<string>) => {
+      return state.filter((e) => e.id !== action.payload);
+    },
+    enrollInEvent: (state, action: PayloadAction<string>) => {
+      const event = state.find((e) => e.id === action.payload);
+      if (event && event.enrolledCount < event.capacity) {
+        event.enrolledCount += 1;
+        event.isEnrolled = true;
+      }
+    },
+    unenrollFromEvent: (state, action: PayloadAction<string>) => {
+      const event = state.find((e) => e.id === action.payload);
+      if (event && event.enrolledCount > 0) {
+        event.enrolledCount -= 1;
+        event.isEnrolled = false;
+      }
+    },
+  },
+});
+
+// Slice for user enrollments
+const enrollmentsSlice = createSlice({
+  name: "enrollments",
+  initialState: [] as string[], // array of event IDs
+  reducers: {
+    enroll: (state, action: PayloadAction<string>) => {
+      if (!state.includes(action.payload)) state.push(action.payload);
+    },
+    unenroll: (state, action: PayloadAction<string>) => {
+      return state.filter((eventId) => eventId !== action.payload);
+    },
+  },
+});
+
 // Slice for group subscriptions
 const subscriptionsSlice = createSlice({
   name: "subscriptions",
@@ -56,12 +119,23 @@ export const { subscribe, unsubscribe } = subscriptionsSlice.actions;
 export const { joinGroup, leaveGroup } = joinedGroupsSlice.actions;
 export const { incrementDonation, setAuthenticated, setToken } =
   userSlice.actions;
+export const {
+  addEvent,
+  updateEvent,
+  removeEvent,
+  enrollInEvent,
+  unenrollFromEvent,
+} = eventsSlice.actions;
+export const { enroll, unenroll } = enrollmentsSlice.actions;
+
 export const selectSubscriptions = (state: RootState) => state.subscriptions;
 export const selectJoinedGroups = (state: RootState) => state.joinedGroups;
 export const selectDonated = (state: RootState) => state.user.donated;
 export const selectIsAuthenticated = (state: RootState) =>
   state.user.isAuthenticated;
 export const selectToken = (state: RootState) => state.user.token;
+export const selectEvents = (state: RootState) => state.events;
+export const selectEnrollments = (state: RootState) => state.enrollments;
 
 export const store = configureStore({
   reducer: {
@@ -69,6 +143,8 @@ export const store = configureStore({
     subscriptions: subscriptionsSlice.reducer,
     joinedGroups: joinedGroupsSlice.reducer,
     user: userSlice.reducer,
+    events: eventsSlice.reducer,
+    enrollments: enrollmentsSlice.reducer,
   },
 });
 

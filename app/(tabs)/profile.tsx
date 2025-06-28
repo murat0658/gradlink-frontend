@@ -7,6 +7,7 @@ import {
   Modal,
   FlatList,
   Pressable,
+  ScrollView,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
@@ -21,6 +22,11 @@ import {
   setAuthenticated,
   setToken,
   selectJoinedGroups,
+  selectEvents,
+  selectEnrollments,
+  Event,
+  unenrollFromEvent,
+  unenroll,
 } from "../store";
 import { useRouter } from "expo-router";
 import { groups } from "./groups/[code]/index";
@@ -60,6 +66,8 @@ export default function ProfileScreen() {
   const donated = useSelector(selectDonated);
   const token = useSelector(selectToken);
   const userId = getUserIdFromToken(token);
+  const events = useSelector(selectEvents);
+  const enrollments = useSelector(selectEnrollments);
   const [user, setUser] = useState(initialUser);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
@@ -77,6 +85,19 @@ export default function ProfileScreen() {
   const dispatch = useDispatch();
   const router = useRouter();
   const joinedGroups = useSelector(selectJoinedGroups);
+
+  // Get enrolled events
+  const enrolledEvents = events.filter((event) =>
+    enrollments.includes(event.id)
+  );
+
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+  };
 
   const emailValid = validateEmail(form.email);
   const phoneValid = validatePhone(form.phone);
@@ -182,8 +203,18 @@ export default function ProfileScreen() {
     router.replace("/auth");
   };
 
+  const handleUnenroll = (eventId: string, eventTitle: string) => {
+    dispatch(unenrollFromEvent(eventId));
+    dispatch(unenroll(eventId));
+    alert(`You have unenrolled from "${eventTitle}"`);
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <RNView style={styles.profileCard}>
         {/* Joined Badges */}
         {joinedGroups.length > 0 && (
@@ -207,6 +238,7 @@ export default function ProfileScreen() {
             })}
           </View>
         )}
+
         {editMode ? (
           <TouchableOpacity
             onPress={pickImage}
@@ -285,34 +317,55 @@ export default function ProfileScreen() {
                 Please enter a valid phone number.
               </Text>
             )}
-            <TouchableOpacity
-              style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-              onPress={handleSave}
-              disabled={!canSave}
-            >
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
+            <RNView style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  !canSave && styles.saveButtonDisabled,
+                ]}
+                onPress={handleSave}
+                disabled={!canSave}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setForm({
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone,
+                    countryCode: user.countryCode,
+                    avatar: user.avatar,
+                  });
+                  setEditMode(false);
+                  setTouched({});
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </RNView>
             <Modal
               visible={countryModalVisible}
-              animationType="slide"
-              transparent={true}
+              transparent
+              animationType="fade"
               onRequestClose={() => setCountryModalVisible(false)}
             >
               <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Select Country Code</Text>
                   <TextInput
-                    style={styles.input}
+                    style={styles.searchInput}
                     value={countrySearch}
                     onChangeText={setCountrySearch}
-                    placeholder="Search country code"
+                    placeholder="Search country..."
                     placeholderTextColor="#aaa"
-                    autoFocus
                   />
                   <FlatList
                     data={filteredCountryCodes}
                     keyExtractor={(item) => item.code}
                     renderItem={({ item }) => (
-                      <Pressable
+                      <TouchableOpacity
                         style={styles.countryItem}
                         onPress={() => {
                           setForm((f) => ({ ...f, countryCode: item.code }));
@@ -322,7 +375,7 @@ export default function ProfileScreen() {
                       >
                         <Text style={styles.countryCodeText}>{item.code}</Text>
                         <Text style={styles.countryNameText}>{item.name}</Text>
-                      </Pressable>
+                      </TouchableOpacity>
                     )}
                     style={{ maxHeight: 300 }}
                   />
@@ -365,6 +418,7 @@ export default function ProfileScreen() {
           </>
         )}
       </RNView>
+
       <View style={styles.donationCard}>
         <FontAwesome
           name={
@@ -379,17 +433,80 @@ export default function ProfileScreen() {
           ${(donated as number).toFixed(2)}
         </Text>
       </View>
-    </View>
+
+      {/* Enrolled Events Section */}
+      {enrolledEvents.length > 0 && (
+        <View style={styles.enrolledEventsSection}>
+          <Text style={styles.sectionTitle}>My Enrolled Events</Text>
+          <View style={styles.sectionAccent} />
+          {enrolledEvents.map((event) => {
+            const dateTime = formatDateTime(event.startTime);
+            const isPast = new Date(event.endTime) < new Date();
+
+            return (
+              <View key={event.id} style={styles.enrolledEventItem}>
+                <View style={styles.enrolledEventHeader}>
+                  <Text style={styles.enrolledEventTitle}>{event.title}</Text>
+                  {isPast && (
+                    <View style={styles.pastEventBadge}>
+                      <Text style={styles.pastEventBadgeText}>Past</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.enrolledEventGroup}>{event.groupName}</Text>
+                <View style={styles.enrolledEventDetails}>
+                  <View style={styles.enrolledEventDetailRow}>
+                    <FontAwesome name="calendar" size={12} color="#6b7280" />
+                    <Text style={styles.enrolledEventDetailText}>
+                      {dateTime.date}
+                    </Text>
+                  </View>
+                  <View style={styles.enrolledEventDetailRow}>
+                    <FontAwesome name="clock-o" size={12} color="#6b7280" />
+                    <Text style={styles.enrolledEventDetailText}>
+                      {dateTime.time}
+                    </Text>
+                  </View>
+                  <View style={styles.enrolledEventDetailRow}>
+                    <FontAwesome name="map-marker" size={12} color="#6b7280" />
+                    <Text style={styles.enrolledEventDetailText}>
+                      {event.location}
+                    </Text>
+                  </View>
+                </View>
+                {!isPast && (
+                  <TouchableOpacity
+                    style={styles.unenrollButton}
+                    onPress={() => handleUnenroll(event.id, event.title)}
+                    activeOpacity={0.85}
+                  >
+                    <FontAwesome
+                      name="times"
+                      size={14}
+                      color="#fff"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.unenrollButtonText}>Unenroll</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    padding: 32,
     backgroundColor: "#f9fafb",
+  },
+  scrollContent: {
+    alignItems: "center",
+    padding: 32,
+    paddingBottom: 50,
   },
   profileCard: {
     alignItems: "center",
@@ -507,6 +624,24 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 15,
   },
+  cancelButton: {
+    backgroundColor: "#ef4444",
+    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
   closeModalButton: {
     backgroundColor: "#4f46e5",
     borderRadius: 8,
@@ -538,6 +673,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#22223b",
+    marginBottom: 10,
+  },
+  searchInput: {
+    width: "100%",
+    fontSize: 15,
+    color: "#22223b",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   countryItem: {
     flexDirection: "row",
@@ -610,5 +763,100 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
     letterSpacing: 0.2,
+  },
+  enrolledEventsSection: {
+    width: "100%",
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#22223b",
+    marginBottom: 4,
+  },
+  sectionAccent: {
+    height: 4,
+    backgroundColor: "#4f46e5",
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  enrolledEventItem: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    maxWidth: "100%",
+  },
+  enrolledEventHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    flexWrap: "wrap",
+  },
+  enrolledEventTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#22223b",
+    flex: 1,
+    flexWrap: "wrap",
+  },
+  enrolledEventGroup: {
+    fontSize: 15,
+    color: "#6b7280",
+    marginBottom: 8,
+    flexWrap: "wrap",
+  },
+  enrolledEventDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  enrolledEventDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  enrolledEventDetailText: {
+    fontSize: 15,
+    color: "#6b7280",
+    marginLeft: 4,
+    flexShrink: 1,
+    flexWrap: "wrap",
+  },
+  pastEventBadge: {
+    backgroundColor: "#ef4444",
+    borderRadius: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  pastEventBadgeText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+  unenrollButton: {
+    backgroundColor: "#ef4444",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 10,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  unenrollButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
   },
 });
