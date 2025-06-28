@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -9,6 +9,13 @@ import {
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setTopicAnswers,
+  updateTopicAnswers,
+  selectTopicAnswers,
+  RootState,
+} from "@/app/store";
 
 // Helper: get initials from name
 function getInitials(name: string) {
@@ -51,21 +58,33 @@ const CURRENT_USER = "You";
 export default function TopicThreadScreen() {
   const { code, topicTitle } = useLocalSearchParams();
   const router = useRouter();
+  const dispatch = useDispatch();
+  const topicKey = `${code}:${topicTitle}`;
+  const storedMainPost = useSelector((state: RootState) =>
+    selectTopicAnswers(state, topicKey)
+  );
   // Main discussion post
-  const [mainPost, setMainPost] = useState<ThreadAnswer>({
-    id: generateId(),
-    author: "Group Admin",
-    content: `Welcome to the discussion on "${topicTitle}"! Share your thoughts below.`,
-    date: new Date().toISOString(),
-    replies: [],
-    upvotes: 1,
-    collapsed: false,
-  });
+  const [mainPost, setMainPost] = useState<ThreadAnswer>(
+    storedMainPost || {
+      id: generateId(),
+      author: "Group Admin",
+      content: `Welcome to the discussion on "${topicTitle}"! Share your thoughts below.`,
+      date: new Date().toISOString(),
+      replies: [],
+      upvotes: 1,
+      collapsed: false,
+    }
+  );
   // Track which answer (by id) is being replied to
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   // Track upvotes (local only)
   const [upvotedIds, setUpvotedIds] = useState<Set<string>>(new Set());
+
+  // Sync local state to Redux on change
+  useEffect(() => {
+    dispatch(setTopicAnswers({ key: topicKey, answers: mainPost }));
+  }, [mainPost, dispatch, topicKey]);
 
   // Recursive function to add a reply to the tree
   function addReplyToTree(
@@ -106,18 +125,21 @@ export default function TopicThreadScreen() {
 
   // Recursive render of answers
   function renderAnswers(answers: ThreadAnswer[], level = 1) {
+    // Cap the maximum indent to 5 levels
+    const cappedLevel = Math.min(level, 5);
+    const indent = cappedLevel * 10; // 10px per level, max 50px
     return answers.map((answer) => {
       const isCurrentUser = answer.author === CURRENT_USER;
       return (
         <View
           key={answer.id}
-          style={[styles.answerItem, { marginLeft: level * 16 }]}
+          style={[styles.answerItem, { marginLeft: indent }]}
         >
           {/* Vertical line for tree */}
           <RNView
             style={[
               styles.verticalLine,
-              { left: -8, opacity: level > 1 ? 1 : 0 },
+              { left: 0, opacity: cappedLevel > 1 ? 1 : 0 },
             ]}
           />
           <RNView style={styles.answerHeaderRow}>
@@ -451,15 +473,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
-    marginLeft: 12,
     position: "relative",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
-    maxWidth: "96%",
-    alignSelf: "flex-start",
+    width: "100%",
   },
   answerHeaderRow: {
     flexDirection: "row",
@@ -563,6 +583,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     width: "100%",
     maxWidth: "100%",
+    minWidth: 180,
   },
   replyingToText: {
     color: ACCENT,
@@ -574,6 +595,8 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   replyInput: {
+    flex: 1,
+    minWidth: 180,
     width: "100%",
     fontSize: 15,
     color: "#22223b",
@@ -607,5 +630,6 @@ const styles = StyleSheet.create({
     width: 2,
     backgroundColor: ACCENT,
     zIndex: 0,
+    left: 0, // Always align to left edge of answerItem
   },
 });

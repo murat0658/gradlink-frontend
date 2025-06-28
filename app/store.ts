@@ -35,6 +35,17 @@ export interface Event {
   isEnrolled?: boolean;
 }
 
+// Type for a threaded answer (copied from topic screen)
+export interface ThreadAnswer {
+  id: string;
+  author: string;
+  content: string;
+  date: string;
+  replies: ThreadAnswer[];
+  upvotes: number;
+  collapsed?: boolean;
+}
+
 // Slice for notifications
 const notificationsSlice = createSlice({
   name: "notifications",
@@ -167,6 +178,35 @@ const userSlice = createSlice({
   },
 });
 
+// Slice for topic answers (session-persistent only)
+const topicAnswersSlice = createSlice({
+  name: "topicAnswers",
+  initialState: {} as Record<string, ThreadAnswer>, // key: `${groupCode}:${topicTitle}`
+  reducers: {
+    setTopicAnswers: (
+      state,
+      action: PayloadAction<{ key: string; answers: ThreadAnswer }>
+    ) => {
+      state[action.payload.key] = action.payload.answers;
+    },
+    updateTopicAnswers: (
+      state,
+      action: PayloadAction<{
+        key: string;
+        updater: (prev: ThreadAnswer) => ThreadAnswer;
+      }>
+    ) => {
+      const prev = state[action.payload.key];
+      if (prev) {
+        state[action.payload.key] = action.payload.updater(prev);
+      }
+    },
+    clearTopicAnswers: (state, action: PayloadAction<string>) => {
+      delete state[action.payload];
+    },
+  },
+});
+
 export const { subscribe, unsubscribe } = subscriptionsSlice.actions;
 export const { joinGroup, leaveGroup } = joinedGroupsSlice.actions;
 export const { incrementDonation, setAuthenticated, setToken } =
@@ -185,6 +225,8 @@ export const {
   removeNotification,
   clearAllNotifications,
 } = notificationsSlice.actions;
+export const { setTopicAnswers, updateTopicAnswers, clearTopicAnswers } =
+  topicAnswersSlice.actions;
 
 export const selectSubscriptions = (state: RootState) => state.subscriptions;
 export const selectJoinedGroups = (state: RootState) => state.joinedGroups;
@@ -199,6 +241,8 @@ export const selectUnreadNotifications = createSelector(
   [selectNotifications],
   (notifications) => notifications.filter((n) => !n.isRead)
 );
+export const selectTopicAnswers = (state: RootState, key: string) =>
+  state.topicAnswers[key];
 
 export const store = configureStore({
   reducer: {
@@ -209,13 +253,14 @@ export const store = configureStore({
     events: eventsSlice.reducer,
     enrollments: enrollmentsSlice.reducer,
     notifications: notificationsSlice.reducer,
+    topicAnswers: topicAnswersSlice.reducer,
   },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-export const API_BASE_URL = "http://192.168.1.102:8080";
+export const API_BASE_URL = "http://192.168.1.101:8080";
 
 export function getUserIdFromToken(token: string | null): string | null {
   if (!token) return null;
