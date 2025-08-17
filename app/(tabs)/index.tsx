@@ -21,6 +21,13 @@ import {
   isEventComingSoon,
   createEventNotification,
 } from "../store";
+import { Card, Badge, Header } from "@/components/UI";
+import Colors, {
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+} from "@/constants/Colors";
 
 type TimelineEvent = {
   title: string;
@@ -177,71 +184,81 @@ export default function TabOneScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Notification Banner */}
       {unreadNotifications.length > 0 && (
-        <View style={styles.notificationBanner}>
-          <FontAwesome
-            name="bell"
-            size={20}
-            color="#fff"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.notificationText}>
-            {unreadNotifications.length} upcoming event
-            {unreadNotifications.length !== 1 ? "s" : ""}
-          </Text>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={() => {
-              unreadNotifications.forEach((notification) => {
-                dispatch(markAsRead(notification.id));
-              });
-            }}
-          >
-            <Text style={styles.notificationButtonText}>Dismiss</Text>
-          </TouchableOpacity>
-        </View>
+        <Card style={styles.notificationBanner}>
+          <RNView style={styles.notificationContent}>
+            <FontAwesome
+              name="bell"
+              size={20}
+              color="#fff"
+              style={{ marginRight: spacing.sm }}
+            />
+            <Text style={styles.notificationText}>
+              {unreadNotifications.length} upcoming event
+              {unreadNotifications.length !== 1 ? "s" : ""}
+            </Text>
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => {
+                unreadNotifications.forEach((notification) => {
+                  dispatch(markAsRead(notification.id));
+                });
+              }}
+            >
+              <Text style={styles.notificationButtonText}>Dismiss</Text>
+            </TouchableOpacity>
+          </RNView>
+        </Card>
       )}
 
-      <View style={styles.headerArea}>
-        <Text style={styles.header}>Your Timeline</Text>
-        <View style={styles.headerAccent} />
-        <Text style={styles.headerSubtitle}>
-          See your activity and news from groups you follow.
-        </Text>
-      </View>
-      <View style={styles.timelineContainer}>
+      <Header
+        title="Your Timeline"
+        subtitle="See your activity and news from groups you follow."
+        icon="📅"
+        color={Colors.tint}
+      />
+
+      <RNView style={styles.timelineContainer}>
         {timeline.map((event: any, idx) => (
           <RNView
             key={event.title + event.date + event.type + (event.group || "")}
             style={styles.eventRow}
           >
-            <View style={styles.iconColumn}>
-              <View
+            <RNView style={styles.iconColumn}>
+              <RNView
                 style={[styles.iconCircle, { backgroundColor: event.color }]}
               >
                 <FontAwesome name={event.icon as any} size={22} color="#fff" />
-              </View>
+              </RNView>
               {idx < timeline.length - 1 && (
-                <View style={styles.verticalLine} />
+                <RNView
+                  style={[
+                    styles.verticalLine,
+                    { backgroundColor: Colors.border },
+                  ]}
+                />
               )}
-            </View>
-            <View style={styles.eventContent}>
+            </RNView>
+            <Card style={styles.eventContent}>
               <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text style={styles.eventDate}>{event.date}</Text>
+              <Text style={[styles.eventDate, { color: Colors.textSecondary }]}>
+                {event.date}
+              </Text>
               {"group" in event && event.group && (
-                <Text
-                  style={{ fontSize: 13, color: "#4f46e5", marginBottom: 4 }}
-                >
+                <Badge variant="info" size="sm" style={styles.groupBadge}>
                   {event.group}
-                </Text>
+                </Badge>
               )}
               <Text style={styles.eventDescription}>{event.description}</Text>
-            </View>
+            </Card>
           </RNView>
         ))}
-      </View>
+      </RNView>
     </ScrollView>
   );
 }
@@ -251,76 +268,45 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: "center",
     justifyContent: "flex-start",
-    padding: 24,
-    backgroundColor: "#f9fafb",
+    padding: spacing.lg,
+    backgroundColor: Colors.backgroundSecondary,
   },
   notificationBanner: {
+    backgroundColor: Colors.tint,
+    borderColor: Colors.tint,
+    marginBottom: spacing.md,
+    width: "100%",
+  },
+  notificationContent: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4f46e5",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   notificationText: {
     color: "#fff",
-    fontSize: 16,
+    ...typography.base,
     fontWeight: "600",
     flex: 1,
   },
   notificationButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   notificationButtonText: {
     color: "#fff",
-    fontSize: 14,
+    ...typography.sm,
     fontWeight: "600",
-  },
-  headerArea: {
-    marginBottom: 24,
-    marginTop: 8,
-    width: "100%",
-    alignSelf: "flex-start",
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#22223b",
-    letterSpacing: 0.5,
-    textAlign: "left",
-    marginBottom: 2,
-  },
-  headerAccent: {
-    width: 44,
-    height: 4,
-    backgroundColor: "#4f46e5",
-    borderRadius: 2,
-    marginBottom: 10,
-    marginTop: 2,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: "#6b7280",
-    textAlign: "left",
   },
   timelineContainer: {
     width: "100%",
     flexDirection: "column",
-    gap: 32,
+    gap: spacing.xl,
   },
   eventRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     minHeight: 80,
   },
   iconColumn: {
@@ -334,42 +320,34 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 2,
+    marginBottom: spacing.xs,
     zIndex: 1,
   },
   verticalLine: {
     width: 4,
     flex: 1,
-    backgroundColor: "#e5e7eb",
-    marginTop: 2,
     borderRadius: 2,
+    marginTop: spacing.xs,
     zIndex: 0,
   },
   eventContent: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginLeft: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
+    marginLeft: spacing.sm,
   },
   eventTitle: {
-    fontSize: 18,
+    ...typography.lg,
     fontWeight: "bold",
-    color: "#22223b",
-    marginBottom: 2,
+    marginBottom: spacing.xs,
   },
   eventDate: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginBottom: 6,
+    ...typography.sm,
+    marginBottom: spacing.xs,
+  },
+  groupBadge: {
+    alignSelf: "flex-start",
+    marginBottom: spacing.xs,
   },
   eventDescription: {
-    fontSize: 15,
-    color: "#374151",
+    ...typography.base,
   },
 });

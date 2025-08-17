@@ -9,8 +9,12 @@ import {
   View as RNView,
 } from "react-native";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
-import Colors from "../../constants/Colors";
-import { useColorScheme } from "@/components/useColorScheme";
+import Colors, {
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+} from "@/constants/Colors";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setAuthenticated,
@@ -29,16 +33,16 @@ function TabBarIcon(props: {
   badgeCount?: number;
 }) {
   return (
-    <View style={{ position: "relative" }}>
+    <RNView style={{ position: "relative" }}>
       <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />
       {props.showBadge && props.badgeCount && props.badgeCount > 0 && (
-        <View style={tabBarIconStyles.badge}>
+        <RNView style={tabBarIconStyles.badge}>
           <Text style={tabBarIconStyles.badgeText}>
             {props.badgeCount > 99 ? "99+" : props.badgeCount.toString()}
           </Text>
-        </View>
+        </RNView>
       )}
-    </View>
+    </RNView>
   );
 }
 
@@ -47,7 +51,7 @@ const tabBarIconStyles = StyleSheet.create({
     position: "absolute",
     top: -5,
     right: -8,
-    backgroundColor: "#ef4444",
+    backgroundColor: Colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -58,7 +62,7 @@ const tabBarIconStyles = StyleSheet.create({
   },
   badgeText: {
     color: "#fff",
-    fontSize: 10,
+    ...typography.xs,
     fontWeight: "bold",
   },
 });
@@ -69,17 +73,17 @@ type HeaderTitleProps = {
   color?: string;
 };
 
-function HeaderTitle({ title, icon, color = "#4f46e5" }: HeaderTitleProps) {
+function HeaderTitle({ title, icon, color = Colors.tint }: HeaderTitleProps) {
   return (
-    <View style={[headerTitleStyles.bg, { backgroundColor: color }]}>
+    <RNView style={[headerTitleStyles.bg, { backgroundColor: color }]}>
       <FontAwesome
         name={icon}
         size={20}
         color="#fff"
-        style={{ marginRight: 8 }}
+        style={{ marginRight: spacing.sm }}
       />
       <Text style={headerTitleStyles.title}>{title}</Text>
-    </View>
+    </RNView>
   );
 }
 
@@ -87,15 +91,15 @@ const headerTitleStyles = StyleSheet.create({
   bg: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    marginVertical: 4,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    marginVertical: spacing.xs,
     alignSelf: "center",
-    backgroundColor: "#4f46e5",
+    backgroundColor: Colors.tint,
   },
   title: {
-    fontSize: 18,
+    ...typography.lg,
     fontWeight: "bold",
     color: "#fff",
     letterSpacing: 0.5,
@@ -107,7 +111,7 @@ const headerNotificationBadgeStyles = StyleSheet.create({
     position: "absolute",
     top: -5,
     right: -8,
-    backgroundColor: "#ef4444",
+    backgroundColor: Colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -118,13 +122,12 @@ const headerNotificationBadgeStyles = StyleSheet.create({
   },
   badgeText: {
     color: "#fff",
-    fontSize: 10,
+    ...typography.xs,
     fontWeight: "bold",
   },
 });
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const token = useSelector(selectToken);
   const unreadNotifications = useSelector(selectUnreadNotifications);
@@ -149,12 +152,12 @@ export default function TabLayout() {
       router.replace("/auth");
     };
     return (
-      <Pressable onPress={handleLogout} style={{ marginRight: 16 }}>
+      <Pressable onPress={handleLogout} style={{ marginRight: spacing.md }}>
         {({ pressed }) => (
           <FontAwesome
             name="sign-out"
             size={24}
-            color="#4f46e5"
+            color={Colors.tint}
             style={{ opacity: pressed ? 0.5 : 1 }}
           />
         )}
@@ -165,7 +168,13 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: Colors.tint,
+        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarStyle: {
+          backgroundColor: Colors.card,
+          borderTopColor: Colors.border,
+          ...shadows.sm,
+        },
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
@@ -179,18 +188,18 @@ export default function TabLayout() {
             <TabBarIcon name="clock-o" color={color} />
           ),
           headerTitle: () => (
-            <HeaderTitle title="Timeline" icon="clock-o" color="#4f46e5" />
+            <HeaderTitle title="Timeline" icon="clock-o" color={Colors.tint} />
           ),
           headerRight: () => (
             <RNView style={{ flexDirection: "row", alignItems: "center" }}>
               <Link href="/notifications" asChild>
-                <Pressable style={{ marginRight: 15 }}>
+                <Pressable style={{ marginRight: spacing.md }}>
                   {({ pressed }) => (
                     <RNView style={{ position: "relative" }}>
                       <FontAwesome
                         name="bell"
                         size={25}
-                        color={Colors[colorScheme ?? "light"].text}
+                        color={Colors.text}
                         style={{ opacity: pressed ? 0.5 : 1 }}
                       />
                       {unreadNotifications.length > 0 && (
@@ -212,8 +221,11 @@ export default function TabLayout() {
                     <FontAwesome
                       name="info-circle"
                       size={25}
-                      color={Colors[colorScheme ?? "light"].text}
-                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                      color={Colors.text}
+                      style={{
+                        marginRight: spacing.md,
+                        opacity: pressed ? 0.5 : 1,
+                      }}
                     />
                   )}
                 </Pressable>
@@ -230,7 +242,11 @@ export default function TabLayout() {
             <TabBarIcon name="university" color={color} />
           ),
           headerTitle: () => (
-            <HeaderTitle title="Groups" icon="university" color="#a51c30" />
+            <HeaderTitle
+              title="Groups"
+              icon="university"
+              color={Colors.error}
+            />
           ),
         }}
       />
@@ -242,7 +258,11 @@ export default function TabLayout() {
             <TabBarIcon name="user-circle" color={color} />
           ),
           headerTitle: () => (
-            <HeaderTitle title="Profile" icon="user-circle" color="#4f46e5" />
+            <HeaderTitle
+              title="Profile"
+              icon="user-circle"
+              color={Colors.tint}
+            />
           ),
           headerRight: () => <LogoutButton />,
         }}

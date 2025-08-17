@@ -260,7 +260,7 @@ export const store = configureStore({
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-export const API_BASE_URL = "http://192.168.1.101:8080";
+export const API_BASE_URL = "http://192.168.1.100:8080";
 
 export function getUserIdFromToken(token: string | null): string | null {
   if (!token) return null;

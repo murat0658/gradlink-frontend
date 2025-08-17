@@ -1,7 +1,14 @@
-import { StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { StyleSheet, ScrollView, TouchableOpacity, View } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Text, View } from "@/components/Themed";
+import { Text } from "@/components/Themed";
 import { Link } from "expo-router";
+import { Card, Header } from "@/components/UI";
+import Colors, {
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+} from "@/constants/Colors";
 
 const groups = [
   {
@@ -58,14 +65,17 @@ const groups = [
 
 export default function GroupsScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerArea}>
-        <Text style={styles.header}>University Graduate Groups</Text>
-        <View style={styles.headerAccent} />
-        <Text style={styles.headerSubtitle}>
-          Browse and join alumni groups from top universities around the world.
-        </Text>
-      </View>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
+      <Header
+        title="University Graduate Groups"
+        subtitle="Browse and join alumni groups from top universities around the world."
+        icon="🎓"
+        color={Colors.tint}
+      />
+
       <View style={styles.groupsContainer}>
         {groups.map((group) => (
           <Link
@@ -73,27 +83,40 @@ export default function GroupsScreen() {
             href={{ pathname: "./groups/[code]", params: { code: group.code } }}
             asChild
           >
-            <TouchableOpacity style={styles.card}>
-              <View
-                style={[styles.iconCircle, { backgroundColor: group.color }]}
-              >
-                <FontAwesome name={group.icon as any} size={24} color="#fff" />
-              </View>
-              <View style={styles.infoArea}>
-                <Text style={styles.groupName}>{group.university}</Text>
-                <Text style={styles.groupDescription}>{group.description}</Text>
-                <View style={styles.membersRow}>
-                  <FontAwesome
-                    name="users"
-                    size={16}
-                    color="#6b7280"
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.membersText}>
-                    {group.members} members
-                  </Text>
+            <TouchableOpacity>
+              <Card style={styles.card}>
+                <View style={styles.cardContent}>
+                  <View
+                    style={[
+                      styles.iconCircle,
+                      { backgroundColor: group.color },
+                    ]}
+                  >
+                    <FontAwesome
+                      name={group.icon as any}
+                      size={24}
+                      color="#fff"
+                    />
+                  </View>
+                  <View style={styles.infoArea}>
+                    <Text style={styles.groupName}>{group.university}</Text>
+                    <Text style={styles.groupDescription}>
+                      {group.description}
+                    </Text>
+                    <View style={styles.membersRow}>
+                      <FontAwesome
+                        name="users"
+                        size={16}
+                        color={Colors.textSecondary}
+                        style={{ marginRight: spacing.xs }}
+                      />
+                      <Text style={styles.membersText}>
+                        {group.members} members
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
+              </Card>
             </TouchableOpacity>
           </Link>
         ))}
@@ -107,52 +130,20 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: "center",
     justifyContent: "flex-start",
-    padding: 24,
-    backgroundColor: "#f9fafb",
-  },
-  headerArea: {
-    marginBottom: 24,
-    marginTop: 8,
-    width: "100%",
-    alignSelf: "flex-start",
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#22223b",
-    letterSpacing: 0.5,
-    textAlign: "left",
-    marginBottom: 2,
-  },
-  headerAccent: {
-    width: 44,
-    height: 4,
-    backgroundColor: "#4f46e5",
-    borderRadius: 2,
-    marginBottom: 10,
-    marginTop: 2,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: "#6b7280",
-    textAlign: "left",
+    padding: spacing.lg,
+    backgroundColor: Colors.backgroundSecondary,
   },
   groupsContainer: {
     width: "100%",
     flexDirection: "column",
-    gap: 24,
+    gap: spacing.lg,
   },
   card: {
+    width: "100%",
+  },
+  cardContent: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
   },
   iconCircle: {
     width: 44,
@@ -160,28 +151,26 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: spacing.md,
   },
   infoArea: {
     flex: 1,
   },
   groupName: {
-    fontSize: 18,
+    ...typography.lg,
     fontWeight: "bold",
-    color: "#22223b",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   groupDescription: {
-    fontSize: 15,
-    color: "#374151",
-    marginBottom: 8,
+    ...typography.base,
+    marginBottom: spacing.sm,
   },
   membersRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   membersText: {
-    fontSize: 14,
-    color: "#6b7280",
+    ...typography.sm,
+    color: Colors.textSecondary,
   },
 });

@@ -7,10 +7,9 @@ import { addNotification } from "../store";
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
-    shouldShowBanner: true,
     shouldShowList: true,
   }),
 });

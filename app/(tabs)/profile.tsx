@@ -31,6 +31,13 @@ import {
 import { useRouter } from "expo-router";
 import { groups } from "./groups/[code]/index";
 import { NotificationService } from "../services/NotificationService";
+import { Card, Button, Badge, Header, Input, Divider } from "@/components/UI";
+import Colors, {
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+} from "@/constants/Colors";
 
 const initialUser = {
   name: "Jane Doe",
@@ -226,28 +233,33 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <RNView style={styles.profileCard}>
+      <Card style={styles.profileCard}>
         {/* Joined Badges */}
         {joinedGroups.length > 0 && (
-          <View style={styles.badgeRow}>
+          <RNView style={styles.badgeRow}>
             {joinedGroups.map((code) => {
               const group = groups.find((g) => g.code === code);
               if (!group) return null;
               return (
-                <View key={code} style={styles.joinedBadge}>
+                <Badge
+                  key={code}
+                  variant="primary"
+                  size="md"
+                  style={styles.joinedBadge}
+                >
                   <FontAwesome
                     name="users"
                     size={14}
                     color="#fff"
-                    style={{ marginRight: 4 }}
+                    style={{ marginRight: spacing.xs }}
                   />
                   <Text style={styles.joinedBadgeText}>
                     {group.university} Joined
                   </Text>
-                </View>
+                </Badge>
               );
             })}
-          </View>
+          </RNView>
         )}
 
         {editMode ? (
@@ -256,46 +268,38 @@ export default function ProfileScreen() {
             style={styles.avatarEditWrapper}
           >
             <Image source={{ uri: form.avatar }} style={styles.avatar} />
-            <View style={styles.avatarEditIcon}>
+            <RNView style={styles.avatarEditIcon}>
               <FontAwesome name="camera" size={18} color="#fff" />
-            </View>
+            </RNView>
           </TouchableOpacity>
         ) : (
           <Image source={{ uri: user.avatar }} style={styles.avatar} />
         )}
+
         {editMode ? (
           <>
-            <TextInput
-              style={styles.input}
+            <Input
               value={form.name}
               onChangeText={(text) => setForm((f) => ({ ...f, name: text }))}
               placeholder="Name"
-              placeholderTextColor="#aaa"
             />
-            <TextInput
-              style={[
-                styles.input,
-                !emailValid && touched.email ? styles.inputError : null,
-              ]}
+            <Input
               value={form.email}
               onChangeText={(text) => setForm((f) => ({ ...f, email: text }))}
               onBlur={() => setTouched((t) => ({ ...t, email: true }))}
               placeholder="Email"
-              placeholderTextColor="#aaa"
-              keyboardType="email-address"
-              autoCapitalize="none"
+              error={
+                !emailValid && touched.email
+                  ? "Please enter a valid email address."
+                  : undefined
+              }
             />
-            {!emailValid && touched.email && (
-              <Text style={styles.errorText}>
-                Please enter a valid email address.
-              </Text>
-            )}
             <RNView style={styles.phoneRow}>
               <FontAwesome
                 name="phone"
                 size={16}
-                color="#4f46e5"
-                style={{ marginRight: 6 }}
+                color={Colors.tint}
+                style={{ marginRight: spacing.xs }}
               />
               <TouchableOpacity
                 style={styles.countryCodeButton}
@@ -305,42 +309,36 @@ export default function ProfileScreen() {
                 <FontAwesome
                   name="chevron-down"
                   size={14}
-                  color="#4f46e5"
-                  style={{ marginLeft: 4 }}
+                  color={Colors.tint}
+                  style={{ marginLeft: spacing.xs }}
                 />
               </TouchableOpacity>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.inputPhone,
-                  !phoneValid && touched.phone ? styles.inputError : null,
-                ]}
+              <Input
                 value={form.phone}
                 onChangeText={(text) => setForm((f) => ({ ...f, phone: text }))}
                 onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
                 placeholder="Phone"
-                placeholderTextColor="#aaa"
-                keyboardType="phone-pad"
+                error={
+                  !phoneValid && touched.phone
+                    ? "Please enter a valid phone number."
+                    : undefined
+                }
+                style={styles.inputPhone}
               />
             </RNView>
-            {!phoneValid && touched.phone && (
-              <Text style={styles.errorText}>
-                Please enter a valid phone number.
-              </Text>
-            )}
             <RNView style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  !canSave && styles.saveButtonDisabled,
-                ]}
+              <Button
+                variant="success"
+                size="md"
                 onPress={handleSave}
                 disabled={!canSave}
+                style={styles.saveButton}
               >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
+                Save
+              </Button>
+              <Button
+                variant="danger"
+                size="md"
                 onPress={() => {
                   setForm({
                     name: user.name,
@@ -352,9 +350,10 @@ export default function ProfileScreen() {
                   setEditMode(false);
                   setTouched({});
                 }}
+                style={styles.cancelButton}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+                Cancel
+              </Button>
             </RNView>
             <Modal
               visible={countryModalVisible}
@@ -362,15 +361,13 @@ export default function ProfileScreen() {
               animationType="fade"
               onRequestClose={() => setCountryModalVisible(false)}
             >
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
+              <RNView style={styles.modalOverlay}>
+                <Card style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Select Country Code</Text>
-                  <TextInput
-                    style={styles.searchInput}
+                  <Input
                     value={countrySearch}
                     onChangeText={setCountrySearch}
                     placeholder="Search country..."
-                    placeholderTextColor="#aaa"
                   />
                   <FlatList
                     data={filteredCountryCodes}
@@ -390,14 +387,16 @@ export default function ProfileScreen() {
                     )}
                     style={{ maxHeight: 300 }}
                   />
-                  <TouchableOpacity
-                    style={styles.closeModalButton}
+                  <Button
+                    variant="primary"
+                    size="md"
                     onPress={() => setCountryModalVisible(false)}
+                    style={styles.closeModalButton}
                   >
-                    <Text style={styles.closeModalButtonText}>Close</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+                    Close
+                  </Button>
+                </Card>
+              </RNView>
             </Modal>
           </>
         ) : (
@@ -408,117 +407,129 @@ export default function ProfileScreen() {
               <FontAwesome
                 name="phone"
                 size={16}
-                color="#4f46e5"
-                style={{ marginRight: 6 }}
+                color={Colors.tint}
+                style={{ marginRight: spacing.xs }}
               />
               <Text style={styles.countryCodeText}>{user.countryCode}</Text>
               <Text style={styles.phone}>{user.phone}</Text>
             </RNView>
-            <TouchableOpacity
-              style={styles.editButton}
+            <Button
+              variant="primary"
+              size="md"
               onPress={() => setEditMode(true)}
+              style={styles.editButton}
             >
               <FontAwesome
                 name="pencil"
                 size={16}
                 color="#fff"
-                style={{ marginRight: 6 }}
+                style={{ marginRight: spacing.xs }}
               />
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
+              Edit
+            </Button>
 
-            <TouchableOpacity
-              style={styles.testNotificationButton}
+            <Button
+              variant="primary"
+              size="md"
               onPress={handleTestNotification}
+              style={styles.testNotificationButton}
             >
               <FontAwesome
                 name="bell"
                 size={16}
                 color="#fff"
-                style={{ marginRight: 6 }}
+                style={{ marginRight: spacing.xs }}
               />
-              <Text style={styles.testNotificationButtonText}>
-                Test Notification
-              </Text>
-            </TouchableOpacity>
+              Test Notification
+            </Button>
           </>
         )}
-      </RNView>
+      </Card>
 
-      <View style={styles.donationCard}>
+      <Card style={styles.donationCard}>
         <FontAwesome
-          name={
-            "handshake-o" as React.ComponentProps<typeof FontAwesome>["name"]
-          }
+          name="handshake-o"
           size={32}
-          color="#4f46e5"
-          style={{ marginBottom: 8 }}
+          color={Colors.tint}
+          style={{ marginBottom: spacing.sm }}
         />
         <Text style={styles.donationLabel}>Total Donated</Text>
         <Text style={styles.donationAmount}>
           ${(donated as number).toFixed(2)}
         </Text>
-      </View>
+      </Card>
 
       {/* Enrolled Events Section */}
       {enrolledEvents.length > 0 && (
-        <View style={styles.enrolledEventsSection}>
-          <Text style={styles.sectionTitle}>My Enrolled Events</Text>
-          <View style={styles.sectionAccent} />
+        <RNView style={styles.enrolledEventsSection}>
+          <Header title="My Enrolled Events" icon="📅" color={Colors.tint} />
           {enrolledEvents.map((event) => {
             const dateTime = formatDateTime(event.startTime);
             const isPast = new Date(event.endTime) < new Date();
 
             return (
-              <View key={event.id} style={styles.enrolledEventItem}>
-                <View style={styles.enrolledEventHeader}>
+              <Card key={event.id} style={styles.enrolledEventItem}>
+                <RNView style={styles.enrolledEventHeader}>
                   <Text style={styles.enrolledEventTitle}>{event.title}</Text>
                   {isPast && (
-                    <View style={styles.pastEventBadge}>
-                      <Text style={styles.pastEventBadgeText}>Past</Text>
-                    </View>
+                    <Badge variant="error" size="sm">
+                      Past
+                    </Badge>
                   )}
-                </View>
+                </RNView>
                 <Text style={styles.enrolledEventGroup}>{event.groupName}</Text>
-                <View style={styles.enrolledEventDetails}>
-                  <View style={styles.enrolledEventDetailRow}>
-                    <FontAwesome name="calendar" size={12} color="#6b7280" />
+                <RNView style={styles.enrolledEventDetails}>
+                  <RNView style={styles.enrolledEventDetailRow}>
+                    <FontAwesome
+                      name="calendar"
+                      size={12}
+                      color={Colors.textSecondary}
+                    />
                     <Text style={styles.enrolledEventDetailText}>
                       {dateTime.date}
                     </Text>
-                  </View>
-                  <View style={styles.enrolledEventDetailRow}>
-                    <FontAwesome name="clock-o" size={12} color="#6b7280" />
+                  </RNView>
+                  <RNView style={styles.enrolledEventDetailRow}>
+                    <FontAwesome
+                      name="clock-o"
+                      size={12}
+                      color={Colors.textSecondary}
+                    />
                     <Text style={styles.enrolledEventDetailText}>
                       {dateTime.time}
                     </Text>
-                  </View>
-                  <View style={styles.enrolledEventDetailRow}>
-                    <FontAwesome name="map-marker" size={12} color="#6b7280" />
+                  </RNView>
+                  <RNView style={styles.enrolledEventDetailRow}>
+                    <FontAwesome
+                      name="map-marker"
+                      size={12}
+                      color={Colors.textSecondary}
+                    />
                     <Text style={styles.enrolledEventDetailText}>
                       {event.location}
                     </Text>
-                  </View>
-                </View>
+                  </RNView>
+                </RNView>
                 {!isPast && (
-                  <TouchableOpacity
-                    style={styles.unenrollButton}
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onPress={() => handleUnenroll(event.id, event.title)}
-                    activeOpacity={0.85}
+                    style={styles.unenrollButton}
                   >
                     <FontAwesome
                       name="times"
                       size={14}
                       color="#fff"
-                      style={{ marginRight: 6 }}
+                      style={{ marginRight: spacing.xs }}
                     />
-                    <Text style={styles.unenrollButtonText}>Unenroll</Text>
-                  </TouchableOpacity>
+                    Unenroll
+                  </Button>
                 )}
-              </View>
+              </Card>
             );
           })}
-        </View>
+        </RNView>
       )}
     </ScrollView>
   );
@@ -527,239 +538,138 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: Colors.backgroundSecondary,
   },
   scrollContent: {
     alignItems: "center",
-    padding: 32,
+    padding: spacing.xl,
     paddingBottom: 50,
   },
   profileCard: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 28,
-    marginBottom: 32,
+    marginBottom: spacing.xl,
     width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   name: {
-    fontSize: 22,
+    ...typography.xl,
     fontWeight: "bold",
-    color: "#22223b",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   email: {
-    fontSize: 15,
-    color: "#6b7280",
-    marginBottom: 4,
+    ...typography.base,
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   phoneRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   phone: {
-    fontSize: 15,
-    color: "#6b7280",
+    ...typography.base,
+    color: Colors.textSecondary,
   },
   countryCodeButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    backgroundColor: Colors.backgroundTertiary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    marginRight: 6,
+    borderColor: Colors.border,
+    marginRight: spacing.xs,
   },
   countryCodeText: {
-    fontSize: 15,
-    color: "#4f46e5",
+    ...typography.base,
+    color: Colors.tint,
     fontWeight: "bold",
   },
   countryNameText: {
-    fontSize: 14,
-    color: "#22223b",
-    marginLeft: 8,
-  },
-  input: {
-    width: "100%",
-    fontSize: 15,
-    color: "#22223b",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    ...typography.sm,
+    color: Colors.text,
+    marginLeft: spacing.sm,
   },
   inputPhone: {
     flex: 1,
     marginBottom: 0,
   },
-  inputError: {
-    borderColor: "#ef4444",
-    backgroundColor: "#fef2f2",
-  },
-  errorText: {
-    color: "#ef4444",
-    fontSize: 13,
-    marginBottom: 4,
-    alignSelf: "flex-start",
-  },
   editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#4f46e5",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 10,
-  },
-  editButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
+    marginTop: spacing.sm,
   },
   saveButton: {
-    backgroundColor: "#22c55e",
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#a7f3d0",
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
+    marginTop: spacing.sm,
   },
   cancelButton: {
-    backgroundColor: "#ef4444",
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
+    marginTop: spacing.sm,
   },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: spacing.sm,
+    width: "100%",
   },
   closeModalButton: {
-    backgroundColor: "#4f46e5",
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    marginTop: 12,
-    alignItems: "center",
-  },
-  closeModalButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
+    marginTop: spacing.sm,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: Colors.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
     width: 320,
     maxWidth: "90%",
     alignItems: "stretch",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
   },
   modalTitle: {
-    fontSize: 18,
+    ...typography.lg,
     fontWeight: "bold",
-    color: "#22223b",
-    marginBottom: 10,
-  },
-  searchInput: {
-    width: "100%",
-    fontSize: 15,
-    color: "#22223b",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    marginBottom: spacing.sm,
+    textAlign: "center",
   },
   countryItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: Colors.borderSecondary,
   },
   donationCard: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 28,
     width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: spacing.xl,
   },
   donationLabel: {
-    fontSize: 16,
-    color: "#4f46e5",
+    ...typography.base,
+    color: Colors.tint,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   donationAmount: {
-    fontSize: 28,
+    ...typography["2xl"],
     fontWeight: "bold",
-    color: "#22c55e",
+    color: Colors.success,
   },
   avatarEditWrapper: {
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   avatarEditIcon: {
     position: "absolute",
     bottom: 6,
     right: 6,
-    backgroundColor: "#4f46e5",
+    backgroundColor: Colors.tint,
     borderRadius: 16,
     padding: 4,
     borderWidth: 2,
@@ -768,135 +678,74 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 10,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
     justifyContent: "center",
   },
   joinedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4f46e5",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    marginLeft: 0,
     minWidth: 70,
     minHeight: 32,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   joinedBadgeText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 14,
+    ...typography.sm,
     letterSpacing: 0.2,
   },
   enrolledEventsSection: {
     width: "100%",
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#22223b",
-    marginBottom: 4,
-  },
-  sectionAccent: {
-    height: 4,
-    backgroundColor: "#4f46e5",
-    borderRadius: 2,
-    marginBottom: 16,
+    marginBottom: spacing.xl,
   },
   enrolledEventItem: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: spacing.md,
     maxWidth: "100%",
   },
   enrolledEventHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     flexWrap: "wrap",
   },
   enrolledEventTitle: {
-    fontSize: 18,
+    ...typography.lg,
     fontWeight: "bold",
-    color: "#22223b",
     flex: 1,
     flexWrap: "wrap",
   },
   enrolledEventGroup: {
-    fontSize: 15,
-    color: "#6b7280",
-    marginBottom: 8,
+    ...typography.base,
+    color: Colors.textSecondary,
+    marginBottom: spacing.sm,
     flexWrap: "wrap",
   },
   enrolledEventDetails: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     flexWrap: "wrap",
-    gap: 8,
+    gap: spacing.sm,
   },
   enrolledEventDetailRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: spacing.md,
     flexShrink: 1,
     minWidth: 0,
   },
   enrolledEventDetailText: {
-    fontSize: 15,
-    color: "#6b7280",
-    marginLeft: 4,
+    ...typography.base,
+    color: Colors.textSecondary,
+    marginLeft: spacing.xs,
     flexShrink: 1,
     flexWrap: "wrap",
   },
-  pastEventBadge: {
-    backgroundColor: "#ef4444",
-    borderRadius: 16,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: 8,
-  },
-  pastEventBadgeText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 12,
-  },
   unenrollButton: {
-    backgroundColor: "#ef4444",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 10,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  unenrollButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
+    marginTop: spacing.sm,
   },
   testNotificationButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#4f46e5",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 10,
-  },
-  testNotificationButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
+    marginTop: spacing.sm,
   },
 });
