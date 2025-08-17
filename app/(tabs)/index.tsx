@@ -135,7 +135,12 @@ export default function TabOneScreen() {
 
           if (!existingNotification) {
             const notification = createEventNotification(event);
-            dispatch(addNotification(notification));
+            dispatch(
+              addNotification({
+                ...notification,
+                id: Math.random().toString(36).slice(2) + Date.now(),
+              })
+            );
           }
         }
       });

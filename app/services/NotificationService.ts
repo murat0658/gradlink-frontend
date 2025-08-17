@@ -1,8 +1,8 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
-import { Event } from "../store";
+import { Event } from "../store/types";
 import { store } from "../store";
-import { addNotification } from "../store";
+import { addNotification } from "../store/slices/notificationsSlice";
 
 // Configure notification behavior
 Notifications.setNotificationHandler({

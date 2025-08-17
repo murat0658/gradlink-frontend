@@ -11,7 +11,8 @@ import Colors, {
 } from "@/constants/Colors";
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchGroups, selectGroups } from "@/app/store";
+import { fetchGroups } from "@/app/store/thunks";
+import { selectGroups } from "@/app/store/selectors";
 
 export default function GroupsScreen() {
   const dispatch = useDispatch();
@@ -22,60 +23,63 @@ export default function GroupsScreen() {
   }, [dispatch]);
 
   // Fallback to sample data if API hasn't loaded yet
-  const displayGroups = groups.length > 0 ? groups : [
-    {
-      code: "harvard",
-      university: "Harvard University",
-      description: "A group for Harvard graduates to connect and network.",
-      members: 210,
-      icon: "university",
-      color: "#a51c30",
-      founded: 1636,
-      location: "Cambridge, MA, USA",
-    },
-    {
-      code: "stanford",
-      university: "Stanford University",
-      description: "Stanford alumni sharing opportunities and experiences.",
-      members: 180,
-      icon: "graduation-cap",
-      color: "#8c1515",
-      founded: 1885,
-      location: "Stanford, CA, USA",
-    },
-    {
-      code: "mit",
-      university: "MIT",
-      description: "MIT graduates collaborating on tech and research.",
-      members: 150,
-      icon: "flask",
-      color: "#a2a2a1",
-      founded: 1861,
-      location: "Cambridge, MA, USA",
-    },
-    {
-      code: "oxford",
-      university: "Oxford University",
-      description: "Oxford alumni group for global networking.",
-      members: 120,
-      icon: "book",
-      color: "#002147",
-      founded: 1096,
-      location: "Oxford, England",
-    },
-    {
-      code: "metu",
-      university: "Middle East Technical University",
-      description: "A group for METU graduates to connect and network.",
-      members: 210,
-      icon: "building",
-      color: "#a51c30",
-      founded: 1952,
-      location: "Ankara, Türkiye",
-    },
-  ];
-
-export default function GroupsScreen() {
+  const displayGroups =
+    groups.length > 0
+      ? groups
+      : [
+          {
+            code: "harvard",
+            university: "Harvard University",
+            description:
+              "A group for Harvard graduates to connect and network.",
+            members: 210,
+            icon: "university",
+            color: "#a51c30",
+            founded: 1636,
+            location: "Cambridge, MA, USA",
+          },
+          {
+            code: "stanford",
+            university: "Stanford University",
+            description:
+              "Stanford alumni sharing opportunities and experiences.",
+            members: 180,
+            icon: "graduation-cap",
+            color: "#8c1515",
+            founded: 1885,
+            location: "Stanford, CA, USA",
+          },
+          {
+            code: "mit",
+            university: "MIT",
+            description: "MIT graduates collaborating on tech and research.",
+            members: 150,
+            icon: "flask",
+            color: "#a2a2a1",
+            founded: 1861,
+            location: "Cambridge, MA, USA",
+          },
+          {
+            code: "oxford",
+            university: "Oxford University",
+            description: "Oxford alumni group for global networking.",
+            members: 120,
+            icon: "book",
+            color: "#002147",
+            founded: 1096,
+            location: "Oxford, England",
+          },
+          {
+            code: "metu",
+            university: "Middle East Technical University",
+            description: "A group for METU graduates to connect and network.",
+            members: 210,
+            icon: "building",
+            color: "#a51c30",
+            founded: 1952,
+            location: "Ankara, Türkiye",
+          },
+        ];
   return (
     <ScrollView
       contentContainerStyle={styles.container}

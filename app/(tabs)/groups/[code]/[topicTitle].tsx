@@ -15,6 +15,7 @@ import {
   updateTopicAnswers,
   selectTopicAnswers,
   RootState,
+  ThreadAnswer,
 } from "@/app/store";
 
 // Helper: get initials from name
@@ -37,17 +38,6 @@ function getRelativeTime(dateString: string) {
   return date.toLocaleDateString();
 }
 
-// Type for a threaded answer
-interface ThreadAnswer {
-  id: string;
-  author: string;
-  content: string;
-  date: string;
-  replies: ThreadAnswer[];
-  upvotes: number;
-  collapsed?: boolean;
-}
-
 function generateId() {
   return Math.random().toString(36).slice(2) + Date.now();
 }
@@ -65,7 +55,7 @@ export default function TopicThreadScreen() {
   );
   // Main discussion post
   const [mainPost, setMainPost] = useState<ThreadAnswer>(
-    storedMainPost || {
+    storedMainPost?.[0] || {
       id: generateId(),
       author: "Group Admin",
       content: `Welcome to the discussion on "${topicTitle}"! Share your thoughts below.`,
@@ -83,7 +73,7 @@ export default function TopicThreadScreen() {
 
   // Sync local state to Redux on change
   useEffect(() => {
-    dispatch(setTopicAnswers({ key: topicKey, answers: mainPost }));
+    dispatch(setTopicAnswers({ key: topicKey, answers: [mainPost] }));
   }, [mainPost, dispatch, topicKey]);
 
   // Recursive function to add a reply to the tree
@@ -93,11 +83,13 @@ export default function TopicThreadScreen() {
     reply: ThreadAnswer
   ): ThreadAnswer {
     if (tree.id === parentId) {
-      return { ...tree, replies: [reply, ...tree.replies] };
+      return { ...tree, replies: [reply, ...(tree.replies || [])] };
     }
     return {
       ...tree,
-      replies: tree.replies.map((r) => addReplyToTree(r, parentId, reply)),
+      replies: (tree.replies || []).map((r) =>
+        addReplyToTree(r, parentId, reply)
+      ),
     };
   }
 
@@ -108,7 +100,7 @@ export default function TopicThreadScreen() {
     }
     return {
       ...tree,
-      replies: tree.replies.map((r) => toggleCollapse(r, id)),
+      replies: (tree.replies || []).map((r) => toggleCollapse(r, id)),
     };
   }
 
@@ -119,7 +111,7 @@ export default function TopicThreadScreen() {
     }
     return {
       ...tree,
-      replies: tree.replies.map((r) => upvoteTree(r, id)),
+      replies: (tree.replies || []).map((r) => upvoteTree(r, id)),
     };
   }
 
@@ -257,6 +249,7 @@ export default function TopicThreadScreen() {
           )}
           {/* Render replies if not collapsed */}
           {!answer.collapsed &&
+            answer.replies &&
             answer.replies.length > 0 &&
             renderAnswers(answer.replies, level + 1)}
         </View>
@@ -387,7 +380,8 @@ export default function TopicThreadScreen() {
         </View>
         {/* Answers/comments as a tree */}
         <Text style={styles.answersHeader}>Answers</Text>
-        {mainPost.collapsed ? null : mainPost.replies.length === 0 ? (
+        {mainPost.collapsed ? null : !mainPost.replies ||
+          mainPost.replies.length === 0 ? (
           <Text style={styles.noPosts}>
             No answers yet. Be the first to reply!
           </Text>
