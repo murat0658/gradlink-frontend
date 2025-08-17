@@ -20,6 +20,9 @@ import {
   markAsRead,
   isEventComingSoon,
   createEventNotification,
+  fetchEvents,
+  fetchNotifications,
+  fetchSubscriptions,
 } from "../store";
 import { Card, Badge, Header } from "@/components/UI";
 import Colors, {
@@ -108,6 +111,13 @@ export default function TabOneScreen() {
   const notifications = useSelector(selectNotifications);
   const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
+
+  // Fetch data from API when component mounts
+  useEffect(() => {
+    dispatch(fetchEvents() as any);
+    dispatch(fetchNotifications() as any);
+    dispatch(fetchSubscriptions() as any);
+  }, [dispatch]);
 
   // Check for upcoming events and create notifications
   useEffect(() => {

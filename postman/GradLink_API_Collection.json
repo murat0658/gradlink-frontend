@@ -1,0 +1,1015 @@
+{
+  "info": {
+    "name": "GradLink API Collection",
+    "description": "Complete API collection for the GradLink application - a platform for university graduate networking and collaboration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "group_code",
+      "value": "harvard",
+      "type": "string"
+    },
+    {
+      "key": "event_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "topic_title",
+      "value": "Career Advice for Recent Graduates",
+      "type": "string"
+    },
+    {
+      "key": "notification_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@harvard.edu\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticate user and receive JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "User Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@university.edu\",\n  \"password\": \"password123\",\n  \"phoneNumber\": \"+15551234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh the JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout user and invalidate token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Get current authenticated user profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"bio\": \"Updated bio information\",\n  \"location\": \"New York, NY\",\n  \"graduation_year\": 2021\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Update current user profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "Get public profile of a specific user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "item": [
+        {
+          "name": "Get All Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups?page=0&size=20&search=&university=",
+              "host": ["{{base_url}}"],
+              "path": ["groups"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "university",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get paginated list of all groups with optional filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Group by Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}"]
+            },
+            "description": "Get specific group details by group code"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"newuniversity\",\n  \"university\": \"New University\",\n  \"description\": \"A new university group for networking\",\n  \"location\": \"City, Country\",\n  \"founded\": 2000,\n  \"color\": \"#4f46e5\",\n  \"icon\": \"university\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups",
+              "host": ["{{base_url}}"],
+              "path": ["groups"]
+            },
+            "description": "Create a new group (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Group",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated group description\",\n  \"color\": \"#ff6b6b\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}"]
+            },
+            "description": "Update group information (Admin/Moderator only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}"]
+            },
+            "description": "Delete a group (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Join Group",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/join",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "join"]
+            },
+            "description": "Join a group as a member"
+          },
+          "response": []
+        },
+        {
+          "name": "Leave Group",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/leave",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "leave"]
+            },
+            "description": "Leave a group"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Group Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/members?page=0&size=20&role=",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "members"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "role",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get paginated list of group members"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events?page=0&size=20&groupCode=&startDate=&endDate=&isEnrolled=",
+              "host": ["{{base_url}}"],
+              "path": ["events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "groupCode",
+                  "value": ""
+                },
+                {
+                  "key": "startDate",
+                  "value": ""
+                },
+                {
+                  "key": "endDate",
+                  "value": ""
+                },
+                {
+                  "key": "isEnrolled",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get paginated list of all events with optional filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "description": "Get specific event details by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Networking Event\",\n  \"description\": \"Join us for an evening of networking and professional development\",\n  \"startTime\": \"2024-03-15T18:00:00Z\",\n  \"endTime\": \"2024-03-15T21:00:00Z\",\n  \"location\": \"Conference Center\",\n  \"capacity\": 50,\n  \"groupCode\": \"{{group_code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/events",
+              "host": ["{{base_url}}"],
+              "path": ["events"]
+            },
+            "description": "Create a new event"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Event",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Event Title\",\n  \"description\": \"Updated event description\",\n  \"capacity\": 75\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "description": "Update event information"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "description": "Delete an event"
+          },
+          "response": []
+        },
+        {
+          "name": "Enroll in Event",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/enroll",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "enroll"]
+            },
+            "description": "Enroll in an event"
+          },
+          "response": []
+        },
+        {
+          "name": "Unenroll from Event",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/unenroll",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "unenroll"]
+            },
+            "description": "Unenroll from an event"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/enrollments?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "enrollments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get paginated list of event enrollments"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications?page=0&size=20&isRead=&type=",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "isRead",
+                  "value": ""
+                },
+                {
+                  "key": "type",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get paginated list of user notifications with optional filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notification by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "{{notification_id}}"]
+            },
+            "description": "Get specific notification details by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "{{notification_id}}", "read"]
+            },
+            "description": "Mark a notification as read"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "{{notification_id}}"]
+            },
+            "description": "Delete a specific notification"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All Notifications",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"]
+            },
+            "description": "Delete all user notifications"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Topic Discussions",
+      "item": [
+        {
+          "name": "Get Group Topics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics?page=0&size=20&search=",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "topics"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get paginated list of topics in a specific group"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Topic by Title",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics/{{topic_title}}",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "topics", "{{topic_title}}"]
+            },
+            "description": "Get specific topic details by title"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Topic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Discussion Topic\",\n  \"content\": \"This is the content of the new discussion topic. Share your thoughts and experiences.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "topics"]
+            },
+            "description": "Create a new topic in a group"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Topic",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Topic Title\",\n  \"content\": \"Updated topic content with new information.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics/{{topic_title}}",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "topics", "{{topic_title}}"]
+            },
+            "description": "Update topic information"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Topic",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics/{{topic_title}}",
+              "host": ["{{base_url}}"],
+              "path": ["groups", "{{group_code}}", "topics", "{{topic_title}}"]
+            },
+            "description": "Delete a topic"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Reply to Topic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"This is my reply to the topic discussion.\",\n  \"parentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics/{{topic_title}}/replies",
+              "host": ["{{base_url}}"],
+              "path": [
+                "groups",
+                "{{group_code}}",
+                "topics",
+                "{{topic_title}}",
+                "replies"
+              ]
+            },
+            "description": "Add a reply to a topic (parentId for nested replies)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Reply",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated reply content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics/{{topic_title}}/replies/{{reply_id}}",
+              "host": ["{{base_url}}"],
+              "path": [
+                "groups",
+                "{{group_code}}",
+                "topics",
+                "{{topic_title}}",
+                "replies",
+                "{{reply_id}}"
+              ]
+            },
+            "description": "Update a reply"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Reply",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics/{{topic_title}}/replies/{{reply_id}}",
+              "host": ["{{base_url}}"],
+              "path": [
+                "groups",
+                "{{group_code}}",
+                "topics",
+                "{{topic_title}}",
+                "replies",
+                "{{reply_id}}"
+              ]
+            },
+            "description": "Delete a reply"
+          },
+          "response": []
+        },
+        {
+          "name": "Upvote Reply",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/groups/{{group_code}}/topics/{{topic_title}}/replies/{{reply_id}}/upvote",
+              "host": ["{{base_url}}"],
+              "path": [
+                "groups",
+                "{{group_code}}",
+                "topics",
+                "{{topic_title}}",
+                "replies",
+                "{{reply_id}}",
+                "upvote"
+              ]
+            },
+            "description": "Upvote a reply"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Get User Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subscriptions",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions"]
+            },
+            "description": "Get all groups that the current user is subscribed to"
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe to Group",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/{{group_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "{{group_code}}"]
+            },
+            "description": "Subscribe to a group for notifications and updates"
+          },
+          "response": []
+        },
+        {
+          "name": "Unsubscribe from Group",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subscriptions/{{group_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["subscriptions", "{{group_code}}"]
+            },
+            "description": "Unsubscribe from a group"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "File Uploads",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "type",
+                  "value": "avatar",
+                  "description": "Type: avatar, event, or topic"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/files/upload",
+              "host": ["{{base_url}}"],
+              "path": ["files", "upload"]
+            },
+            "description": "Upload a file (avatar, event image, or topic attachment)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "item": [
+        {
+          "name": "Global Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/search?q=software engineer&type=users&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "software engineer"
+                },
+                {
+                  "key": "type",
+                  "value": "users",
+                  "description": "Type: users, groups, events, or topics"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Search across users, groups, events, and topics"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Set auth token from login response",
+          "if (pm.response.code === 200) {",
+          "    const responseJson = pm.response.json();",
+          "    if (responseJson.token) {",
+          "        pm.collectionVariables.set('auth_token', responseJson.token);",
+          "        console.log('Auth token set:', responseJson.token);",
+          "    }",
+          "}",
+          "",
+          "// Set user ID from user profile response",
+          "if (pm.response.code === 200 && pm.request.url.path.includes('/users/me')) {",
+          "    const responseJson = pm.response.json();",
+          "    if (responseJson.id) {",
+          "        pm.collectionVariables.set('user_id', responseJson.id);",
+          "        console.log('User ID set:', responseJson.id);",
+          "    }",
+          "}",
+          "",
+          "// Set event ID from events response",
+          "if (pm.response.code === 200 && pm.request.url.path.includes('/events')) {",
+          "    const responseJson = pm.response.json();",
+          "    if (responseJson.content && responseJson.content.length > 0) {",
+          "        pm.collectionVariables.set('event_id', responseJson.content[0].id);",
+          "        console.log('Event ID set:', responseJson.content[0].id);",
+          "    }",
+          "}",
+          "",
+          "// Set notification ID from notifications response",
+          "if (pm.response.code === 200 && pm.request.url.path.includes('/notifications')) {",
+          "    const responseJson = pm.response.json();",
+          "    if (responseJson.content && responseJson.content.length > 0) {",
+          "        pm.collectionVariables.set('notification_id', responseJson.content[0].id);",
+          "        console.log('Notification ID set:', responseJson.content[0].id);",
+          "    }",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

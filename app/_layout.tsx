@@ -9,6 +9,7 @@ import { Provider } from "react-redux";
 import { store } from "./store";
 import Toast from "react-native-toast-message";
 import { NotificationService } from "./services/NotificationService";
+import { ApiProvider } from "./components/ApiProvider";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -61,22 +62,24 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-      <ThemeProvider value={DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen name="signup" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="subscriptions"
-            options={{ presentation: "modal", title: "Subscription" }}
-          />
-          <Stack.Screen
-            name="notifications"
-            options={{ presentation: "modal", title: "Notifications" }}
-          />
-        </Stack>
-        <Toast />
-      </ThemeProvider>
+      <ApiProvider>
+        <ThemeProvider value={DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen name="signup" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="subscriptions"
+              options={{ presentation: "modal", title: "Subscription" }}
+            />
+            <Stack.Screen
+              name="notifications"
+              options={{ presentation: "modal", title: "Notifications" }}
+            />
+          </Stack>
+          <Toast />
+        </ThemeProvider>
+      </ApiProvider>
     </Provider>
   );
 }

@@ -15,6 +15,8 @@ import {
   markAsRead,
   removeNotification,
   clearAllNotifications,
+  fetchNotifications,
+  markNotificationAsReadAsync,
 } from "./store";
 import { useRouter } from "expo-router";
 
@@ -22,6 +24,11 @@ export default function NotificationsModal() {
   const notifications = useSelector(selectNotifications);
   const dispatch = useDispatch();
   const router = useRouter();
+
+  // Fetch notifications when component mounts
+  React.useEffect(() => {
+    dispatch(fetchNotifications() as any);
+  }, [dispatch]);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -43,7 +50,7 @@ export default function NotificationsModal() {
   };
 
   const handleMarkAsRead = (notificationId: string) => {
-    dispatch(markAsRead(notificationId));
+    dispatch(markNotificationAsReadAsync(notificationId) as any);
   };
 
   const handleDeleteNotification = (notificationId: string, title: string) => {

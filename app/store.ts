@@ -3,8 +3,10 @@ import {
   createSlice,
   PayloadAction,
   createSelector,
+  createAsyncThunk,
 } from "@reduxjs/toolkit";
 import { NotificationService } from "./services/NotificationService";
+import { apiService } from "./services/ApiService";
 
 // Placeholder reducer (can be removed later)
 const placeholderReducer = (state = {}, action: any) => state;
@@ -51,6 +53,9 @@ const notificationsSlice = createSlice({
   name: "notifications",
   initialState: [] as Notification[],
   reducers: {
+    setNotifications: (state, action: PayloadAction<Notification[]>) => {
+      return action.payload;
+    },
     addNotification: (state, action: PayloadAction<Notification>) => {
       state.unshift(action.payload); // Add to beginning
     },
@@ -67,6 +72,20 @@ const notificationsSlice = createSlice({
       return [];
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchNotifications.fulfilled, (state, action) => {
+        return action.payload;
+      })
+      .addCase(markNotificationAsReadAsync.fulfilled, (state, action) => {
+        const notification = state.find(
+          (n) => n.id === action.payload.notificationId
+        );
+        if (notification) {
+          notification.isRead = true;
+        }
+      });
+  },
 });
 
 // Slice for events
@@ -74,6 +93,9 @@ const eventsSlice = createSlice({
   name: "events",
   initialState: [] as Event[],
   reducers: {
+    setEvents: (state, action: PayloadAction<Event[]>) => {
+      return action.payload;
+    },
     addEvent: (state, action: PayloadAction<Event>) => {
       state.push(action.payload);
     },
@@ -113,6 +135,29 @@ const eventsSlice = createSlice({
       }
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchEvents.fulfilled, (state, action) => {
+        return action.payload;
+      })
+      .addCase(createEventAsync.fulfilled, (state, action) => {
+        state.push(action.payload);
+      })
+      .addCase(enrollInEventAsync.fulfilled, (state, action) => {
+        const event = state.find((e) => e.id === action.payload.eventId);
+        if (event) {
+          event.enrolledCount += 1;
+          event.isEnrolled = true;
+        }
+      })
+      .addCase(unenrollFromEventAsync.fulfilled, (state, action) => {
+        const event = state.find((e) => e.id === action.payload);
+        if (event && event.enrolledCount > 0) {
+          event.enrolledCount -= 1;
+          event.isEnrolled = false;
+        }
+      });
+  },
 });
 
 // Slice for user enrollments
@@ -134,6 +179,9 @@ const subscriptionsSlice = createSlice({
   name: "subscriptions",
   initialState: [] as string[], // array of group codes
   reducers: {
+    setSubscriptions: (state, action: PayloadAction<string[]>) => {
+      return action.payload;
+    },
     subscribe: (state, action: PayloadAction<string>) => {
       if (!state.includes(action.payload)) state.push(action.payload);
     },
@@ -141,19 +189,63 @@ const subscriptionsSlice = createSlice({
       return state.filter((code) => code !== action.payload);
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchSubscriptions.fulfilled, (state, action) => {
+        return action.payload.map((sub: any) => sub.groupCode);
+      })
+      .addCase(subscribeToGroupAsync.fulfilled, (state, action) => {
+        if (!state.includes(action.payload.groupCode)) {
+          state.push(action.payload.groupCode);
+        }
+      })
+      .addCase(unsubscribeFromGroupAsync.fulfilled, (state, action) => {
+        return state.filter((code) => code !== action.payload);
+      });
+  },
+});
+
+// Groups slice
+const groupsSlice = createSlice({
+  name: "groups",
+  initialState: [] as any[],
+  reducers: {
+    setGroups: (state, action: PayloadAction<any[]>) => {
+      return action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchGroups.fulfilled, (state, action) => {
+      return action.payload;
+    });
+  },
 });
 
 // Slice for joined groups
 const joinedGroupsSlice = createSlice({
   name: "joinedGroups",
-  initialState: [] as string[], // array of group codes
+  initialState: [] as string[], // array of group code
   reducers: {
+    setJoinedGroups: (state, action: PayloadAction<string[]>) => {
+      return action.payload;
+    },
     joinGroup: (state, action: PayloadAction<string>) => {
       if (!state.includes(action.payload)) state.push(action.payload);
     },
     leaveGroup: (state, action: PayloadAction<string>) => {
       return state.filter((code) => code !== action.payload);
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(joinGroupAsync.fulfilled, (state, action) => {
+        if (!state.includes(action.payload.groupCode)) {
+          state.push(action.payload.groupCode);
+        }
+      })
+      .addCase(leaveGroupAsync.fulfilled, (state, action) => {
+        return state.filter((code) => code !== action.payload);
+      });
   },
 });
 
@@ -207,8 +299,10 @@ const topicAnswersSlice = createSlice({
   },
 });
 
-export const { subscribe, unsubscribe } = subscriptionsSlice.actions;
-export const { joinGroup, leaveGroup } = joinedGroupsSlice.actions;
+export const { subscribe, unsubscribe, setSubscriptions } =
+  subscriptionsSlice.actions;
+export const { joinGroup, leaveGroup, setJoinedGroups } =
+  joinedGroupsSlice.actions;
 export const { incrementDonation, setAuthenticated, setToken } =
   userSlice.actions;
 export const {
@@ -217,6 +311,7 @@ export const {
   removeEvent,
   enrollInEvent,
   unenrollFromEvent,
+  setEvents,
 } = eventsSlice.actions;
 export const { enroll, unenroll } = enrollmentsSlice.actions;
 export const {
@@ -224,12 +319,120 @@ export const {
   markAsRead,
   removeNotification,
   clearAllNotifications,
+  setNotifications,
 } = notificationsSlice.actions;
 export const { setTopicAnswers, updateTopicAnswers, clearTopicAnswers } =
   topicAnswersSlice.actions;
+export const { setGroups } = groupsSlice.actions;
+
+// Async thunks for API operations
+export const fetchEvents = createAsyncThunk(
+  "events/fetchEvents",
+  async (params?: { page?: number; size?: number; groupCode?: string }) => {
+    const response = await apiService.getEvents(params);
+    return response;
+  }
+);
+
+export const createEventAsync = createAsyncThunk(
+  "events/createEvent",
+  async (eventData: {
+    title: string;
+    description: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    capacity: number;
+    groupCode: string;
+  }) => {
+    const response = await apiService.createEvent(eventData);
+    return response;
+  }
+);
+
+export const enrollInEventAsync = createAsyncThunk(
+  "events/enrollInEvent",
+  async (eventId: string) => {
+    const response = await apiService.enrollInEvent(eventId);
+    return { eventId, response };
+  }
+);
+
+export const unenrollFromEventAsync = createAsyncThunk(
+  "events/unenrollFromEvent",
+  async (eventId: string) => {
+    await apiService.unenrollFromEvent(eventId);
+    return eventId;
+  }
+);
+
+export const fetchNotifications = createAsyncThunk(
+  "notifications/fetchNotifications",
+  async (params?: { page?: number; size?: number; isRead?: boolean }) => {
+    const response = await apiService.getNotifications(params);
+    return response;
+  }
+);
+
+export const markNotificationAsReadAsync = createAsyncThunk(
+  "notifications/markAsRead",
+  async (notificationId: string) => {
+    const response = await apiService.markNotificationAsRead(notificationId);
+    return { notificationId, response };
+  }
+);
+
+export const fetchGroups = createAsyncThunk(
+  "groups/fetchGroups",
+  async (params?: { page?: number; size?: number; search?: string }) => {
+    const response = await apiService.getGroups(params);
+    return response;
+  }
+);
+
+export const joinGroupAsync = createAsyncThunk(
+  "groups/joinGroup",
+  async (groupCode: string) => {
+    const response = await apiService.joinGroup(groupCode);
+    return { groupCode, response };
+  }
+);
+
+export const leaveGroupAsync = createAsyncThunk(
+  "groups/leaveGroup",
+  async (groupCode: string) => {
+    await apiService.leaveGroup(groupCode);
+    return groupCode;
+  }
+);
+
+export const fetchSubscriptions = createAsyncThunk(
+  "subscriptions/fetchSubscriptions",
+  async () => {
+    const response = await apiService.getSubscriptions();
+    return response;
+  }
+);
+
+export const subscribeToGroupAsync = createAsyncThunk(
+  "subscriptions/subscribeToGroup",
+  async (groupCode: string) => {
+    const response = await apiService.subscribeToGroup(groupCode);
+    return { groupCode, response };
+  }
+);
+
+export const unsubscribeFromGroupAsync = createAsyncThunk(
+  "subscriptions/unsubscribeFromGroup",
+  async (groupCode: string) => {
+    await apiService.unsubscribeFromGroup(groupCode);
+    return groupCode;
+  }
+);
 
 export const selectSubscriptions = (state: RootState) => state.subscriptions;
 export const selectJoinedGroups = (state: RootState) => state.joinedGroups;
+export const selectGroups = (state: RootState) => state.groups;
 export const selectDonated = (state: RootState) => state.user.donated;
 export const selectIsAuthenticated = (state: RootState) =>
   state.user.isAuthenticated;
@@ -249,6 +452,7 @@ export const store = configureStore({
     placeholder: placeholderReducer,
     subscriptions: subscriptionsSlice.reducer,
     joinedGroups: joinedGroupsSlice.reducer,
+    groups: groupsSlice.reducer,
     user: userSlice.reducer,
     events: eventsSlice.reducer,
     enrollments: enrollmentsSlice.reducer,

@@ -4,7 +4,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useDispatch } from "react-redux";
-import { joinGroup } from "./store";
+import { joinGroup, joinGroupAsync } from "./store";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -47,12 +47,18 @@ export default function TabTwoScreen() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(!!joinGroupCode && fromGroup);
 
-  const handlePlanSelect = (planName: string) => {
+  const handlePlanSelect = async (planName: string) => {
     setSelectedPlan(planName);
     // Simulate payment process
-    setTimeout(() => {
+    setTimeout(async () => {
       if (joinGroupCode) {
-        dispatch(joinGroup(joinGroupCode));
+        try {
+          await dispatch(joinGroupAsync(joinGroupCode) as any);
+          // Also update local state for immediate UI feedback
+          dispatch(joinGroup(joinGroupCode));
+        } catch (error: any) {
+          console.error("Failed to join group:", error);
+        }
       }
       setShowModal(false);
       router.back();

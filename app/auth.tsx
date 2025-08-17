@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
-import { setAuthenticated, setToken, API_BASE_URL } from "./store";
+import { setAuthenticated, setToken } from "./store";
+import { apiService } from "./services/ApiService";
 import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
@@ -28,26 +29,21 @@ export default function AuthScreen() {
     }
     setError("");
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        setError(data.message || "Login failed. Please try again.");
-        return;
-      }
-      const data = await response.json();
+      const data = await apiService.login(email, password);
       if (!data.token) {
         setError("No token received. Please try again.");
         return;
       }
+      // Set the token in the API service
+      apiService.setToken(data.token);
+
       dispatch(setToken(data.token));
       dispatch(setAuthenticated(true));
       router.replace("/(tabs)");
-    } catch (err) {
-      setError("Could not connect to server. Please try again later.");
+    } catch (err: any) {
+      setError(
+        err.message || "Could not connect to server. Please try again later."
+      );
     }
   };
 
