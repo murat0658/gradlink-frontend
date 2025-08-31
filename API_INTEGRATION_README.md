@@ -1,387 +1,333 @@
 # GradLink API Integration Guide
 
-This guide explains how to integrate the newly created API service with your existing GradLink React Native application, set up the PostgreSQL database, and test the APIs using the Postman collection.
-
 ## Overview
 
-The integration provides a complete backend API layer that manages:
+This document describes the updated API integration for the GradLink application. All network requests now require authentication via JWT tokens, except for authentication endpoints (login, register, refresh token).
 
-- **Authentication**: JWT-based user authentication and authorization
-- **Users**: User profiles, registration, and management
-- **Groups**: University alumni groups with membership management
-- **Events**: Event creation, enrollment, and management
-- **Notifications**: User notifications and event reminders
-- **Topic Discussions**: Threaded discussions within groups
-- **Subscriptions**: Group subscription management
-- **File Uploads**: Avatar, event, and topic file management
-- **Search**: Global search across all entities
+## API Base URL
 
-## File Structure
+The API base URL has been updated to match the Postman collection:
 
 ```
-gradlink/
-├── app/
-│   ├── services/
-│   │   └── ApiService.ts          # Main API service layer
-│   └── store.ts                   # Updated Redux store with API integration
-├── database/
-│   ├── schema.sql                 # PostgreSQL DDL schema
-│   └── sample_data.sql            # Sample data for development
-├── postman/
-│   └── GradLink_API_Collection.json # Complete Postman collection
-└── API_INTEGRATION_README.md      # This file
+http://localhost:8080
 ```
 
-## 1. Database Setup
+## Authentication
 
-### Prerequisites
+### JWT Token Management
 
-- PostgreSQL 12+ installed
-- Database user with CREATE privileges
+- **Token Storage**: JWT tokens are stored in Redux state (`user.token`)
+- **Automatic Token Refresh**: Tokens are automatically refreshed every 14 minutes
+- **Global Authentication**: All API endpoints (except auth) require valid JWT tokens
+- **Error Handling**: 401 errors automatically trigger token refresh attempts
 
-### Setup Steps
+### Authentication Flow
 
-1. **Create Database**
+1. **Login/Register**: No authentication required
+2. **API Calls**: All subsequent calls include `Authorization: Bearer {token}` header
+3. **Token Expiry**: Automatic refresh on 401 errors
+4. **Logout**: Clears token and redirects to login
 
-   ```sql
-   CREATE DATABASE gradlink;
-   CREATE USER gradlink_user WITH PASSWORD 'your_password';
-   GRANT ALL PRIVILEGES ON DATABASE gradlink TO gradlink_user;
-   ```
+## API Endpoints Structure
 
-2. **Run Schema**
+The API service is organized according to the Postman collection structure:
 
-   ```bash
-   psql -U gradlink_user -d gradlink -f database/schema.sql
-   ```
+### 1. Authentication Endpoints (No Auth Required)
 
-3. **Populate Sample Data**
-   ```bash
-   psql -U gradlink_user -d gradlink -f database/sample_data.sql
-   ```
+```typescript
+// Login
+POST /auth/login
+Body: { email: string, password: string }
+Response: { token: string, user: any }
 
-### Database Features
+// Register
+POST /auth/register
+Body: { name: string, email: string, password: string, phoneNumber: string }
+Response: { message: string }
 
-- **UUID Primary Keys**: All entities use UUIDs for security
-- **Automatic Timestamps**: `created_at` and `updated_at` fields
-- **Triggers**: Automatic count updates for members, enrollments, replies, and upvotes
-- **Full-Text Search**: PostgreSQL GIN indexes for content search
-- **Role-Based Access**: User roles (USER, ADMIN, MODERATOR)
-- **Soft Deletes**: Status-based deletion for memberships
+// Refresh Token
+POST /auth/refresh
+Response: { token: string }
 
-## 2. API Service Integration
-
-### Current State
-
-Your app currently uses local Redux state for data management. The new `ApiService.ts` provides a complete HTTP client layer.
-
-### Integration Steps
-
-1. **Update Store Configuration**
-
-   ```typescript
-   // In app/store.ts, update API_BASE_URL to point to your Java backend
-   export const API_BASE_URL = "http://your-backend-host:8080";
-   ```
-
-2. **Initialize API Service**
-
-   ```typescript
-   // In your app initialization
-   import { apiService } from "./services/ApiService";
-
-   // Set the token when user logs in
-   apiService.setToken(userToken);
-   ```
-
-3. **Replace Local State with API Calls**
-   ```typescript
-   // Instead of local state updates, use API calls
-   // Before: dispatch(addEvent(eventData))
-   // After:
-   try {
-     const newEvent = await apiService.createEvent(eventData);
-     dispatch(addEvent(newEvent));
-   } catch (error) {
-     // Handle error
-   }
-   ```
-
-### API Service Features
-
-- **Automatic Authentication**: JWT token management
-- **Error Handling**: Comprehensive error handling with user-friendly messages
-- **Type Safety**: Full TypeScript support
-- **Pagination**: Built-in pagination support for all list endpoints
-- **File Uploads**: Support for multipart form data
-- **Search**: Global search with type filtering
-
-## 3. Backend Implementation (Java)
-
-### Required Endpoints
-
-The API service expects these REST endpoints from your Java backend:
-
-#### Authentication
-
-- `POST /auth/login` - User login
-- `POST /auth/register` - User registration
-- `POST /auth/refresh` - Token refresh
-- `POST /auth/logout` - User logout
-
-#### Users
-
-- `GET /users/me` - Current user profile
-- `PUT /users/me` - Update current user
-- `GET /users/{id}` - Get user profile
-
-#### Groups
-
-- `GET /groups` - List groups (with pagination/filtering)
-- `GET /groups/{code}` - Get group details
-- `POST /groups` - Create group
-- `PUT /groups/{code}` - Update group
-- `DELETE /groups/{code}` - Delete group
-- `POST /groups/{code}/join` - Join group
-- `DELETE /groups/{code}/leave` - Leave group
-- `GET /groups/{code}/members` - Get group members
-
-#### Events
-
-- `GET /events` - List events (with pagination/filtering)
-- `GET /events/{id}` - Get event details
-- `POST /events` - Create event
-- `PUT /events/{id}` - Update event
-- `DELETE /events/{id}` - Delete event
-- `POST /events/{id}/enroll` - Enroll in event
-- `DELETE /events/{id}/unenroll` - Unenroll from event
-- `GET /events/{id}/enrollments` - Get event enrollments
-
-#### Notifications
-
-- `GET /notifications` - List notifications
-- `GET /notifications/{id}` - Get notification
-- `PUT /notifications/{id}/read` - Mark as read
-- `PUT /notifications/read-all` - Mark all as read
-- `DELETE /notifications/{id}` - Delete notification
-- `DELETE /notifications` - Delete all notifications
-
-#### Topics
-
-- `GET /groups/{code}/topics` - List group topics
-- `GET /groups/{code}/topics/{title}` - Get topic
-- `POST /groups/{code}/topics` - Create topic
-- `PUT /groups/{code}/topics/{title}` - Update topic
-- `DELETE /groups/{code}/topics/{title}` - Delete topic
-- `POST /groups/{code}/topics/{title}/replies` - Add reply
-- `PUT /groups/{code}/topics/{title}/replies/{id}` - Update reply
-- `DELETE /groups/{code}/topics/{title}/replies/{id}` - Delete reply
-- `POST /groups/{code}/topics/{title}/replies/{id}/upvote` - Upvote reply
-
-#### Subscriptions
-
-- `GET /subscriptions` - List user subscriptions
-- `POST /subscriptions/{code}` - Subscribe to group
-- `DELETE /subscriptions/{code}` - Unsubscribe from group
-
-#### File Uploads
-
-- `POST /files/upload` - Upload file
-
-#### Search
-
-- `GET /search` - Global search
-
-### Response Format
-
-All endpoints should return consistent JSON responses:
-
-```json
-{
-  "data": {}, // or [] for lists
-  "message": "Success message",
-  "success": true
-}
+// Logout (Auth Required)
+POST /auth/logout
 ```
 
-For paginated responses:
+### 2. User Endpoints (Auth Required)
 
-```json
-{
-  "content": [],
-  "totalElements": 100,
-  "totalPages": 5,
-  "size": 20,
-  "number": 0,
-  "first": true,
-  "last": false
-}
+```typescript
+// Get Current User
+GET /users/me
+
+// Update Current User
+PUT /users/me
+Body: { name?: string, bio?: string, location?: string, graduation_year?: number }
+
+// Get User Profile
+GET /users/{userId}
+```
+
+### 3. Groups Endpoints (Auth Required)
+
+```typescript
+// Get All Groups
+GET /groups?page=0&size=20&search=&university=
+
+// Get Group by Code
+GET /groups/{groupCode}
+
+// Create Group (Admin Only)
+POST /groups
+Body: { code: string, university: string, description: string, location: string, founded: number, color: string, icon: string }
+
+// Update Group
+PUT /groups/{groupCode}
+Body: { description?: string, color?: string }
+
+// Delete Group (Admin Only)
+DELETE /groups/{groupCode}
+
+// Join Group
+POST /groups/{groupCode}/join
+
+// Leave Group
+DELETE /groups/{groupCode}/leave
+
+// Get Group Members
+GET /groups/{groupCode}/members?page=0&size=20&role=
+```
+
+### 4. Events Endpoints (Auth Required)
+
+```typescript
+// Get All Events
+GET /events?page=0&size=20&groupCode=&startDate=&endDate=&isEnrolled=
+
+// Get Event by ID
+GET /events/{eventId}
+
+// Create Event
+POST /events
+Body: { title: string, description: string, startTime: string, endTime: string, location: string, capacity: number, groupCode: string }
+
+// Update Event
+PUT /events/{eventId}
+Body: { title?: string, description?: string, capacity?: number }
+
+// Delete Event
+DELETE /events/{eventId}
+
+// Enroll in Event
+POST /events/{eventId}/enroll
+
+// Unenroll from Event
+DELETE /events/{eventId}/unenroll
+
+// Get Event Enrollments
+GET /events/{eventId}/enrollments?page=0&size=20
+```
+
+### 5. Notifications Endpoints (Auth Required)
+
+```typescript
+// Get All Notifications
+GET /notifications?page=0&size=20&isRead=&type=
+
+// Get Notification by ID
+GET /notifications/{notificationId}
+
+// Mark Notification as Read
+PUT /notifications/{notificationId}/read
+
+// Mark All Notifications as Read
+PUT /notifications/read-all
+
+// Delete Notification
+DELETE /notifications/{notificationId}
+
+// Delete All Notifications
+DELETE /notifications
+```
+
+### 6. Topic Discussions Endpoints (Auth Required)
+
+```typescript
+// Get Group Topics
+GET /groups/{groupCode}/topics?page=0&size=20&search=
+
+// Get Topic by Title
+GET /groups/{groupCode}/topics/{topicTitle}
+
+// Create Topic
+POST /groups/{groupCode}/topics
+Body: { title: string, content: string }
+
+// Update Topic
+PUT /groups/{groupCode}/topics/{topicTitle}
+Body: { title?: string, content?: string }
+
+// Delete Topic
+DELETE /groups/{groupCode}/topics/{topicTitle}
+
+// Add Reply to Topic
+POST /groups/{groupCode}/topics/{topicTitle}/replies
+Body: { content: string, parentId?: string }
+
+// Update Reply
+PUT /groups/{groupCode}/topics/{topicTitle}/replies/{replyId}
+Body: { content: string }
+
+// Delete Reply
+DELETE /groups/{groupCode}/topics/{topicTitle}/replies/{replyId}
+
+// Upvote Reply
+POST /groups/{groupCode}/topics/{topicTitle}/replies/{replyId}/upvote
+```
+
+### 7. Subscriptions Endpoints (Auth Required)
+
+```typescript
+// Get User Subscriptions
+GET / subscriptions;
+
+// Subscribe to Group
+POST / subscriptions / { groupCode };
+
+// Unsubscribe from Group
+DELETE / subscriptions / { groupCode };
+```
+
+### 8. File Upload Endpoints (Auth Required)
+
+```typescript
+// Upload File
+POST /files/upload
+Body: FormData with 'file' and 'type' (avatar, event, or topic)
+```
+
+### 9. Search Endpoints (Auth Required)
+
+```typescript
+// Global Search
+GET /search?q={query}&type={type}&page=0&size=20
+Type: users, groups, events, or topics
+```
+
+## Usage Examples
+
+### Basic API Call
+
+```typescript
+import { apiService } from "../services/ApiService";
+
+// Get all groups
+const groups = await apiService.getGroups({ page: 0, size: 20 });
+
+// Create an event
+const event = await apiService.createEvent({
+  title: "Networking Event",
+  description: "Join us for networking",
+  startTime: "2024-03-15T18:00:00Z",
+  endTime: "2024-03-15T21:00:00Z",
+  location: "Conference Center",
+  capacity: 50,
+  groupCode: "harvard",
+});
+```
+
+### Using Redux Thunks
+
+```typescript
+import { useDispatch, useSelector } from "react-redux";
+import { fetchGroups, selectGroups, selectGroupsLoading } from "../store";
+
+const MyComponent = () => {
+  const dispatch = useDispatch();
+  const groups = useSelector(selectGroups);
+  const loading = useSelector(selectGroupsLoading);
+
+  useEffect(() => {
+    dispatch(fetchGroups({ page: 0, size: 20 }));
+  }, [dispatch]);
+
+  // ... rest of component
+};
 ```
 
 ### Error Handling
 
-Return appropriate HTTP status codes and error messages:
-
-```json
-{
-  "message": "Error description",
-  "error": "ERROR_TYPE",
-  "statusCode": 400,
-  "timestamp": "2024-01-01T00:00:00Z"
+```typescript
+try {
+  const result = await apiService.getGroups();
+} catch (error) {
+  if (error.message.includes("401")) {
+    // Authentication error - handled automatically by ApiProvider
+    console.log("User needs to re-authenticate");
+  } else {
+    // Other errors
+    console.error("API call failed:", error.message);
+  }
 }
 ```
 
-## 4. Testing with Postman
+## Authentication Provider
 
-### Import Collection
+The `ApiProvider` component automatically handles:
 
-1. Open Postman
-2. Click "Import" → "Upload Files"
-3. Select `postman/GradLink_API_Collection.json`
+- Token management
+- Automatic token refresh
+- Authentication error handling
+- Global API service configuration
 
-### Environment Setup
+```typescript
+import { ApiProvider } from "./components/ApiProvider";
 
-1. Create a new environment in Postman
-2. Set variables:
-   - `base_url`: Your backend URL (e.g., `http://localhost:8080`)
-   - `auth_token`: Leave empty (will be set automatically)
-   - `user_id`: Leave empty (will be set automatically)
-   - `group_code`: Default group code (e.g., `harvard`)
-   - `event_id`: Leave empty (will be set automatically)
-   - `topic_title`: Default topic title
-   - `notification_id`: Leave empty (will be set automatically)
+const App = () => (
+  <Provider store={store}>
+    <ApiProvider>{/* Your app components */}</ApiProvider>
+  </Provider>
+);
+```
 
-### Testing Flow
+## Security Features
 
-1. **Start with Authentication**: Use "User Login" to get a token
-2. **Test User Endpoints**: Get/update user profile
-3. **Test Groups**: Browse, join, and manage groups
-4. **Test Events**: Create and manage events
-5. **Test Topics**: Create discussions and replies
-6. **Test Notifications**: Manage user notifications
+1. **JWT Token Validation**: All requests validate JWT tokens
+2. **Automatic Token Refresh**: Seamless user experience
+3. **Secure Logout**: Proper token invalidation
+4. **Error Handling**: Graceful degradation on auth failures
+5. **No Token Storage**: Tokens are not persisted in localStorage
 
-### Automatic Variable Setting
+## Testing with Postman
 
-The collection includes test scripts that automatically set:
+Use the provided Postman collection (`GradLink_API_Collection.json`) to test all endpoints:
 
-- `auth_token` from login responses
-- `user_id` from user profile responses
-- `event_id` from events list responses
-- `notification_id` from notifications list responses
+1. Import the collection
+2. Set the `base_url` variable to your API server
+3. Use the Login endpoint to get a JWT token
+4. The collection automatically sets the `auth_token` variable
+5. All subsequent requests will include the Authorization header
 
-## 5. Migration Strategy
+## Migration Notes
 
-### Phase 1: Authentication
+- **API Base URL**: Changed from IP address to localhost
+- **Authentication**: All endpoints now require JWT tokens
+- **Error Handling**: Enhanced with automatic token refresh
+- **Structure**: Organized according to Postman collection
+- **Types**: Improved TypeScript support and error handling
 
-1. Implement auth endpoints in Java backend
-2. Update login/signup screens to use API
-3. Test authentication flow
-
-### Phase 2: Core Data
-
-1. Implement groups and events endpoints
-2. Update Redux actions to use API calls
-3. Test CRUD operations
-
-### Phase 3: Advanced Features
-
-1. Implement topics, notifications, and search
-2. Add file upload functionality
-3. Test complete user workflows
-
-### Phase 4: Optimization
-
-1. Add caching and offline support
-2. Implement real-time updates
-3. Performance testing and optimization
-
-## 6. Security Considerations
-
-### JWT Implementation
-
-- Use secure secret keys
-- Implement token expiration and refresh
-- Validate tokens on all protected endpoints
-
-### Data Validation
-
-- Validate all input data
-- Implement rate limiting
-- Use parameterized queries to prevent SQL injection
-
-### File Upload Security
-
-- Validate file types and sizes
-- Store files outside web root
-- Implement virus scanning if needed
-
-## 7. Performance Optimization
-
-### Database
-
-- Use the provided indexes
-- Implement connection pooling
-- Consider read replicas for heavy read operations
-
-### API
-
-- Implement response caching
-- Use pagination for large datasets
-- Consider GraphQL for complex queries
-
-### Mobile App
-
-- Implement offline caching
-- Use optimistic updates
-- Implement pull-to-refresh and infinite scroll
-
-## 8. Monitoring and Debugging
-
-### Logging
-
-- Log all API requests and responses
-- Monitor error rates and response times
-- Track user activity patterns
-
-### Testing
-
-- Use the Postman collection for API testing
-- Implement automated tests for critical flows
-- Test with various data sizes and network conditions
-
-## 9. Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-1. **CORS Errors**: Ensure backend allows requests from your app domain
-2. **Authentication Failures**: Check JWT token format and expiration
-3. **Database Connection**: Verify PostgreSQL connection settings
-4. **File Upload Issues**: Check file size limits and storage permissions
+1. **401 Unauthorized**: Check if token is valid and not expired
+2. **Token Refresh Fails**: User will be automatically logged out
+3. **CORS Issues**: Ensure API server allows requests from your domain
+4. **Network Errors**: Check API server availability and base URL
 
-### Debug Tools
+### Debug Mode
 
-- Use Postman console for request/response inspection
-- Check browser network tab for HTTP details
-- Monitor PostgreSQL logs for database issues
+Enable debug logging by checking the browser console for:
 
-## 10. Next Steps
-
-1. **Set up PostgreSQL database** using the provided schema
-2. **Implement Java backend** with the required endpoints
-3. **Test APIs** using the Postman collection
-4. **Integrate API service** into your React Native app
-5. **Migrate existing functionality** from local state to API calls
-6. **Add error handling** and user feedback
-7. **Implement offline support** and caching
-8. **Add real-time features** (WebSockets, push notifications)
-
-## Support
-
-For questions or issues:
-
-1. Check the database schema and sample data
-2. Review the Postman collection examples
-3. Test individual endpoints for debugging
-4. Verify database connections and permissions
-
-The API service is designed to be robust and maintainable, providing a solid foundation for your GradLink application's backend needs.
+- Token refresh attempts
+- Authentication errors
+- API request/response details

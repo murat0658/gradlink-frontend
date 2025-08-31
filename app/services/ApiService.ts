@@ -4,6 +4,7 @@ import { API_BASE_URL } from "../store";
 class ApiService {
   private baseUrl: string;
   private token: string | null = null;
+  private onAuthError?: () => void;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -13,11 +14,16 @@ class ApiService {
     this.token = token;
   }
 
+  setAuthErrorHandler(handler: () => void) {
+    this.onAuthError = handler;
+  }
+
   private getHeaders(): HeadersInit {
     const headers: HeadersInit = {
       "Content-Type": "application/json",
     };
 
+    // All endpoints except auth endpoints require authentication
     if (this.token) {
       headers["Authorization"] = `Bearer ${this.token}`;
     }
@@ -27,12 +33,19 @@ class ApiService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    requireAuth: boolean = true
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+
+    // For auth endpoints, don't include Authorization header
+    const headers = requireAuth
+      ? this.getHeaders()
+      : { "Content-Type": "application/json" };
+
     const config: RequestInit = {
       ...options,
-      headers: this.getHeaders(),
+      headers,
     };
 
     try {
@@ -40,6 +53,12 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Handle authentication errors
+        if (response.status === 401 && this.onAuthError) {
+          this.onAuthError();
+        }
+
         throw new Error(
           errorData.message || `HTTP ${response.status}: ${response.statusText}`
         );
@@ -59,12 +78,19 @@ class ApiService {
     }
   }
 
-  // Authentication endpoints
+  // ========================================
+  // AUTHENTICATION ENDPOINTS (No auth required)
+  // ========================================
+
   async login(email: string, password: string) {
-    return this.request<{ token: string; user: any }>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    return this.request<{ token: string; user: any }>(
+      "/auth/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      },
+      false
+    ); // No auth required for login
   }
 
   async register(userData: {
@@ -73,25 +99,36 @@ class ApiService {
     password: string;
     phoneNumber: string;
   }) {
-    return this.request<{ message: string }>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(userData),
-    });
+    return this.request<{ message: string }>(
+      "/auth/register",
+      {
+        method: "POST",
+        body: JSON.stringify(userData),
+      },
+      false
+    ); // No auth required for registration
   }
 
   async refreshToken() {
-    return this.request<{ token: string }>("/auth/refresh", {
-      method: "POST",
-    });
+    return this.request<{ token: string }>(
+      "/auth/refresh",
+      {
+        method: "POST",
+      },
+      false
+    ); // No auth required for token refresh
   }
 
   async logout() {
     return this.request("/auth/logout", {
       method: "POST",
-    });
+    }); // Auth required for logout
   }
 
-  // User endpoints
+  // ========================================
+  // USER ENDPOINTS (Auth required)
+  // ========================================
+
   async getCurrentUser() {
     return this.request<any>("/users/me");
   }
@@ -107,7 +144,10 @@ class ApiService {
     return this.request<any>(`/users/${userId}`);
   }
 
-  // Groups endpoints
+  // ========================================
+  // GROUPS ENDPOINTS (Auth required)
+  // ========================================
+
   async getGroups(params?: {
     page?: number;
     size?: number;
@@ -115,8 +155,10 @@ class ApiService {
     university?: string;
   }) {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.size) queryParams.append("size", params.size.toString());
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
     if (params?.search) queryParams.append("search", params.search);
     if (params?.university) queryParams.append("university", params.university);
 
@@ -179,8 +221,10 @@ class ApiService {
     }
   ) {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.size) queryParams.append("size", params.size.toString());
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
     if (params?.role) queryParams.append("role", params.role);
 
     const queryString = queryParams.toString();
@@ -191,7 +235,10 @@ class ApiService {
     return this.request<any[]>(endpoint);
   }
 
-  // Events endpoints
+  // ========================================
+  // EVENTS ENDPOINTS (Auth required)
+  // ========================================
+
   async getEvents(params?: {
     page?: number;
     size?: number;
@@ -201,8 +248,10 @@ class ApiService {
     isEnrolled?: boolean;
   }) {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.size) queryParams.append("size", params.size.toString());
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
     if (params?.groupCode) queryParams.append("groupCode", params.groupCode);
     if (params?.startDate) queryParams.append("startDate", params.startDate);
     if (params?.endDate) queryParams.append("endDate", params.endDate);
@@ -267,8 +316,10 @@ class ApiService {
     }
   ) {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.size) queryParams.append("size", params.size.toString());
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
 
     const queryString = queryParams.toString();
     const endpoint = `/events/${eventId}/enrollments${
@@ -278,7 +329,10 @@ class ApiService {
     return this.request<any[]>(endpoint);
   }
 
-  // Notifications endpoints
+  // ========================================
+  // NOTIFICATIONS ENDPOINTS (Auth required)
+  // ========================================
+
   async getNotifications(params?: {
     page?: number;
     size?: number;
@@ -286,8 +340,10 @@ class ApiService {
     type?: string;
   }) {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.size) queryParams.append("size", params.size.toString());
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
     if (params?.isRead !== undefined)
       queryParams.append("isRead", params.isRead.toString());
     if (params?.type) queryParams.append("type", params.type);
@@ -326,7 +382,10 @@ class ApiService {
     });
   }
 
-  // Topic discussions endpoints
+  // ========================================
+  // TOPIC DISCUSSIONS ENDPOINTS (Auth required)
+  // ========================================
+
   async getTopics(
     groupCode: string,
     params?: {
@@ -336,8 +395,10 @@ class ApiService {
     }
   ) {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.size) queryParams.append("size", params.size.toString());
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
     if (params?.search) queryParams.append("search", params.search);
 
     const queryString = queryParams.toString();
@@ -439,7 +500,10 @@ class ApiService {
     );
   }
 
-  // Subscriptions endpoints
+  // ========================================
+  // SUBSCRIPTIONS ENDPOINTS (Auth required)
+  // ========================================
+
   async getSubscriptions() {
     return this.request<any[]>("/subscriptions");
   }
@@ -456,7 +520,10 @@ class ApiService {
     });
   }
 
-  // File upload endpoints
+  // ========================================
+  // FILE UPLOAD ENDPOINTS (Auth required)
+  // ========================================
+
   async uploadFile(file: File, type: "avatar" | "event" | "topic") {
     const formData = new FormData();
     formData.append("file", file);
@@ -465,14 +532,17 @@ class ApiService {
     return this.request<{ url: string; filename: string }>("/files/upload", {
       method: "POST",
       headers: {
-        // Remove Content-Type for FormData
+        // Remove Content-Type for FormData, but keep Authorization
         Authorization: this.token ? `Bearer ${this.token}` : "",
       },
       body: formData,
     });
   }
 
-  // Search endpoints
+  // ========================================
+  // SEARCH ENDPOINTS (Auth required)
+  // ========================================
+
   async search(
     query: string,
     params?: {
@@ -484,8 +554,10 @@ class ApiService {
     const queryParams = new URLSearchParams();
     queryParams.append("q", query);
     if (params?.type) queryParams.append("type", params.type);
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.size) queryParams.append("size", params.size.toString());
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
 
     const queryString = queryParams.toString();
     const endpoint = `/search${queryString ? `?${queryString}` : ""}`;
