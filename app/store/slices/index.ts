@@ -68,3 +68,16 @@ export {
   updateTopicAnswers,
   clearTopicAnswers,
 } from "./topicAnswersSlice";
+
+// Default export for all slices
+export default {
+  // Export all named exports as default
+  ...require("./userSlice"),
+  ...require("./eventsSlice"),
+  ...require("./groupsSlice"),
+  ...require("./notificationsSlice"),
+  ...require("./subscriptionsSlice"),
+  ...require("./joinedGroupsSlice"),
+  ...require("./enrollmentsSlice"),
+  ...require("./topicAnswersSlice"),
+};

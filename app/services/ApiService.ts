@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../store";
+import { API_BASE_URL, API_ENDPOINTS } from "../config/api";
 
 // Base API service class
 class ApiService {

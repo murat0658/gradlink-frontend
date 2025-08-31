@@ -128,3 +128,9 @@ export interface RootState {
     [key: string]: ThreadAnswer[];
   };
 }
+
+// Default export for all types
+export default {
+  Event,
+  Notification,
+};

@@ -76,3 +76,5 @@ export const ApiProvider = ({ children }: ApiProviderProps) => {
 
   return <>{children}</>;
 };
+
+export default ApiProvider;

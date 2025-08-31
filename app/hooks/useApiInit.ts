@@ -16,3 +16,5 @@ export const useApiInit = () => {
 
   return { isInitialized: !!token };
 };
+
+export default useApiInit;

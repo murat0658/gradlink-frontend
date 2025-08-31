@@ -42,3 +42,9 @@ const getTimeUntilEvent = (eventTime: string): string => {
     return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
   }
 };
+
+// Default export for all utilities
+export default {
+  isEventComingSoon,
+  createEventNotification,
+};

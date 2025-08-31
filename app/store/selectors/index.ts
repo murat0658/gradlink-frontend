@@ -100,3 +100,18 @@ export const selectHasAnyError = createSelector(
   ],
   (...errors) => errors.some((error) => error !== null)
 );
+
+// Default export for the selectors
+export default {
+  selectUser,
+  selectDonated,
+  selectIsAuthenticated,
+  selectToken,
+  selectEvents,
+  selectGroups,
+  selectNotifications,
+  selectSubscriptions,
+  selectJoinedGroups,
+  selectEnrollments,
+  selectTopicAnswers,
+};

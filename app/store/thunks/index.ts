@@ -206,3 +206,27 @@ export const fetchEnrollments = createAsyncThunk(
     }
   }
 );
+
+// Default export for all thunks
+export default {
+  // Events thunks
+  fetchEvents,
+  createEventAsync,
+  enrollInEventAsync,
+  unenrollFromEventAsync,
+  // Groups thunks
+  fetchGroups,
+  joinGroupAsync,
+  leaveGroupAsync,
+  // Notifications thunks
+  fetchNotifications,
+  markNotificationAsReadAsync,
+  // Subscriptions thunks
+  fetchSubscriptions,
+  subscribeToGroupAsync,
+  unsubscribeFromGroupAsync,
+  // Joined groups thunks
+  fetchJoinedGroups,
+  // Enrollments thunks
+  fetchEnrollments,
+};

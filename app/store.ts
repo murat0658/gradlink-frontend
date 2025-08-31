@@ -38,8 +38,8 @@ export const getUserIdFromToken = (token: string | null): string | null => {
   }
 };
 
-// API base URL
-export const API_BASE_URL = "http://localhost:8080";
+// Import API configuration
+export { API_BASE_URL } from "./config/api";
 
 // Configure the store
 export const store = configureStore({

@@ -34,7 +34,6 @@ import {
   leaveGroup,
   selectJoinedGroups,
   selectDonated,
-  Event,
   addEvent,
   enrollInEvent,
   unenrollFromEvent,
@@ -43,6 +42,7 @@ import {
   selectEvents,
   selectEnrollments,
 } from "../../../store";
+import { Event } from "../../../store/types";
 
 const groups = [
   {

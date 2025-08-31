@@ -134,6 +134,8 @@ export const AsyncThunkExample = () => {
   );
 };
 
+export default AsyncThunkExample;
+
 const styles = StyleSheet.create({
   container: {
     padding: 20,
