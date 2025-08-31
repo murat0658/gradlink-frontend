@@ -242,7 +242,7 @@ interface InputProps {
   onChangeText?: (text: string) => void;
   onBlur?: () => void;
   error?: string;
-  style?: ViewStyle;
+  style?: TextStyle;
   multiline?: boolean;
   numberOfLines?: number;
 }
