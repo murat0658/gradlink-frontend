@@ -84,7 +84,7 @@ class ApiService {
 
   async login(email: string, password: string) {
     return this.request<{ token: string; user: any }>(
-      "/auth/login",
+      "/api/auth/login",
       {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -100,7 +100,7 @@ class ApiService {
     phoneNumber: string;
   }) {
     return this.request<{ message: string }>(
-      "/auth/register",
+      "/api/auth/register",
       {
         method: "POST",
         body: JSON.stringify(userData),
@@ -111,7 +111,7 @@ class ApiService {
 
   async refreshToken() {
     return this.request<{ token: string }>(
-      "/auth/refresh",
+      "/api/auth/refresh",
       {
         method: "POST",
       },
@@ -120,7 +120,7 @@ class ApiService {
   }
 
   async logout() {
-    return this.request("/auth/logout", {
+    return this.request("/api/auth/logout", {
       method: "POST",
     }); // Auth required for logout
   }
