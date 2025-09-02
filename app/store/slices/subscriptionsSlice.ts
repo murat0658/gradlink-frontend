@@ -127,6 +127,9 @@ const subscriptionsSlice = createSlice({
           console.log("⚠️ Subscription already exists:", existingSubscription);
         }
 
+        // Force a state update to ensure the UI reflects the change
+        console.log("🔄 Forcing state update - final items:", state.items);
+
         console.log("Final subscriptions after update:", state.items);
         state.error = null;
       })

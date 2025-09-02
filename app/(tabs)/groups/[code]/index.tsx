@@ -266,12 +266,12 @@ export default function GroupInfoScreen() {
     selectSubscribedGroupCodes(state)
   );
   const subscribed = subscribedGroupCodes.includes(code as string);
-  
+
   const joinedGroups = useSelector((state: RootState) =>
     selectJoinedGroups(state)
   );
   const joined = joinedGroups.includes(code as string);
-  
+
   // Debug logging
   console.log("🔍 Group Screen Debug:", {
     groupCode: code,
@@ -416,6 +416,15 @@ export default function GroupInfoScreen() {
       loadNews();
     }
   }, [subscribed, code]);
+
+  // Debug subscription state changes
+  useEffect(() => {
+    console.log("🔄 Subscription state changed:", {
+      groupCode: code,
+      subscribed,
+      subscribedGroupCodes,
+    });
+  }, [subscribed, subscribedGroupCodes, code]);
 
   // Initialize events for this group if they don't exist
   useEffect(() => {
@@ -616,9 +625,18 @@ export default function GroupInfoScreen() {
 
     try {
       console.log("🔄 Attempting to subscribe to group:", code);
+      console.log("🔄 Current subscription state before API call:", {
+        subscribed,
+        subscribedGroupCodes,
+      });
+      
       // Make the API call to subscribe - this will update Redux state via extraReducers
-      await dispatch(subscribeToGroupAsync(code as string) as any);
-      console.log("✅ Successfully subscribed to group:", code);
+      const result = await dispatch(subscribeToGroupAsync(code as string) as any);
+      console.log("🔄 API call result:", result);
+      console.log("🔄 Current subscription state after API call:", {
+        subscribed,
+        subscribedGroupCodes,
+      });
 
       Toast.show({
         type: "success",
@@ -640,7 +658,7 @@ export default function GroupInfoScreen() {
       console.log("🔄 Attempting to unsubscribe from group:", code);
       // Make the API call to unsubscribe - this will update Redux state via extraReducers
       await dispatch(unsubscribeFromGroupAsync(code as string) as any);
-    setShowUnsubModal(false);
+      setShowUnsubModal(false);
       console.log("✅ Successfully unsubscribed from group:", code);
 
       Toast.show({
@@ -713,40 +731,41 @@ export default function GroupInfoScreen() {
       <View style={styles.headerWrapper}>
         <View style={styles.headerButtonRow}>
           {joined ? (
-              <TouchableOpacity
-                style={styles.leaveButton}
-                onPress={() => dispatch(leaveGroup(code as string))}
-                activeOpacity={0.85}
-              >
+            <TouchableOpacity
+              style={styles.leaveButton}
+              onPress={() => dispatch(leaveGroup(code as string))}
+              activeOpacity={0.85}
+            >
+              <FontAwesome
+                name="user-times"
+                size={14}
+                color="#fff"
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.leaveButtonText}>Leave</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+                             <TouchableOpacity
+                 key={`subscribe-${subscribed}-${code}`}
+                 style={[
+                   styles.stylishSubscribeButton,
+                   subscribed && styles.unsubscribeButton,
+                   { marginRight: 8 },
+                 ]}
+                 onPress={handleSubscribe}
+                 activeOpacity={0.85}
+               >
                 <FontAwesome
-                  name="user-times"
-                  size={14}
-                  color="#fff"
-                  style={{ marginRight: 4 }}
-                />
-                <Text style={styles.leaveButtonText}>Leave</Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.stylishSubscribeButton,
-                  subscribed && styles.unsubscribeButton,
-                    { marginRight: 8 },
-                  ]}
-                onPress={handleSubscribe}
-                  activeOpacity={0.85}
-                >
-                  <FontAwesome
                   name={subscribed ? "minus" : "plus"}
-                    size={16}
-                    color="#fff"
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.stylishSubscribeButtonText}>
+                  size={16}
+                  color="#fff"
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.stylishSubscribeButtonText}>
                   {subscribed ? "Unsubscribe" : "Subscribe"}
-                  </Text>
-                </TouchableOpacity>
+                </Text>
+              </TouchableOpacity>
               {subscribed && (
                 <TouchableOpacity
                   style={styles.joinButton}
@@ -897,8 +916,8 @@ export default function GroupInfoScreen() {
           <View style={styles.newsHeaderSection}>
             <View style={styles.newsHeaderRow}>
               <View style={styles.newsHeaderLeft}>
-          <Text style={styles.newsHeader}>Latest News & Updates</Text>
-          <View style={styles.newsHeaderAccent} />
+                <Text style={styles.newsHeader}>Latest News & Updates</Text>
+                <View style={styles.newsHeaderAccent} />
               </View>
               <TouchableOpacity
                 style={styles.refreshButton}
@@ -913,10 +932,10 @@ export default function GroupInfoScreen() {
                 />
               </TouchableOpacity>
             </View>
-          <Text style={styles.newsSubtitle}>
+            <Text style={styles.newsSubtitle}>
               Stay up to date with announcements, events, and highlights from
               this group.
-          </Text>
+            </Text>
             {isLoadingNews && (
               <View style={styles.loadingContainer}>
                 <Text style={styles.loadingText}>Loading news...</Text>
@@ -1010,17 +1029,17 @@ export default function GroupInfoScreen() {
 
               {/* Fallback to local news if no API news */}
               {apiNews.length === 0 &&
-            groupNews.map((item, idx) => (
-              <View
-                key={item.content + item.date + idx}
-                style={styles.newsItem}
-              >
-                {item.title ? (
-                  <Text style={styles.newsTitle}>{item.title}</Text>
-                ) : null}
-                <Text style={styles.newsDate}>{item.date}</Text>
-                <Text style={styles.newsContent}>{item.content}</Text>
-              </View>
+                groupNews.map((item, idx) => (
+                  <View
+                    key={item.content + item.date + idx}
+                    style={styles.newsItem}
+                  >
+                    {item.title ? (
+                      <Text style={styles.newsTitle}>{item.title}</Text>
+                    ) : null}
+                    <Text style={styles.newsDate}>{item.date}</Text>
+                    <Text style={styles.newsContent}>{item.content}</Text>
+                  </View>
                 ))}
             </>
           ) : (
