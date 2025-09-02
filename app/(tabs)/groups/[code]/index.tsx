@@ -13,6 +13,7 @@ import {
   ScrollView,
   Dimensions,
   TextInput,
+  RefreshControl,
 } from "react-native";
 
 // Third-party libraries
@@ -21,6 +22,7 @@ import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import { newsService, NewsItem } from "../../../services/NewsService";
 
 // Local components
 import { Text, View } from "@/components/Themed";
@@ -277,6 +279,8 @@ export default function GroupInfoScreen() {
   const [newsContent, setNewsContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newsHeader, setNewsHeader] = useState("");
+  const [apiNews, setApiNews] = useState<NewsItem[]>([]);
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
 
   if (!group) {
     return (
@@ -287,6 +291,122 @@ export default function GroupInfoScreen() {
   }
 
   const [groupNews, setGroupNews] = useState(group.news || []);
+
+  // Load news from API
+  const loadNews = async () => {
+    if (!subscribed) return;
+    
+    try {
+      setIsLoadingNews(true);
+      console.log("📰 Loading news for group:", code);
+      const news = await newsService.getNewsByGroup(code as string);
+      setApiNews(news);
+      console.log("✅ News loaded successfully:", news.length, "items");
+    } catch (error) {
+      console.error("❌ Failed to load news:", error);
+      // Fallback to local news if API fails
+      setApiNews([]);
+    } finally {
+      setIsLoadingNews(false);
+    }
+  };
+
+  // Share news via API
+  const shareNews = async () => {
+    if (!newsContent.trim()) {
+      Toast.show({
+        type: "info",
+        text1: "Please enter some content.",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      console.log("📰 Sharing news for group:", code);
+      
+      const newNews = await newsService.createNews({
+        title: newsHeader.trim() || undefined,
+        content: newsContent.trim(),
+        groupCode: code as string,
+      });
+
+      // Add to local state
+      setApiNews(prev => [newNews, ...prev]);
+      
+      // Also add to local group news for immediate display
+      setGroupNews(prev => [
+        {
+          title: newNews.title || "",
+          date: newNews.createdAt.slice(0, 10),
+          content: newNews.content,
+        },
+        ...prev,
+      ]);
+
+      // Update the groups array
+      const groupIndex = groups.findIndex((g) => g.code === code);
+      if (groupIndex !== -1) {
+        groups[groupIndex].news = [
+          {
+            title: newNews.title || "",
+            date: newNews.createdAt.slice(0, 10),
+            content: newNews.content,
+          },
+          ...groups[groupIndex].news,
+        ];
+      }
+
+      setNewsHeader("");
+      setNewsContent("");
+      
+      Toast.show({
+        type: "success",
+        text1: "News shared successfully!",
+        text2: "Your news has been posted to the group.",
+      });
+      
+      console.log("✅ News shared successfully:", newNews);
+    } catch (error) {
+      console.error("❌ Failed to share news:", error);
+      Toast.show({
+        type: "error",
+        text1: "Failed to share news",
+        text2: "Please try again later.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Like/unlike news
+  const toggleLike = async (newsId: string, isLiked: boolean) => {
+    try {
+      const updatedNews = isLiked 
+        ? await newsService.unlikeNews(newsId)
+        : await newsService.likeNews(newsId);
+      
+      setApiNews(prev => 
+        prev.map(news => 
+          news.id === newsId ? updatedNews : news
+        )
+      );
+    } catch (error) {
+      console.error("❌ Failed to toggle like:", error);
+      Toast.show({
+        type: "error",
+        text1: "Failed to update like",
+        text2: "Please try again.",
+      });
+    }
+  };
+
+  // Load news when component mounts and when subscription changes
+  useEffect(() => {
+    if (subscribed) {
+      loadNews();
+    }
+  }, [subscribed, code]);
 
   // Initialize events for this group if they don't exist
   useEffect(() => {
@@ -505,7 +625,7 @@ export default function GroupInfoScreen() {
       console.log("🔄 Attempting to unsubscribe from group:", code);
       // Make the API call to unsubscribe - this will update Redux state via extraReducers
       await dispatch(unsubscribeFromGroupAsync(code as string) as any);
-      setShowUnsubModal(false);
+    setShowUnsubModal(false);
       console.log("✅ Successfully unsubscribed from group:", code);
 
       Toast.show({
@@ -564,7 +684,17 @@ export default function GroupInfoScreen() {
   ];
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView 
+      contentContainerStyle={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoadingNews}
+          onRefresh={loadNews}
+          colors={["#4f46e5"]}
+          tintColor="#4f46e5"
+        />
+      }
+    >
       <View style={styles.headerWrapper}>
         <View style={styles.headerButtonRow}>
           {subscribed ? (
@@ -751,46 +881,7 @@ export default function GroupInfoScreen() {
                       styles.shareNewsButton,
                       (!newsContent.trim() || isSubmitting) && { opacity: 0.5 },
                     ]}
-                    onPress={async () => {
-                      if (!newsContent.trim()) {
-                        Toast.show({
-                          type: "info",
-                          text1: "Please enter some content.",
-                        });
-                        return;
-                      }
-                      setIsSubmitting(true);
-                      setTimeout(() => {
-                        setGroupNews([
-                          {
-                            title: newsHeader,
-                            date: new Date().toISOString().slice(0, 10),
-                            content: newsContent,
-                          },
-                          ...groupNews,
-                        ]);
-                        const groupIndex = groups.findIndex(
-                          (g) => g.code === code
-                        );
-                        if (groupIndex !== -1) {
-                          groups[groupIndex].news = [
-                            {
-                              title: newsHeader,
-                              date: new Date().toISOString().slice(0, 10),
-                              content: newsContent,
-                            },
-                            ...groups[groupIndex].news,
-                          ];
-                        }
-                        setNewsHeader("");
-                        setNewsContent("");
-                        setIsSubmitting(false);
-                        Toast.show({
-                          type: "success",
-                          text1: "News shared!",
-                        });
-                      }, 500);
-                    }}
+                    onPress={shareNews}
                     activeOpacity={0.85}
                     disabled={!newsContent.trim() || isSubmitting}
                   >
@@ -802,16 +893,106 @@ export default function GroupInfoScreen() {
               </View>
             </View>
           </View>
-          <Text style={styles.newsHeader}>Latest News & Updates</Text>
-          <View style={styles.newsHeaderAccent} />
-          <Text style={styles.newsSubtitle}>
-            Stay up to date with announcements, events, and highlights from this
-            group.
-          </Text>
-          {groupNews.length === 0 ? (
-            <Text style={{ color: "#888", marginTop: 12 }}>No news yet.</Text>
-          ) : (
-            groupNews.map((item, idx) => (
+                    <View style={styles.newsHeaderSection}>
+            <View style={styles.newsHeaderRow}>
+              <View style={styles.newsHeaderLeft}>
+                <Text style={styles.newsHeader}>Latest News & Updates</Text>
+                <View style={styles.newsHeaderAccent} />
+              </View>
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={loadNews}
+                disabled={isLoadingNews}
+                activeOpacity={0.7}
+              >
+                <FontAwesome
+                  name="refresh"
+                  size={16}
+                  color={isLoadingNews ? "#9ca3af" : "#4f46e5"}
+                />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.newsSubtitle}>
+              Stay up to date with announcements, events, and highlights from this
+              group.
+            </Text>
+            {isLoadingNews && (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading news...</Text>
+              </View>
+            )}
+          </View>
+          
+          {/* Display API news first, then fallback to local news */}
+          {(apiNews.length > 0 || groupNews.length > 0) ? (
+            <>
+              {apiNews.map((item) => (
+                <View key={item.id} style={styles.enhancedNewsItem}>
+                  <View style={styles.newsItemHeader}>
+                    <View style={styles.newsAuthorSection}>
+                      <View style={styles.newsAuthorAvatar}>
+                        <FontAwesome name="user-circle" size={24} color="#4f46e5" />
+                      </View>
+                      <View style={styles.newsAuthorInfo}>
+                        <Text style={styles.newsAuthorName}>{item.author}</Text>
+                        <Text style={styles.newsDate}>
+                          {new Date(item.createdAt).toLocaleDateString()} • {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  
+                  {item.title && (
+                    <Text style={styles.enhancedNewsTitle}>{item.title}</Text>
+                  )}
+                  
+                  <Text style={styles.enhancedNewsContent}>{item.content}</Text>
+                  
+                  <View style={styles.newsActions}>
+                    <TouchableOpacity
+                      style={styles.newsActionButton}
+                      onPress={() => toggleLike(item.id, item.isLiked || false)}
+                      activeOpacity={0.7}
+                    >
+                      <FontAwesome
+                        name={item.isLiked ? "heart" : "heart-o"}
+                        size={16}
+                        color={item.isLiked ? "#ef4444" : "#6b7280"}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={[
+                        styles.newsActionText,
+                        item.isLiked && styles.newsActionTextLiked
+                      ]}>
+                        {item.likes || 0}
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.newsActionButton} activeOpacity={0.7}>
+                      <FontAwesome
+                        name="comment-o"
+                        size={16}
+                        color="#6b7280"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.newsActionText}>Comment</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.newsActionButton} activeOpacity={0.7}>
+                      <FontAwesome
+                        name="share"
+                        size={16}
+                        color="#6b7280"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.newsActionText}>Share</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              
+              {/* Fallback to local news if no API news */}
+              {apiNews.length === 0 && groupNews.map((item, idx) => (
               <View
                 key={item.content + item.date + idx}
                 style={styles.newsItem}
@@ -822,7 +1003,16 @@ export default function GroupInfoScreen() {
                 <Text style={styles.newsDate}>{item.date}</Text>
                 <Text style={styles.newsContent}>{item.content}</Text>
               </View>
-            ))
+              ))}
+            </>
+          ) : (
+            <View style={styles.emptyNewsContainer}>
+              <FontAwesome name="newspaper-o" size={48} color="#d1d5db" />
+              <Text style={styles.emptyNewsText}>No news yet</Text>
+              <Text style={styles.emptyNewsSubtext}>
+                Be the first to share something with the group!
+              </Text>
+            </View>
           )}
         </View>
       )}
@@ -1116,6 +1306,33 @@ const styles = StyleSheet.create({
     marginTop: 28,
     width: "100%",
   },
+  newsHeaderSection: {
+    marginBottom: 20,
+  },
+  newsHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  newsHeaderLeft: {
+    flex: 1,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    marginLeft: 12,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  loadingText: {
+    color: "#6b7280",
+    fontSize: 14,
+    fontStyle: "italic",
+  },
   newsHeader: {
     fontSize: 22,
     fontWeight: "bold",
@@ -1171,6 +1388,92 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#374151",
     lineHeight: 21,
+  },
+  enhancedNewsItem: {
+    marginBottom: 20,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+  },
+  newsItemHeader: {
+    marginBottom: 12,
+  },
+  newsAuthorSection: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  newsAuthorAvatar: {
+    marginRight: 12,
+  },
+  newsAuthorInfo: {
+    flex: 1,
+  },
+  newsAuthorName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 2,
+  },
+  enhancedNewsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  enhancedNewsContent: {
+    fontSize: 15,
+    color: "#374151",
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  newsActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  newsActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 24,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  newsActionText: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  newsActionTextLiked: {
+    color: "#ef4444",
+  },
+  emptyNewsContainer: {
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyNewsText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#6b7280",
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptyNewsSubtext: {
+    fontSize: 14,
+    color: "#9ca3af",
+    textAlign: "center",
+    lineHeight: 20,
   },
 
   tabBar: {

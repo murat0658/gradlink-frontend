@@ -40,6 +40,14 @@ export const API_ENDPOINTS = {
     PROFILE: "/api/users/profile",
     UPDATE: "/api/users/profile",
   },
+  // News
+  NEWS: {
+    BASE: "/api/news",
+    CREATE: "/api/news",
+    BY_GROUP: "/api/news/group/:code",
+    UPDATE: "/api/news/:id",
+    DELETE: "/api/news/:id",
+  },
 } as const;
 
 // Helper function to get the full URL for an endpoint
