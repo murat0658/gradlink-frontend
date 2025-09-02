@@ -597,6 +597,12 @@ export default function GroupInfoScreen() {
   const groupEvents = events.filter((e) => e.groupCode === code);
 
   const handleSubscribe = async () => {
+    if (subscribed) {
+      // If already subscribed, show unsubscribe modal
+      setShowUnsubModal(true);
+      return;
+    }
+
     try {
       console.log("🔄 Attempting to subscribe to group:", code);
       // Make the API call to subscribe - this will update Redux state via extraReducers
@@ -695,42 +701,42 @@ export default function GroupInfoScreen() {
     >
       <View style={styles.headerWrapper}>
         <View style={styles.headerButtonRow}>
-          {subscribed ? (
-            joined ? (
+          {joined ? (
+            <TouchableOpacity
+              style={styles.leaveButton}
+              onPress={() => dispatch(leaveGroup(code as string))}
+              activeOpacity={0.85}
+            >
+              <FontAwesome
+                name="user-times"
+                size={14}
+                color="#fff"
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.leaveButtonText}>Leave</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
               <TouchableOpacity
-                style={styles.leaveButton}
-                onPress={() => dispatch(leaveGroup(code as string))}
+                style={[
+                  styles.stylishSubscribeButton,
+                  subscribed && styles.unsubscribeButton,
+                  { marginRight: 8 },
+                ]}
+                onPress={handleSubscribe}
                 activeOpacity={0.85}
               >
                 <FontAwesome
-                  name="user-times"
-                  size={14}
+                  name={subscribed ? "minus" : "plus"}
+                  size={16}
                   color="#fff"
-                  style={{ marginRight: 4 }}
+                  style={{ marginRight: 6 }}
                 />
-                <Text style={styles.leaveButtonText}>Leave</Text>
+                <Text style={styles.stylishSubscribeButtonText}>
+                  {subscribed ? "Unsubscribe" : "Subscribe"}
+                </Text>
               </TouchableOpacity>
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.stylishSubscribeButton,
-                    styles.unsubscribeButton,
-                    { marginRight: 8 },
-                  ]}
-                  onPress={() => setShowUnsubModal(true)}
-                  activeOpacity={0.85}
-                >
-                  <FontAwesome
-                    name="minus"
-                    size={16}
-                    color="#fff"
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.stylishSubscribeButtonText}>
-                    Unsubscribe
-                  </Text>
-                </TouchableOpacity>
+              {subscribed && (
                 <TouchableOpacity
                   style={styles.joinButton}
                   onPress={() =>
@@ -749,22 +755,8 @@ export default function GroupInfoScreen() {
                   />
                   <Text style={styles.joinButtonText}>Join</Text>
                 </TouchableOpacity>
-              </>
-            )
-          ) : (
-            <TouchableOpacity
-              style={styles.stylishSubscribeButton}
-              onPress={handleSubscribe}
-              activeOpacity={0.85}
-            >
-              <FontAwesome
-                name="plus"
-                size={16}
-                color="#fff"
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.stylishSubscribeButtonText}>Subscribe</Text>
-            </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
         <View style={styles.logoWrapper}>
