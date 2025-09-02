@@ -295,7 +295,7 @@ export default function GroupInfoScreen() {
   // Load news from API
   const loadNews = async () => {
     if (!subscribed) return;
-    
+
     try {
       setIsLoadingNews(true);
       console.log("📰 Loading news for group:", code);
@@ -324,7 +324,7 @@ export default function GroupInfoScreen() {
     try {
       setIsSubmitting(true);
       console.log("📰 Sharing news for group:", code);
-      
+
       const newNews = await newsService.createNews({
         title: newsHeader.trim() || undefined,
         content: newsContent.trim(),
@@ -332,10 +332,10 @@ export default function GroupInfoScreen() {
       });
 
       // Add to local state
-      setApiNews(prev => [newNews, ...prev]);
-      
+      setApiNews((prev) => [newNews, ...prev]);
+
       // Also add to local group news for immediate display
-      setGroupNews(prev => [
+      setGroupNews((prev) => [
         {
           title: newNews.title || "",
           date: newNews.createdAt.slice(0, 10),
@@ -359,13 +359,13 @@ export default function GroupInfoScreen() {
 
       setNewsHeader("");
       setNewsContent("");
-      
+
       Toast.show({
         type: "success",
         text1: "News shared successfully!",
         text2: "Your news has been posted to the group.",
       });
-      
+
       console.log("✅ News shared successfully:", newNews);
     } catch (error) {
       console.error("❌ Failed to share news:", error);
@@ -382,14 +382,12 @@ export default function GroupInfoScreen() {
   // Like/unlike news
   const toggleLike = async (newsId: string, isLiked: boolean) => {
     try {
-      const updatedNews = isLiked 
+      const updatedNews = isLiked
         ? await newsService.unlikeNews(newsId)
         : await newsService.likeNews(newsId);
-      
-      setApiNews(prev => 
-        prev.map(news => 
-          news.id === newsId ? updatedNews : news
-        )
+
+      setApiNews((prev) =>
+        prev.map((news) => (news.id === newsId ? updatedNews : news))
       );
     } catch (error) {
       console.error("❌ Failed to toggle like:", error);
@@ -625,7 +623,7 @@ export default function GroupInfoScreen() {
       console.log("🔄 Attempting to unsubscribe from group:", code);
       // Make the API call to unsubscribe - this will update Redux state via extraReducers
       await dispatch(unsubscribeFromGroupAsync(code as string) as any);
-    setShowUnsubModal(false);
+      setShowUnsubModal(false);
       console.log("✅ Successfully unsubscribed from group:", code);
 
       Toast.show({
@@ -684,7 +682,7 @@ export default function GroupInfoScreen() {
   ];
 
   return (
-    <ScrollView 
+    <ScrollView
       contentContainerStyle={styles.container}
       refreshControl={
         <RefreshControl
@@ -724,13 +722,13 @@ export default function GroupInfoScreen() {
                   activeOpacity={0.85}
                 >
                   <FontAwesome
-                    name="check"
+                    name="minus"
                     size={16}
                     color="#fff"
                     style={{ marginRight: 6 }}
                   />
                   <Text style={styles.stylishSubscribeButtonText}>
-                    Subscribed
+                    Unsubscribe
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -893,7 +891,7 @@ export default function GroupInfoScreen() {
               </View>
             </View>
           </View>
-                    <View style={styles.newsHeaderSection}>
+          <View style={styles.newsHeaderSection}>
             <View style={styles.newsHeaderRow}>
               <View style={styles.newsHeaderLeft}>
                 <Text style={styles.newsHeader}>Latest News & Updates</Text>
@@ -913,8 +911,8 @@ export default function GroupInfoScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.newsSubtitle}>
-              Stay up to date with announcements, events, and highlights from this
-              group.
+              Stay up to date with announcements, events, and highlights from
+              this group.
             </Text>
             {isLoadingNews && (
               <View style={styles.loadingContainer}>
@@ -922,32 +920,40 @@ export default function GroupInfoScreen() {
               </View>
             )}
           </View>
-          
+
           {/* Display API news first, then fallback to local news */}
-          {(apiNews.length > 0 || groupNews.length > 0) ? (
+          {apiNews.length > 0 || groupNews.length > 0 ? (
             <>
               {apiNews.map((item) => (
                 <View key={item.id} style={styles.enhancedNewsItem}>
                   <View style={styles.newsItemHeader}>
                     <View style={styles.newsAuthorSection}>
                       <View style={styles.newsAuthorAvatar}>
-                        <FontAwesome name="user-circle" size={24} color="#4f46e5" />
+                        <FontAwesome
+                          name="user-circle"
+                          size={24}
+                          color="#4f46e5"
+                        />
                       </View>
                       <View style={styles.newsAuthorInfo}>
                         <Text style={styles.newsAuthorName}>{item.author}</Text>
                         <Text style={styles.newsDate}>
-                          {new Date(item.createdAt).toLocaleDateString()} • {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(item.createdAt).toLocaleDateString()} •{" "}
+                          {new Date(item.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </Text>
                       </View>
                     </View>
                   </View>
-                  
+
                   {item.title && (
                     <Text style={styles.enhancedNewsTitle}>{item.title}</Text>
                   )}
-                  
+
                   <Text style={styles.enhancedNewsContent}>{item.content}</Text>
-                  
+
                   <View style={styles.newsActions}>
                     <TouchableOpacity
                       style={styles.newsActionButton}
@@ -960,15 +966,20 @@ export default function GroupInfoScreen() {
                         color={item.isLiked ? "#ef4444" : "#6b7280"}
                         style={{ marginRight: 6 }}
                       />
-                      <Text style={[
-                        styles.newsActionText,
-                        item.isLiked && styles.newsActionTextLiked
-                      ]}>
+                      <Text
+                        style={[
+                          styles.newsActionText,
+                          item.isLiked && styles.newsActionTextLiked,
+                        ]}
+                      >
                         {item.likes || 0}
                       </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.newsActionButton} activeOpacity={0.7}>
+
+                    <TouchableOpacity
+                      style={styles.newsActionButton}
+                      activeOpacity={0.7}
+                    >
                       <FontAwesome
                         name="comment-o"
                         size={16}
@@ -977,8 +988,11 @@ export default function GroupInfoScreen() {
                       />
                       <Text style={styles.newsActionText}>Comment</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.newsActionButton} activeOpacity={0.7}>
+
+                    <TouchableOpacity
+                      style={styles.newsActionButton}
+                      activeOpacity={0.7}
+                    >
                       <FontAwesome
                         name="share"
                         size={16}
@@ -990,20 +1004,21 @@ export default function GroupInfoScreen() {
                   </View>
                 </View>
               ))}
-              
+
               {/* Fallback to local news if no API news */}
-              {apiNews.length === 0 && groupNews.map((item, idx) => (
-              <View
-                key={item.content + item.date + idx}
-                style={styles.newsItem}
-              >
-                {item.title ? (
-                  <Text style={styles.newsTitle}>{item.title}</Text>
-                ) : null}
-                <Text style={styles.newsDate}>{item.date}</Text>
-                <Text style={styles.newsContent}>{item.content}</Text>
-              </View>
-              ))}
+              {apiNews.length === 0 &&
+                groupNews.map((item, idx) => (
+                  <View
+                    key={item.content + item.date + idx}
+                    style={styles.newsItem}
+                  >
+                    {item.title ? (
+                      <Text style={styles.newsTitle}>{item.title}</Text>
+                    ) : null}
+                    <Text style={styles.newsDate}>{item.date}</Text>
+                    <Text style={styles.newsContent}>{item.content}</Text>
+                  </View>
+                ))}
             </>
           ) : (
             <View style={styles.emptyNewsContainer}>
