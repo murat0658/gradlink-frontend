@@ -18,7 +18,7 @@ import Colors, {
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthenticated, setToken } from "../store/slices";
 import { selectToken, selectUnreadNotifications } from "../store/selectors";
-import { API_BASE_URL } from "../store";
+import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/

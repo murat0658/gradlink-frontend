@@ -3,7 +3,6 @@ import { RootState } from "../types";
 
 // User selectors
 export const selectUser = (state: RootState) => state.user;
-export const selectDonated = (state: RootState) => state.user.donated;
 export const selectIsAuthenticated = (state: RootState) =>
   state.user.isAuthenticated;
 export const selectToken = (state: RootState) => state.user.token;
@@ -68,7 +67,13 @@ export const selectEnrolledEvents = createSelector(
 
 export const selectSubscribedGroupCodes = createSelector(
   [selectSubscriptions],
-  (subscriptions) => subscriptions.map((sub) => sub.groupCode)
+  (subscriptions) => {
+    const groupCodes = subscriptions.map((sub) => sub.groupCode);
+    console.log("🔍 selectSubscribedGroupCodes called:");
+    console.log("Input subscriptions:", subscriptions);
+    console.log("Output group codes:", groupCodes);
+    return groupCodes;
+  }
 );
 
 export const selectJoinedGroupCodes = createSelector(

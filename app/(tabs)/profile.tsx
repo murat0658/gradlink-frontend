@@ -15,7 +15,6 @@ import React, { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { useSelector, useDispatch } from "react-redux";
 import {
-  selectDonated,
   selectToken,
   getUserIdFromToken,
   setAuthenticated,
@@ -73,7 +72,6 @@ function validatePhone(phone: string) {
 }
 
 export default function ProfileScreen() {
-  const donated = useSelector(selectDonated);
   const token = useSelector(selectToken);
   const userId = getUserIdFromToken(token);
   const events = useSelector(selectEvents);
@@ -420,19 +418,6 @@ export default function ProfileScreen() {
         )}
       </Card>
 
-      <Card style={styles.donationCard}>
-        <FontAwesome
-          name="handshake-o"
-          size={32}
-          color={Colors.tint}
-          style={{ marginBottom: spacing.sm }}
-        />
-        <Text style={styles.donationLabel}>Total Donated</Text>
-        <Text style={styles.donationAmount}>
-          ${(donated as number).toFixed(2)}
-        </Text>
-      </Card>
-
       {/* Enrolled Events Section */}
       {enrolledEvents.length > 0 && (
         <RNView style={styles.enrolledEventsSection}>
@@ -617,22 +602,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSecondary,
   },
-  donationCard: {
-    alignItems: "center",
-    width: "100%",
-    marginBottom: spacing.xl,
-  },
-  donationLabel: {
-    ...typography.base,
-    color: Colors.tint,
-    fontWeight: "600",
-    marginBottom: spacing.xs,
-  },
-  donationAmount: {
-    ...typography["2xl"],
-    fontWeight: "bold",
-    color: Colors.success,
-  },
+
   avatarEditWrapper: {
     position: "relative",
     alignItems: "center",

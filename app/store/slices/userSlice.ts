@@ -1,13 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface UserState {
-  donated: number;
   isAuthenticated: boolean;
   token: string | null;
 }
 
 const initialState: UserState = {
-  donated: 0,
   isAuthenticated: false,
   token: null,
 };
@@ -16,9 +14,6 @@ const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    incrementDonation: (state, action: PayloadAction<number>) => {
-      state.donated += action.payload;
-    },
     setAuthenticated: (state, action: PayloadAction<boolean>) => {
       state.isAuthenticated = action.payload;
     },
@@ -32,6 +27,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { incrementDonation, setAuthenticated, setToken, logout } =
-  userSlice.actions;
+export const { setAuthenticated, setToken, logout } = userSlice.actions;
 export default userSlice.reducer;

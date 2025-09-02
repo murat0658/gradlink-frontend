@@ -38,9 +38,6 @@ export const getUserIdFromToken = (token: string | null): string | null => {
   }
 };
 
-// API base URL
-export const API_BASE_URL = "http://localhost:8080";
-
 // Configure the store
 export const store = configureStore({
   reducer: {

@@ -29,11 +29,9 @@ import {
   subscribe,
   unsubscribe,
   selectSubscriptions,
-  incrementDonation,
   joinGroup,
   leaveGroup,
   selectJoinedGroups,
-  selectDonated,
   Event,
   addEvent,
   enrollInEvent,
@@ -42,6 +40,8 @@ import {
   unenroll,
   selectEvents,
   selectEnrollments,
+  subscribeToGroupAsync,
+  unsubscribeFromGroupAsync,
 } from "../../../store";
 
 const groups = [
@@ -248,8 +248,6 @@ const groups = [
 
 export { groups };
 
-const DONATION_AMOUNTS = [5, 10, 20, 50];
-
 // Add a type for topic posts
 type TopicPost = {
   author: string;
@@ -273,9 +271,6 @@ export default function GroupInfoScreen() {
   const enrollments = useSelector(selectEnrollments);
   const router = useRouter();
   const [showUnsubModal, setShowUnsubModal] = React.useState(false);
-  const [selectedAmount, setSelectedAmount] = React.useState<number | null>(
-    null
-  );
   const [activeTab, setActiveTab] = useState<"news" | "events" | "topics">(
     "news"
   );
@@ -483,13 +478,49 @@ export default function GroupInfoScreen() {
 
   const groupEvents = events.filter((e) => e.groupCode === code);
 
-  const handleSubscribe = () => {
-    dispatch(subscribe(code as string));
+  const handleSubscribe = async () => {
+    try {
+      console.log("🔄 Attempting to subscribe to group:", code);
+      // Make the API call to subscribe - this will update Redux state via extraReducers
+      await dispatch(subscribeToGroupAsync(code as string) as any);
+      console.log("✅ Successfully subscribed to group:", code);
+
+      Toast.show({
+        type: "success",
+        text1: "Subscribed!",
+        text2: `You are now subscribed to ${group.university}`,
+      });
+    } catch (error: any) {
+      console.error("❌ Failed to subscribe to group:", error);
+      Toast.show({
+        type: "error",
+        text1: "Subscription Failed",
+        text2: error.message || "Could not subscribe to this group",
+      });
+    }
   };
 
-  const handleUnsubscribe = () => {
-    dispatch(unsubscribe(code as string));
-    setShowUnsubModal(false);
+  const handleUnsubscribe = async () => {
+    try {
+      console.log("🔄 Attempting to unsubscribe from group:", code);
+      // Make the API call to unsubscribe - this will update Redux state via extraReducers
+      await dispatch(unsubscribeFromGroupAsync(code as string) as any);
+      setShowUnsubModal(false);
+      console.log("✅ Successfully unsubscribed from group:", code);
+
+      Toast.show({
+        type: "success",
+        text1: "Unsubscribed!",
+        text2: `You are no longer subscribed to ${group.university}`,
+      });
+    } catch (error: any) {
+      console.error("❌ Failed to unsubscribe from group:", error);
+      Toast.show({
+        type: "error",
+        text1: "Unsubscription Failed",
+        text2: error.message || "Could not unsubscribe from this group",
+      });
+    }
   };
 
   const handleEnroll = (eventId: string) => {
@@ -923,69 +954,7 @@ export default function GroupInfoScreen() {
           ))}
         </View>
       )}
-      {/* Donation Section (always visible) */}
-      <LinearGradient
-        colors={["#a18fff", "#6dd5fa", "#f9fafb"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.donationSection}
-      >
-        <FontAwesome5
-          name="hand-holding-heart"
-          size={38}
-          color="#7c3aed"
-          style={styles.donationIcon}
-        />
-        <Text style={styles.donationHeader}>Support This Group</Text>
-        <Text style={styles.donationSubheader}>
-          Choose an amount to donate:
-        </Text>
-        <View style={styles.donationOptions}>
-          {DONATION_AMOUNTS.map((amt) => (
-            <TouchableOpacity
-              key={amt}
-              style={[
-                styles.donationOption,
-                selectedAmount === amt && styles.donationOptionSelected,
-              ]}
-              onPress={() => setSelectedAmount(amt)}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.donationOptionText,
-                  selectedAmount === amt && styles.donationOptionTextSelected,
-                ]}
-              >
-                ${amt}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity
-          style={styles.donateButton}
-          onPress={() => {
-            if (selectedAmount) {
-              dispatch(incrementDonation(selectedAmount));
-              Toast.show({
-                type: "success",
-                text1: "Thank you!",
-                text2: `You have donated $${selectedAmount} to ${group.university}.`,
-              });
-              setSelectedAmount(null);
-            } else {
-              Toast.show({
-                type: "info",
-                text1: "Select an amount",
-                text2: "Please select a donation amount.",
-              });
-            }
-          }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.donateButtonText}>Donate</Text>
-        </TouchableOpacity>
-      </LinearGradient>
+
       {/* Remove subscribe/unsubscribe button from below the tabs */}
       {/* Remove Modal for unsubscribe confirmation from here, move it to the top-level if needed */}
       {subscribed && (
@@ -1203,95 +1172,7 @@ const styles = StyleSheet.create({
     color: "#374151",
     lineHeight: 21,
   },
-  donationSection: {
-    marginTop: 32,
-    width: "100%",
-    alignItems: "center",
-    borderRadius: 22,
-    padding: 26,
-    shadowColor: "#7c3aed",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 2,
-    borderColor: "#a18fff",
-    marginBottom: 28,
-  },
-  donationIcon: {
-    marginBottom: 8,
-  },
-  donationHeader: {
-    fontSize: 23,
-    fontWeight: "bold",
-    color: "#7c3aed",
-    marginBottom: 7,
-    textAlign: "center",
-    letterSpacing: 0.3,
-  },
-  donationSubheader: {
-    fontSize: 15,
-    color: "#6b7280",
-    marginBottom: 18,
-    textAlign: "center",
-  },
-  donationOptions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginBottom: 20,
-    gap: 16,
-    width: "100%",
-  },
-  donationOption: {
-    backgroundColor: "#ede9fe",
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderWidth: 2,
-    borderColor: "#c4b5fd",
-    minWidth: 68,
-    alignItems: "center",
-    marginBottom: 8,
-    shadowColor: "#a18fff",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  donationOptionSelected: {
-    borderColor: "#7c3aed",
-    backgroundColor: "#d1c4e9",
-    shadowColor: "#7c3aed",
-    shadowOpacity: 0.22,
-  },
-  donationOptionText: {
-    fontSize: 18,
-    color: "#4b2995",
-    fontWeight: "bold",
-  },
-  donationOptionTextSelected: {
-    color: "#7c3aed",
-  },
-  donateButton: {
-    backgroundColor: "#7c3aed",
-    borderRadius: 12,
-    paddingHorizontal: 42,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 8,
-    shadowColor: "#7c3aed",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  donateButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 18,
-    letterSpacing: 0.6,
-  },
+
   tabBar: {
     flexDirection: "row",
     justifyContent: "space-around",

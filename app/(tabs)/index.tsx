@@ -12,6 +12,7 @@ import { useSelector, useDispatch } from "react-redux";
 import {
   RootState,
   selectSubscriptions,
+  selectSubscribedGroupCodes,
   selectEvents,
   selectEnrollments,
   selectNotifications,
@@ -90,7 +91,7 @@ type Group = {
   news?: News[];
 };
 
-type Event = {
+type TimelineEventItem = {
   title: string;
   date: string;
   description: string;
@@ -155,9 +156,32 @@ export default function TabOneScreen() {
     return () => clearInterval(interval);
   }, [events, enrollments, notifications, dispatch]);
 
+  // Get subscribed group codes
+  const subscribedGroupCodes = useSelector(selectSubscribedGroupCodes);
+
+  // Debug logging
+  console.log("📰 News aggregation debug:");
+  console.log("All subscriptions:", subscriptions);
+  console.log("Subscribed group codes:", subscribedGroupCodes);
+  console.log(
+    "All groups:",
+    groups.map((g) => g.code)
+  );
+
   // Aggregate news from all subscribed groups
   const subscribedGroups = groups.filter((g: Group) =>
-    subscriptions.includes(g.code)
+    subscribedGroupCodes.includes(g.code)
+  );
+
+  console.log(
+    "Subscribed groups found:",
+    subscribedGroups.map((g) => g.code)
+  );
+  console.log(
+    "Subscribed groups with news:",
+    subscribedGroups
+      .filter((g) => g.news && g.news.length > 0)
+      .map((g) => ({ code: g.code, newsCount: g.news?.length }))
   );
   const subscribedGroupNews = subscribedGroups.flatMap((g: Group) =>
     (g.news || []).map((news: News) => ({
@@ -169,6 +193,12 @@ export default function TabOneScreen() {
       group: g.university,
       type: "news",
     }))
+  );
+
+  console.log("Total subscribed group news items:", subscribedGroupNews.length);
+  console.log(
+    "News items:",
+    subscribedGroupNews.map((n) => ({ title: n.title, group: n.group }))
   );
   // Aggregate events (placeholder, same as in group page, assign a recent date for sorting)
   const groupTopics: Topic[] = [

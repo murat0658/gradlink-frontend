@@ -90,7 +90,6 @@ export interface LoadingState {
 // Root state type
 export interface RootState {
   user: {
-    donated: number;
     isAuthenticated: boolean;
     token: string | null;
   };

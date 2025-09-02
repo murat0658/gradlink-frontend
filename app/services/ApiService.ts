@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../store";
+import { API_BASE_URL } from "../config/api";
 
 // Base API service class
 class ApiService {
@@ -11,7 +11,15 @@ class ApiService {
   }
 
   setToken(token: string | null) {
+    console.log("🔑 ApiService.setToken() called");
+    console.log("Previous token exists:", !!this.token);
+    console.log("New token exists:", !!token);
+    console.log(
+      "New token preview:",
+      token ? `${token.substring(0, 20)}...` : "null"
+    );
     this.token = token;
+    console.log("Token set successfully");
   }
 
   setAuthErrorHandler(handler: () => void) {
@@ -23,11 +31,22 @@ class ApiService {
       "Content-Type": "application/json",
     };
 
+    console.log("🔍 getHeaders() called");
+    console.log("Current token exists:", !!this.token);
+    console.log(
+      "Token value:",
+      this.token ? `${this.token.substring(0, 20)}...` : "null"
+    );
+
     // All endpoints except auth endpoints require authentication
     if (this.token) {
       headers["Authorization"] = `Bearer ${this.token}`;
+      console.log("✅ Authorization header added");
+    } else {
+      console.log("❌ No token available, skipping Authorization header");
     }
 
+    console.log("Final headers:", headers);
     return headers;
   }
 
@@ -42,6 +61,15 @@ class ApiService {
     const headers = requireAuth
       ? this.getHeaders()
       : { "Content-Type": "application/json" };
+
+    // Debug logging for refresh token requests
+    if (endpoint === "/api/auth/refresh") {
+      console.log("🔍 Refresh token request details:");
+      console.log("URL:", url);
+      console.log("Require auth:", requireAuth);
+      console.log("Headers:", headers);
+      console.log("Token in headers:", (headers as any)["Authorization"]);
+    }
 
     const config: RequestInit = {
       ...options,
@@ -110,13 +138,26 @@ class ApiService {
   }
 
   async refreshToken() {
+    console.log("🔄 ApiService.refreshToken() called");
+    console.log("Current token exists:", !!this.token);
+    console.log(
+      "Token preview:",
+      this.token ? `${this.token.substring(0, 20)}...` : "null"
+    );
+
+    // Check if we have a token before attempting refresh
+    if (!this.token) {
+      console.error("❌ Cannot refresh token: no token available");
+      throw new Error("No token available for refresh");
+    }
+
     return this.request<{ token: string }>(
       "/api/auth/refresh",
       {
         method: "POST",
       },
-      false
-    ); // No auth required for token refresh
+      true
+    ); // Auth required for token refresh - need current token to identify user
   }
 
   async logout() {
@@ -505,17 +546,25 @@ class ApiService {
   // ========================================
 
   async getSubscriptions() {
-    return this.request<any[]>("/subscriptions");
+    return this.request<any[]>("/api/subscriptions");
   }
 
   async subscribeToGroup(groupCode: string) {
-    return this.request<any>(`/subscriptions/${groupCode}`, {
+    console.log(
+      "🔄 ApiService.subscribeToGroup() called for group:",
+      groupCode
+    );
+    return this.request<any>(`/api/groups/${groupCode}/subscribe`, {
       method: "POST",
     });
   }
 
   async unsubscribeFromGroup(groupCode: string) {
-    return this.request(`/subscriptions/${groupCode}`, {
+    console.log(
+      "🔄 ApiService.unsubscribeFromGroup() called for group:",
+      groupCode
+    );
+    return this.request(`/api/groups/${groupCode}/unsubscribe`, {
       method: "DELETE",
     });
   }
