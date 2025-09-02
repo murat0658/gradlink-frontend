@@ -23,6 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { newsService, NewsItem } from "../../../services/NewsService";
+import { apiService } from "../../../services/ApiService";
 
 // Local components
 import { Text, View } from "@/components/Themed";
@@ -313,10 +314,33 @@ export default function GroupInfoScreen() {
       const news = await newsService.getNewsByGroup(code as string);
       setApiNews(news);
       console.log("✅ News loaded successfully:", news.length, "items");
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Failed to load news:", error);
-      // Fallback to local news if API fails
-      setApiNews([]);
+      
+      // Check if it's a 404 error (group doesn't exist in backend)
+      if (error.message?.includes("404") || error.message?.includes("not found")) {
+        console.log("⚠️ Group not found in backend, using local news data");
+        // Use local news data from the groups array
+        const localGroup = groups.find(g => g.code === code);
+        if (localGroup?.news) {
+          const localNews = localGroup.news.map((item, index) => ({
+            id: `local-${index}`,
+            title: item.title,
+            content: item.content,
+            author: "System",
+            groupCode: code as string,
+            groupName: localGroup.university,
+            createdAt: item.date,
+            updatedAt: item.date,
+            likes: 0,
+            isLiked: false,
+          }));
+          setApiNews(localNews);
+        }
+      } else {
+        // Other errors - fallback to empty array
+        setApiNews([]);
+      }
     } finally {
       setIsLoadingNews(false);
     }
@@ -378,13 +402,52 @@ export default function GroupInfoScreen() {
       });
 
       console.log("✅ News shared successfully:", newNews);
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Failed to share news:", error);
-      Toast.show({
-        type: "error",
-        text1: "Failed to share news",
-        text2: "Please try again later.",
-      });
+      
+      // Check if it's a 404 error (group doesn't exist in backend)
+      if (error.message?.includes("404") || error.message?.includes("not found")) {
+        console.log("⚠️ Group not found in backend, adding news locally");
+        
+        // Add news locally since the group doesn't exist in backend
+        const localNewsItem = {
+          id: `local-${Date.now()}`,
+          title: newsHeader.trim() || undefined,
+          content: newsContent.trim(),
+          author: "You",
+          groupCode: code as string,
+          groupName: group?.university || code as string,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          likes: 0,
+          isLiked: false,
+        };
+        
+        setApiNews((prev) => [localNewsItem, ...prev]);
+        setGroupNews((prev) => [
+          {
+            title: newsHeader.trim() || "",
+            date: new Date().toISOString().slice(0, 10),
+            content: newsContent.trim(),
+          },
+          ...prev,
+        ]);
+        
+        setNewsHeader("");
+        setNewsContent("");
+        
+        Toast.show({
+          type: "success",
+          text1: "News shared locally!",
+          text2: "Note: Group not found in backend, news saved locally.",
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Failed to share news",
+          text2: "Please try again later.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -410,12 +473,47 @@ export default function GroupInfoScreen() {
     }
   };
 
+  // Create group in backend if it doesn't exist
+  const createGroupIfNotExists = async () => {
+    if (!group) return;
+    
+    try {
+      console.log("🔄 Checking if group exists in backend:", code);
+      // Try to get the group from API
+      await apiService.getGroup(code as string);
+      console.log("✅ Group exists in backend");
+    } catch (error: any) {
+      if (error.message?.includes("404") || error.message?.includes("not found")) {
+        console.log("⚠️ Group not found in backend, creating it...");
+        try {
+          await apiService.createGroup({
+            code: group.code,
+            university: group.university,
+            description: group.description,
+            location: group.location,
+            founded: group.founded,
+            color: group.color,
+            icon: group.icon,
+          });
+          console.log("✅ Group created successfully in backend");
+        } catch (createError) {
+          console.error("❌ Failed to create group in backend:", createError);
+        }
+      }
+    }
+  };
+
   // Load news when component mounts and when subscription changes
   useEffect(() => {
     if (subscribed) {
       loadNews();
     }
   }, [subscribed, code]);
+
+  // Create group in backend when component mounts
+  useEffect(() => {
+    createGroupIfNotExists();
+  }, [code, group]);
 
   // Debug subscription state changes
   useEffect(() => {
@@ -635,15 +733,15 @@ export default function GroupInfoScreen() {
         subscribeToGroupAsync(code as string) as any
       );
       console.log("🔄 API call result:", result);
-      
+
       // Force a small delay to allow Redux state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       console.log("🔄 Current subscription state after API call:", {
         subscribed,
         subscribedGroupCodes,
       });
-      
+
       // If the subscription state still hasn't updated, force a manual update
       if (!subscribedGroupCodes.includes(code as string)) {
         console.log("⚠️ Subscription state not updated, forcing manual update");
