@@ -31,6 +31,7 @@ import {
   subscribe,
   unsubscribe,
   selectSubscriptions,
+  selectSubscribedGroupCodes,
   joinGroup,
   leaveGroup,
   selectJoinedGroups,
@@ -261,14 +262,24 @@ export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
   const group = groups.find((g) => g.code === code);
   const dispatch = useDispatch();
-  const subscriptions = useSelector((state: RootState) =>
-    selectSubscriptions(state)
+  const subscribedGroupCodes = useSelector((state: RootState) =>
+    selectSubscribedGroupCodes(state)
   );
-  const subscribed = subscriptions.includes(code as string);
+  const subscribed = subscribedGroupCodes.includes(code as string);
+  
   const joinedGroups = useSelector((state: RootState) =>
     selectJoinedGroups(state)
   );
   const joined = joinedGroups.includes(code as string);
+  
+  // Debug logging
+  console.log("🔍 Group Screen Debug:", {
+    groupCode: code,
+    subscribedGroupCodes,
+    subscribed,
+    joinedGroups,
+    joined,
+  });
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
   const router = useRouter();
@@ -629,7 +640,7 @@ export default function GroupInfoScreen() {
       console.log("🔄 Attempting to unsubscribe from group:", code);
       // Make the API call to unsubscribe - this will update Redux state via extraReducers
       await dispatch(unsubscribeFromGroupAsync(code as string) as any);
-      setShowUnsubModal(false);
+    setShowUnsubModal(false);
       console.log("✅ Successfully unsubscribed from group:", code);
 
       Toast.show({
@@ -702,40 +713,40 @@ export default function GroupInfoScreen() {
       <View style={styles.headerWrapper}>
         <View style={styles.headerButtonRow}>
           {joined ? (
-            <TouchableOpacity
-              style={styles.leaveButton}
-              onPress={() => dispatch(leaveGroup(code as string))}
-              activeOpacity={0.85}
-            >
-              <FontAwesome
-                name="user-times"
-                size={14}
-                color="#fff"
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.leaveButtonText}>Leave</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
               <TouchableOpacity
-                style={[
-                  styles.stylishSubscribeButton,
-                  subscribed && styles.unsubscribeButton,
-                  { marginRight: 8 },
-                ]}
-                onPress={handleSubscribe}
+                style={styles.leaveButton}
+                onPress={() => dispatch(leaveGroup(code as string))}
                 activeOpacity={0.85}
               >
                 <FontAwesome
-                  name={subscribed ? "minus" : "plus"}
-                  size={16}
+                  name="user-times"
+                  size={14}
                   color="#fff"
-                  style={{ marginRight: 6 }}
+                  style={{ marginRight: 4 }}
                 />
-                <Text style={styles.stylishSubscribeButtonText}>
-                  {subscribed ? "Unsubscribe" : "Subscribe"}
-                </Text>
+                <Text style={styles.leaveButtonText}>Leave</Text>
               </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.stylishSubscribeButton,
+                  subscribed && styles.unsubscribeButton,
+                    { marginRight: 8 },
+                  ]}
+                onPress={handleSubscribe}
+                  activeOpacity={0.85}
+                >
+                  <FontAwesome
+                  name={subscribed ? "minus" : "plus"}
+                    size={16}
+                    color="#fff"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.stylishSubscribeButtonText}>
+                  {subscribed ? "Unsubscribe" : "Subscribe"}
+                  </Text>
+                </TouchableOpacity>
               {subscribed && (
                 <TouchableOpacity
                   style={styles.joinButton}
@@ -886,8 +897,8 @@ export default function GroupInfoScreen() {
           <View style={styles.newsHeaderSection}>
             <View style={styles.newsHeaderRow}>
               <View style={styles.newsHeaderLeft}>
-                <Text style={styles.newsHeader}>Latest News & Updates</Text>
-                <View style={styles.newsHeaderAccent} />
+          <Text style={styles.newsHeader}>Latest News & Updates</Text>
+          <View style={styles.newsHeaderAccent} />
               </View>
               <TouchableOpacity
                 style={styles.refreshButton}
@@ -902,10 +913,10 @@ export default function GroupInfoScreen() {
                 />
               </TouchableOpacity>
             </View>
-            <Text style={styles.newsSubtitle}>
+          <Text style={styles.newsSubtitle}>
               Stay up to date with announcements, events, and highlights from
               this group.
-            </Text>
+          </Text>
             {isLoadingNews && (
               <View style={styles.loadingContainer}>
                 <Text style={styles.loadingText}>Loading news...</Text>
@@ -999,17 +1010,17 @@ export default function GroupInfoScreen() {
 
               {/* Fallback to local news if no API news */}
               {apiNews.length === 0 &&
-                groupNews.map((item, idx) => (
-                  <View
-                    key={item.content + item.date + idx}
-                    style={styles.newsItem}
-                  >
-                    {item.title ? (
-                      <Text style={styles.newsTitle}>{item.title}</Text>
-                    ) : null}
-                    <Text style={styles.newsDate}>{item.date}</Text>
-                    <Text style={styles.newsContent}>{item.content}</Text>
-                  </View>
+            groupNews.map((item, idx) => (
+              <View
+                key={item.content + item.date + idx}
+                style={styles.newsItem}
+              >
+                {item.title ? (
+                  <Text style={styles.newsTitle}>{item.title}</Text>
+                ) : null}
+                <Text style={styles.newsDate}>{item.date}</Text>
+                <Text style={styles.newsContent}>{item.content}</Text>
+              </View>
                 ))}
             </>
           ) : (
