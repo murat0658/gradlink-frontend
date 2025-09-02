@@ -629,14 +629,26 @@ export default function GroupInfoScreen() {
         subscribed,
         subscribedGroupCodes,
       });
-      
+
       // Make the API call to subscribe - this will update Redux state via extraReducers
-      const result = await dispatch(subscribeToGroupAsync(code as string) as any);
+      const result = await dispatch(
+        subscribeToGroupAsync(code as string) as any
+      );
       console.log("🔄 API call result:", result);
+      
+      // Force a small delay to allow Redux state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       console.log("🔄 Current subscription state after API call:", {
         subscribed,
         subscribedGroupCodes,
       });
+      
+      // If the subscription state still hasn't updated, force a manual update
+      if (!subscribedGroupCodes.includes(code as string)) {
+        console.log("⚠️ Subscription state not updated, forcing manual update");
+        dispatch(subscribe(code as string));
+      }
 
       Toast.show({
         type: "success",
@@ -746,16 +758,16 @@ export default function GroupInfoScreen() {
             </TouchableOpacity>
           ) : (
             <>
-                             <TouchableOpacity
-                 key={`subscribe-${subscribed}-${code}`}
-                 style={[
-                   styles.stylishSubscribeButton,
-                   subscribed && styles.unsubscribeButton,
-                   { marginRight: 8 },
-                 ]}
-                 onPress={handleSubscribe}
-                 activeOpacity={0.85}
-               >
+              <TouchableOpacity
+                key={`subscribe-${subscribed}-${code}`}
+                style={[
+                  styles.stylishSubscribeButton,
+                  subscribed && styles.unsubscribeButton,
+                  { marginRight: 8 },
+                ]}
+                onPress={handleSubscribe}
+                activeOpacity={0.85}
+              >
                 <FontAwesome
                   name={subscribed ? "minus" : "plus"}
                   size={16}
