@@ -148,8 +148,22 @@ const subscriptionsSlice = createSlice({
         state.loading = false;
         const groupCode = action.meta.arg; // The groupCode passed to the thunk
 
+        console.log("🔄 unsubscribeFromGroupAsync.fulfilled:", {
+          groupCode,
+          currentItems: state.items,
+        });
+
         // Remove the subscription
+        const beforeCount = state.items.length;
         state.items = state.items.filter((sub) => sub.groupCode !== groupCode);
+        const afterCount = state.items.length;
+
+        console.log("🔄 Subscription removed:", {
+          beforeCount,
+          afterCount,
+          removed: beforeCount > afterCount,
+        });
+
         state.error = null;
       })
       .addCase(unsubscribeFromGroupAsync.rejected, (state, action) => {

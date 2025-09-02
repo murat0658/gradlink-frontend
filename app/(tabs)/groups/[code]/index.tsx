@@ -312,16 +312,26 @@ export default function GroupInfoScreen() {
       setIsLoadingNews(true);
       console.log("📰 Loading news for group:", code);
       const news = await newsService.getNewsByGroup(code as string);
-      setApiNews(news);
-      console.log("✅ News loaded successfully:", news.length, "items");
+
+      // Ensure news is an array
+      if (Array.isArray(news)) {
+        setApiNews(news);
+        console.log("✅ News loaded successfully:", news.length, "items");
+      } else {
+        console.warn("⚠️ News response is not an array:", news);
+        setApiNews([]);
+      }
     } catch (error: any) {
       console.error("❌ Failed to load news:", error);
-      
+
       // Check if it's a 404 error (group doesn't exist in backend)
-      if (error.message?.includes("404") || error.message?.includes("not found")) {
+      if (
+        error.message?.includes("404") ||
+        error.message?.includes("not found")
+      ) {
         console.log("⚠️ Group not found in backend, using local news data");
         // Use local news data from the groups array
-        const localGroup = groups.find(g => g.code === code);
+        const localGroup = groups.find((g) => g.code === code);
         if (localGroup?.news) {
           const localNews = localGroup.news.map((item, index) => ({
             id: `local-${index}`,
@@ -362,19 +372,29 @@ export default function GroupInfoScreen() {
 
       const newNews = await newsService.createNews({
         title: newsHeader.trim() || undefined,
-        content: newsContent.trim(),
+        description: newsContent.trim(),
         groupCode: code as string,
+        location: "Online", // Default location for news posts
+        startTime: new Date().toISOString(), // Current time as start
+        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours later as end
+        capacity: 1000, // Large capacity for news posts
       });
+
+      // Ensure the news object has the required properties
+      if (!newNews || typeof newNews !== "object") {
+        throw new Error("Invalid news response from server");
+      }
 
       // Add to local state
       setApiNews((prev) => [newNews, ...prev]);
 
       // Also add to local group news for immediate display
+      const currentDate = createSafeDateString(newNews.createdAt);
       setGroupNews((prev) => [
         {
           title: newNews.title || "",
-          date: newNews.createdAt.slice(0, 10),
-          content: newNews.content,
+          date: currentDate,
+          content: newNews.description || newNews.content || "",
         },
         ...prev,
       ]);
@@ -385,8 +405,8 @@ export default function GroupInfoScreen() {
         groups[groupIndex].news = [
           {
             title: newNews.title || "",
-            date: newNews.createdAt.slice(0, 10),
-            content: newNews.content,
+            date: currentDate,
+            content: newNews.description || newNews.content || "",
           },
           ...groups[groupIndex].news,
         ];
@@ -404,38 +424,42 @@ export default function GroupInfoScreen() {
       console.log("✅ News shared successfully:", newNews);
     } catch (error: any) {
       console.error("❌ Failed to share news:", error);
-      
+
       // Check if it's a 404 error (group doesn't exist in backend)
-      if (error.message?.includes("404") || error.message?.includes("not found")) {
+      if (
+        error.message?.includes("404") ||
+        error.message?.includes("not found")
+      ) {
         console.log("⚠️ Group not found in backend, adding news locally");
-        
+
         // Add news locally since the group doesn't exist in backend
         const localNewsItem = {
           id: `local-${Date.now()}`,
           title: newsHeader.trim() || undefined,
           content: newsContent.trim(),
+          description: newsContent.trim(),
           author: "You",
           groupCode: code as string,
-          groupName: group?.university || code as string,
+          groupName: group?.university || (code as string),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           likes: 0,
           isLiked: false,
         };
-        
+
         setApiNews((prev) => [localNewsItem, ...prev]);
         setGroupNews((prev) => [
           {
             title: newsHeader.trim() || "",
-            date: new Date().toISOString().slice(0, 10),
+            date: createSafeDateString(),
             content: newsContent.trim(),
           },
           ...prev,
         ]);
-        
+
         setNewsHeader("");
         setNewsContent("");
-        
+
         Toast.show({
           type: "success",
           text1: "News shared locally!",
@@ -476,14 +500,17 @@ export default function GroupInfoScreen() {
   // Create group in backend if it doesn't exist
   const createGroupIfNotExists = async () => {
     if (!group) return;
-    
+
     try {
       console.log("🔄 Checking if group exists in backend:", code);
       // Try to get the group from API
       await apiService.getGroup(code as string);
       console.log("✅ Group exists in backend");
     } catch (error: any) {
-      if (error.message?.includes("404") || error.message?.includes("not found")) {
+      if (
+        error.message?.includes("404") ||
+        error.message?.includes("not found")
+      ) {
         console.log("⚠️ Group not found in backend, creating it...");
         try {
           await apiService.createGroup({
@@ -523,6 +550,15 @@ export default function GroupInfoScreen() {
       subscribedGroupCodes,
     });
   }, [subscribed, subscribedGroupCodes, code]);
+
+  // Debug unsubscribe modal state
+  useEffect(() => {
+    console.log("🔄 Unsubscribe modal state changed:", {
+      showUnsubModal,
+      subscribed,
+      groupCode: code,
+    });
+  }, [showUnsubModal, subscribed, code]);
 
   // Initialize events for this group if they don't exist
   useEffect(() => {
@@ -766,8 +802,31 @@ export default function GroupInfoScreen() {
   const handleUnsubscribe = async () => {
     try {
       console.log("🔄 Attempting to unsubscribe from group:", code);
+      console.log("🔄 Current subscription state before unsubscribe:", {
+        subscribed,
+        subscribedGroupCodes,
+      });
+
       // Make the API call to unsubscribe - this will update Redux state via extraReducers
-      await dispatch(unsubscribeFromGroupAsync(code as string) as any);
+      const result = await dispatch(
+        unsubscribeFromGroupAsync(code as string) as any
+      );
+      console.log("🔄 Unsubscribe API call result:", result);
+
+      // Force a small delay to allow Redux state to update
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      console.log("🔄 Current subscription state after API call:", {
+        subscribed,
+        subscribedGroupCodes,
+      });
+
+      // If the subscription state still hasn't updated, force a manual update
+      if (subscribedGroupCodes.includes(code as string)) {
+        console.log("⚠️ Subscription state not updated, forcing manual update");
+        dispatch(unsubscribe(code as string));
+      }
+
       setShowUnsubModal(false);
       console.log("✅ Successfully unsubscribed from group:", code);
 
@@ -778,10 +837,16 @@ export default function GroupInfoScreen() {
       });
     } catch (error: any) {
       console.error("❌ Failed to unsubscribe from group:", error);
+
+      // Even if API fails, try to unsubscribe locally
+      console.log("⚠️ API failed, attempting local unsubscribe");
+      dispatch(unsubscribe(code as string));
+      setShowUnsubModal(false);
+
       Toast.show({
-        type: "error",
-        text1: "Unsubscription Failed",
-        text2: error.message || "Could not unsubscribe from this group",
+        type: "success",
+        text1: "Unsubscribed locally!",
+        text2: "Note: API call failed, but you've been unsubscribed locally.",
       });
     }
   };
@@ -806,8 +871,76 @@ export default function GroupInfoScreen() {
     });
   };
 
+  // Helper function to create a safe date string
+  const createSafeDateString = (dateString?: string | null): string => {
+    if (!dateString) {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    // If it's already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+
+    // If it's an ISO string, extract the date part
+    if (dateString.includes("T")) {
+      return dateString.slice(0, 10);
+    }
+
+    // Try to parse and format the date
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date string, using current date:", dateString);
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    return date.toISOString().slice(0, 10);
+  };
+
+  // Helper function to safely format dates
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return "Invalid Date";
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date string:", dateString);
+      return "Invalid Date";
+    }
+
+    return date.toLocaleDateString();
+  };
+
+  const formatTime = (dateString: string | undefined | null): string => {
+    if (!dateString) return "Invalid Time";
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date string:", dateString);
+      return "Invalid Time";
+    }
+
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   const formatDateTime = (dateTime: string) => {
+    if (!dateTime) {
+      return {
+        date: "Invalid Date",
+        time: "Invalid Time",
+        full: "Invalid Date",
+      };
+    }
+
     const date = new Date(dateTime);
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date string in formatDateTime:", dateTime);
+      return {
+        date: "Invalid Date",
+        time: "Invalid Time",
+        full: "Invalid Date",
+      };
+    }
+
     return {
       date: date.toLocaleDateString(),
       time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -816,7 +949,12 @@ export default function GroupInfoScreen() {
   };
 
   const isEventFull = (event: Event) => event.enrolledCount >= event.capacity;
-  const isEventPast = (event: Event) => new Date(event.endTime) < new Date();
+  const isEventPast = (event: Event) => {
+    if (!event.endTime) return false;
+    const endDate = new Date(event.endTime);
+    if (isNaN(endDate.getTime())) return false;
+    return endDate < new Date();
+  };
   const isEnrolledInEvent = (eventId: string) => enrollments.includes(eventId);
 
   // Placeholder data for topics
@@ -1070,11 +1208,8 @@ export default function GroupInfoScreen() {
                       <View style={styles.newsAuthorInfo}>
                         <Text style={styles.newsAuthorName}>{item.author}</Text>
                         <Text style={styles.newsDate}>
-                          {new Date(item.createdAt).toLocaleDateString()} •{" "}
-                          {new Date(item.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatDate(item.createdAt)} •{" "}
+                          {formatTime(item.createdAt)}
                         </Text>
                       </View>
                     </View>
@@ -1084,7 +1219,9 @@ export default function GroupInfoScreen() {
                     <Text style={styles.enhancedNewsTitle}>{item.title}</Text>
                   )}
 
-                  <Text style={styles.enhancedNewsContent}>{item.content}</Text>
+                  <Text style={styles.enhancedNewsContent}>
+                    {item.description || item.content}
+                  </Text>
 
                   <View style={styles.newsActions}>
                     <TouchableOpacity

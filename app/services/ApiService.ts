@@ -107,6 +107,19 @@ class ApiService {
   }
 
   // ========================================
+  // PUBLIC API METHODS FOR OTHER SERVICES
+  // ========================================
+
+  // Public method for other services to make authenticated requests
+  async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    requireAuth: boolean = true
+  ): Promise<T> {
+    return this.request<T>(endpoint, options, requireAuth);
+  }
+
+  // ========================================
   // AUTHENTICATION ENDPOINTS (No auth required)
   // ========================================
 

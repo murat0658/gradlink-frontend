@@ -72,6 +72,7 @@ export const selectSubscribedGroupCodes = createSelector(
     console.log("🔍 selectSubscribedGroupCodes called:");
     console.log("Input subscriptions:", subscriptions);
     console.log("Output group codes:", groupCodes);
+    console.log("Subscription count:", subscriptions.length);
     return groupCodes;
   }
 );
