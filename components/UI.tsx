@@ -228,9 +228,31 @@ export function Badge({
     style,
   ];
 
+  const getTextStyle = (): TextStyle[] => {
+    const baseStyle: TextStyle[] = [styles.badgeText];
+
+    // Add size-specific text styles
+    switch (size) {
+      case "sm":
+        baseStyle.push(styles.badgeTextSm);
+        break;
+      default:
+        baseStyle.push(styles.badgeTextMd);
+    }
+
+    return baseStyle;
+  };
+
+  const textStyle = [
+    ...getTextStyle(),
+    {
+      color: "#ffffff",
+    },
+  ];
+
   return (
     <View style={badgeStyle}>
-      <Text style={styles.badgeText}>{children}</Text>
+      <Text style={textStyle}>{children}</Text>
     </View>
   );
 }
@@ -399,18 +421,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     minWidth: 20,
-    height: 20,
+    minHeight: 20,
   },
   badgeMd: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     minWidth: 24,
-    height: 24,
+    minHeight: 24,
+  },
+  badgeTextSm: {
+    ...typography.xs,
+  },
+  badgeTextMd: {
+    ...typography.sm,
   },
   badgeText: {
     color: "#ffffff",
     fontWeight: "600",
     textAlign: "center",
+    ...typography.sm,
   },
 
   // Input styles
