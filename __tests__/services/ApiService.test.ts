@@ -1,0 +1,363 @@
+import { apiService } from "../../app/services/ApiService";
+import {
+  mockFetch,
+  mockFetchError,
+  createMockUser,
+  createMockEvent,
+} from "../../utils/test-utils";
+
+// Mock the API_BASE_URL
+jest.mock("../../app/config/api", () => ({
+  API_BASE_URL: "http://localhost:8080",
+}));
+
+describe("ApiService", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    apiService.setToken(null);
+  });
+
+  describe("Authentication", () => {
+    describe("login", () => {
+      it("should login successfully", async () => {
+        const mockResponse = {
+          token: "test-token",
+          user: createMockUser(),
+        };
+        mockFetch(mockResponse);
+
+        const result = await apiService.login("test@example.com", "password");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/auth/login",
+          expect.objectContaining({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: "test@example.com",
+              password: "password",
+            }),
+          })
+        );
+        expect(result).toEqual(mockResponse);
+      });
+
+      it("should handle login error", async () => {
+        mockFetchError("Invalid credentials", 401);
+
+        await expect(
+          apiService.login("test@example.com", "wrong-password")
+        ).rejects.toThrow("Invalid credentials");
+      });
+    });
+
+    describe("register", () => {
+      it("should register successfully", async () => {
+        const mockResponse = { message: "User registered successfully" };
+        mockFetch(mockResponse);
+
+        const userData = {
+          name: "Test User",
+          email: "test@example.com",
+          password: "password",
+          phoneNumber: "+1234567890",
+        };
+
+        const result = await apiService.register(userData);
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/auth/register",
+          expect.objectContaining({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userData),
+          })
+        );
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe("refreshToken", () => {
+      it("should refresh token successfully", async () => {
+        const mockResponse = { token: "new-token" };
+        apiService.setToken("old-token");
+        mockFetch(mockResponse);
+
+        const result = await apiService.refreshToken();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/auth/refresh",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer old-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockResponse);
+      });
+
+      it("should throw error when no token is set", async () => {
+        await expect(apiService.refreshToken()).rejects.toThrow(
+          "No token available for refresh"
+        );
+      });
+    });
+
+    describe("logout", () => {
+      it("should logout successfully", async () => {
+        apiService.setToken("test-token");
+        mockFetch({}, true, 204);
+
+        await apiService.logout();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/auth/logout",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+      });
+    });
+  });
+
+  describe("User Management", () => {
+    beforeEach(() => {
+      apiService.setToken("test-token");
+    });
+
+    describe("getCurrentUser", () => {
+      it("should get current user profile", async () => {
+        const mockUser = createMockUser();
+        mockFetch(mockUser);
+
+        const result = await apiService.getCurrentUser();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/users/me",
+          expect.objectContaining({
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockUser);
+      });
+    });
+
+    describe("updateUser", () => {
+      it("should update user profile", async () => {
+        const mockUser = createMockUser();
+        const updateData = { name: "Updated Name", bio: "Updated bio" };
+        mockFetch(mockUser);
+
+        const result = await apiService.updateUser(updateData);
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/users/me",
+          expect.objectContaining({
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+            body: JSON.stringify(updateData),
+          })
+        );
+        expect(result).toEqual(mockUser);
+      });
+    });
+  });
+
+  describe("Events Management", () => {
+    beforeEach(() => {
+      apiService.setToken("test-token");
+    });
+
+    describe("getEvents", () => {
+      it("should get events with default parameters", async () => {
+        const mockEvents = [
+          createMockEvent({ id: "1" }),
+          createMockEvent({ id: "2" }),
+        ];
+        mockFetch(mockEvents);
+
+        const result = await apiService.getEvents();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/events",
+          expect.objectContaining({
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockEvents);
+      });
+
+      it("should get events with query parameters", async () => {
+        const mockEvents = [createMockEvent()];
+        mockFetch(mockEvents);
+
+        const params = {
+          page: 0,
+          size: 10,
+          groupCode: "test-group",
+          startDate: "2024-01-01",
+          endDate: "2024-12-31",
+          isEnrolled: true,
+        };
+
+        const result = await apiService.getEvents(params);
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/events?page=0&size=10&groupCode=test-group&startDate=2024-01-01&endDate=2024-12-31&isEnrolled=true",
+          expect.any(Object)
+        );
+        expect(result).toEqual(mockEvents);
+      });
+    });
+
+    describe("enrollInEvent", () => {
+      it("should enroll in event", async () => {
+        const mockResponse = { message: "Enrolled successfully" };
+        mockFetch(mockResponse);
+
+        const result = await apiService.enrollInEvent("event-1");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/events/event-1/enroll",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe("unenrollFromEvent", () => {
+      it("should unenroll from event", async () => {
+        mockFetch({}, true, 204);
+
+        await apiService.unenrollFromEvent("event-1");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/events/event-1/unenroll",
+          expect.objectContaining({
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+      });
+    });
+  });
+
+  describe("Subscriptions Management", () => {
+    beforeEach(() => {
+      apiService.setToken("test-token");
+    });
+
+    describe("getSubscriptions", () => {
+      it("should get user subscriptions", async () => {
+        const mockSubscriptions = [
+          { id: "1", groupCode: "group-1" },
+          { id: "2", groupCode: "group-2" },
+        ];
+        mockFetch(mockSubscriptions);
+
+        const result = await apiService.getSubscriptions();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/subscriptions",
+          expect.objectContaining({
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockSubscriptions);
+      });
+    });
+
+    describe("subscribeToGroup", () => {
+      it("should subscribe to group", async () => {
+        const mockResponse = { message: "Subscribed successfully" };
+        mockFetch(mockResponse);
+
+        const result = await apiService.subscribeToGroup("group-1");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/subscriptions/group-1",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockResponse);
+      });
+    });
+
+    describe("unsubscribeFromGroup", () => {
+      it("should unsubscribe from group", async () => {
+        mockFetch({}, true, 204);
+
+        await apiService.unsubscribeFromGroup("group-1");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/subscriptions/group-1",
+          expect.objectContaining({
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+      });
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("should handle network errors", async () => {
+      mockFetchError("Network error");
+
+      await expect(apiService.getCurrentUser()).rejects.toThrow(
+        "Network error"
+      );
+    });
+
+    it("should handle HTTP errors", async () => {
+      mockFetch({ message: "Unauthorized" }, false, 401);
+
+      await expect(apiService.getCurrentUser()).rejects.toThrow(
+        "Authentication required. Please log in again."
+      );
+    });
+
+    it("should handle server errors", async () => {
+      mockFetch({ message: "Internal server error" }, false, 500);
+
+      await expect(apiService.getCurrentUser()).rejects.toThrow(
+        "Internal server error. Please try again later."
+      );
+    });
+  });
+});
