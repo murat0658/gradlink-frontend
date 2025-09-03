@@ -87,10 +87,10 @@ export default function ProfileScreen() {
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
   const [editMode, setEditMode] = useState(false);
-  
+
   // Use API data or fallback to default
   const user = userProfile || defaultUser;
-  
+
   const [form, setForm] = useState({
     name: user.name,
     email: user.email,
@@ -135,7 +135,7 @@ export default function ProfileScreen() {
     dispatch(fetchEvents() as any);
     dispatch(fetchNotifications() as any);
     dispatch(fetchSubscriptions() as any);
-    
+
     // Fetch user profile if authenticated
     if (token && !userProfile) {
       dispatch(fetchUserProfile() as any);
@@ -162,18 +162,22 @@ export default function ProfileScreen() {
       return;
     }
     try {
-      await dispatch(updateUserProfile({
-        name: form.name,
-        email: form.email,
-        phoneNumber: form.phone,
-        avatar: form.avatar,
-      }) as any);
-      
+      await dispatch(
+        updateUserProfile({
+          name: form.name,
+          email: form.email,
+          phoneNumber: form.phone,
+          avatar: form.avatar,
+        }) as any
+      );
+
       setEditMode(false);
       setTouched({});
       alert("Profile updated successfully!");
     } catch (err: any) {
-      alert(err.message || "Could not connect to server. Please try again later.");
+      alert(
+        err.message || "Could not connect to server. Please try again later."
+      );
     }
   };
 
@@ -187,7 +191,7 @@ export default function ProfileScreen() {
     if (!result.canceled && result.assets && result.assets[0]?.uri) {
       const asset = result.assets[0];
       setForm((f) => ({ ...f, avatar: asset.uri }));
-      
+
       // If we have a file object, upload it
       if (asset.file) {
         try {
@@ -243,7 +247,7 @@ export default function ProfileScreen() {
             <Text style={styles.loadingText}>Loading profile...</Text>
           </RNView>
         )}
-        
+
         {/* Error State */}
         {userError && (
           <RNView style={styles.errorContainer}>
@@ -258,7 +262,7 @@ export default function ProfileScreen() {
             </Button>
           </RNView>
         )}
-        
+
         {/* Joined Badges */}
         {joinedGroups.length > 0 && (
           <RNView style={styles.badgeRow}>
@@ -368,7 +372,8 @@ export default function ProfileScreen() {
                   setForm({
                     name: user.name,
                     email: user.email,
-                    phone: (user as any).phoneNumber || (user as any).phone || "",
+                    phone:
+                      (user as any).phoneNumber || (user as any).phone || "",
                     countryCode: (user as any).countryCode || "+1",
                     avatar: user.avatar || defaultUser.avatar,
                   });
@@ -435,8 +440,12 @@ export default function ProfileScreen() {
                 color={Colors.tint}
                 style={{ marginRight: spacing.xs }}
               />
-              <Text style={styles.countryCodeText}>{(user as any).countryCode || "+1"}</Text>
-              <Text style={styles.phone}>{(user as any).phoneNumber || (user as any).phone || ""}</Text>
+              <Text style={styles.countryCodeText}>
+                {(user as any).countryCode || "+1"}
+              </Text>
+              <Text style={styles.phone}>
+                {(user as any).phoneNumber || (user as any).phone || ""}
+              </Text>
             </RNView>
             <Button
               variant="primary"

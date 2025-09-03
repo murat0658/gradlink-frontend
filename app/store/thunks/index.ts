@@ -156,24 +156,72 @@ export const fetchSubscriptions = createAsyncThunk(
 
 export const subscribeToGroupAsync = createAsyncThunk(
   "subscriptions/subscribeToGroup",
-  async (groupCode: string) => {
+  async (groupCode: string, { rejectWithValue }) => {
     try {
+      console.log("🔄 subscribeToGroupAsync: Starting subscription for", groupCode);
       const response = await apiService.subscribeToGroup(groupCode);
+      console.log("🔄 subscribeToGroupAsync: Success response", response);
       return { groupCode, response };
     } catch (error: any) {
-      throw error;
+      console.error("❌ subscribeToGroupAsync: Error occurred", error);
+      
+      // Extract meaningful error message
+      let errorMessage = "Failed to subscribe to group";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Check if it's a network or server error
+      if (error.message?.includes("Network error") || error.message?.includes("Failed to fetch")) {
+        errorMessage = "Unable to connect to server. Please check your internet connection.";
+      } else if (error.message?.includes("404") || error.message?.includes("Not Found")) {
+        errorMessage = "Subscription endpoint not available. Please try again later.";
+      } else if (error.message?.includes("500") || error.message?.includes("Internal Server Error")) {
+        errorMessage = "Server error occurred. Please try again later.";
+      }
+      
+      console.error("❌ subscribeToGroupAsync: Final error message", errorMessage);
+      return rejectWithValue(errorMessage);
     }
   }
 );
 
 export const unsubscribeFromGroupAsync = createAsyncThunk(
   "subscriptions/unsubscribeFromGroup",
-  async (groupCode: string) => {
+  async (groupCode: string, { rejectWithValue }) => {
     try {
+      console.log("🔄 unsubscribeFromGroupAsync: Starting unsubscription for", groupCode);
       await apiService.unsubscribeFromGroup(groupCode);
+      console.log("🔄 unsubscribeFromGroupAsync: Success");
       return groupCode;
     } catch (error: any) {
-      throw error;
+      console.error("❌ unsubscribeFromGroupAsync: Error occurred", error);
+      
+      // Extract meaningful error message
+      let errorMessage = "Failed to unsubscribe from group";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Check if it's a network or server error
+      if (error.message?.includes("Network error") || error.message?.includes("Failed to fetch")) {
+        errorMessage = "Unable to connect to server. Please check your internet connection.";
+      } else if (error.message?.includes("404") || error.message?.includes("Not Found")) {
+        errorMessage = "Unsubscribe endpoint not available. Please try again later.";
+      } else if (error.message?.includes("500") || error.message?.includes("Internal Server Error")) {
+        errorMessage = "Server error occurred. Please try again later.";
+      }
+      
+      console.error("❌ unsubscribeFromGroupAsync: Final error message", errorMessage);
+      return rejectWithValue(errorMessage);
     }
   }
 );

@@ -135,7 +135,8 @@ const subscriptionsSlice = createSlice({
       })
       .addCase(subscribeToGroupAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || "Failed to subscribe to group";
+        state.error = action.payload as string || action.error.message || "Failed to subscribe to group";
+        console.error("❌ subscribeToGroupAsync.rejected:", action.payload || action.error.message);
       });
 
     // Handle unsubscribeFromGroupAsync
@@ -168,8 +169,8 @@ const subscriptionsSlice = createSlice({
       })
       .addCase(unsubscribeFromGroupAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error =
-          action.error.message || "Failed to unsubscribe from group";
+        state.error = action.payload as string || action.error.message || "Failed to unsubscribe from group";
+        console.error("❌ unsubscribeFromGroupAsync.rejected:", action.payload || action.error.message);
       });
   },
 });

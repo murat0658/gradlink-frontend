@@ -80,16 +80,32 @@ class ApiService {
       const response = await fetch(url, config);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData: any = {};
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          console.warn("Failed to parse error response as JSON:", parseError);
+        }
 
         // Handle authentication errors
         if (response.status === 401 && this.onAuthError) {
           this.onAuthError();
         }
 
-        throw new Error(
-          errorData.message || `HTTP ${response.status}: ${response.statusText}`
-        );
+        // Create a more detailed error message
+        const errorMessage = errorData.message || 
+                           errorData.error || 
+                           `HTTP ${response.status}: ${response.statusText}`;
+        
+        console.error(`❌ API Error [${response.status}]:`, {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          errorMessage
+        });
+
+        throw new Error(errorMessage);
       }
 
       // Handle empty responses
@@ -99,6 +115,12 @@ class ApiService {
 
       return await response.json();
     } catch (error) {
+      console.error("❌ API Request failed:", {
+        url,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
       if (error instanceof Error) {
         throw error;
       }
