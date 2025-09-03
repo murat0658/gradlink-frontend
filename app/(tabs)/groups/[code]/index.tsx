@@ -293,6 +293,7 @@ export default function GroupInfoScreen() {
   const [newsHeader, setNewsHeader] = useState("");
   const [apiNews, setApiNews] = useState<NewsItem[]>([]);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
+  const [newsRefreshKey, setNewsRefreshKey] = useState(0);
 
   if (!group) {
     return (
@@ -385,35 +386,54 @@ export default function GroupInfoScreen() {
         throw new Error("Invalid news response from server");
       }
 
+      // Debug the structure of the API response
+      console.log("🔄 API Response Structure Check:", {
+        newNews,
+        hasId: !!newNews.id,
+        hasTitle: !!newNews.title,
+        hasDescription: !!newNews.description,
+        hasContent: !!newNews.content,
+        hasAuthor: !!newNews.author,
+        hasCreatedAt: !!newNews.createdAt,
+        titleValue: newNews.title,
+        createdAtValue: newNews.createdAt,
+        keys: Object.keys(newNews),
+      });
+
+      // Ensure the news item has the required fields for display
+      const displayNewsItem = {
+        ...newNews,
+        title: newNews.title || newsHeader.trim() || "Untitled",
+        author: newNews.author || "You",
+        createdAt: newNews.createdAt || new Date().toISOString(),
+        description:
+          newNews.description || newNews.content || newsContent.trim(),
+      };
+
+      console.log("🔄 Processed news item for display:", displayNewsItem);
+
       // Add to local state
-      setApiNews((prev) => [newNews, ...prev]);
+      console.log(
+        "🔄 Adding processed news to apiNews state:",
+        displayNewsItem
+      );
+      setApiNews((prev) => {
+        const updated = [displayNewsItem, ...prev];
+        console.log("🔄 Updated apiNews state:", updated);
+        return updated;
+      });
 
-      // Also add to local group news for immediate display
-      const currentDate = createSafeDateString(newNews.createdAt);
-      setGroupNews((prev) => [
-        {
-          title: newNews.title || "",
-          date: currentDate,
-          content: newNews.description || newNews.content || "",
-        },
-        ...prev,
-      ]);
-
-      // Update the groups array
-      const groupIndex = groups.findIndex((g) => g.code === code);
-      if (groupIndex !== -1) {
-        groups[groupIndex].news = [
-          {
-            title: newNews.title || "",
-            date: currentDate,
-            content: newNews.description || newNews.content || "",
-          },
-          ...groups[groupIndex].news,
-        ];
-      }
+      // Note: We don't need to update groupNews when we have API news
+      // groupNews is only used as a fallback when apiNews is empty
+      console.log(
+        "🔄 API news added successfully, no need to update groupNews"
+      );
 
       setNewsHeader("");
       setNewsContent("");
+
+      // Force refresh of news display
+      setNewsRefreshKey((prev) => prev + 1);
 
       Toast.show({
         type: "success",
@@ -435,7 +455,7 @@ export default function GroupInfoScreen() {
         // Add news locally since the group doesn't exist in backend
         const localNewsItem = {
           id: `local-${Date.now()}`,
-          title: newsHeader.trim() || undefined,
+          title: newsHeader.trim() || "Untitled",
           content: newsContent.trim(),
           description: newsContent.trim(),
           author: "You",
@@ -447,18 +467,34 @@ export default function GroupInfoScreen() {
           isLiked: false,
         };
 
-        setApiNews((prev) => [localNewsItem, ...prev]);
-        setGroupNews((prev) => [
-          {
-            title: newsHeader.trim() || "",
-            date: createSafeDateString(),
-            content: newsContent.trim(),
-          },
-          ...prev,
-        ]);
+        console.log("🔄 Adding local news item to apiNews:", localNewsItem);
+        setApiNews((prev) => {
+          const updated = [localNewsItem, ...prev];
+          console.log("🔄 Updated apiNews state (local):", updated);
+          return updated;
+        });
+
+        // Also add to groupNews as fallback since API failed
+        console.log("🔄 Adding local news to groupNews as fallback");
+        const localGroupNewsItem = {
+          title: newsHeader.trim() || "",
+          date: createSafeDateString(),
+          content: newsContent.trim(),
+        };
+
+        console.log("🔄 Local groupNews item:", localGroupNewsItem);
+
+        setGroupNews((prev) => {
+          const updated = [localGroupNewsItem, ...prev];
+          console.log("🔄 Updated groupNews state (local):", updated);
+          return updated;
+        });
 
         setNewsHeader("");
         setNewsContent("");
+
+        // Force refresh of news display
+        setNewsRefreshKey((prev) => prev + 1);
 
         Toast.show({
           type: "success",
@@ -1192,87 +1228,130 @@ export default function GroupInfoScreen() {
           </View>
 
           {/* Display API news first, then fallback to local news */}
-          {apiNews.length > 0 || groupNews.length > 0 ? (
+          {(() => {
+            console.log(
+              "🔄 News display check (refresh key:",
+              newsRefreshKey,
+              "):",
+              {
+                apiNewsLength: apiNews.length,
+                groupNewsLength: groupNews.length,
+                hasApiNews: apiNews.length > 0,
+                hasGroupNews: groupNews.length > 0,
+                willShowNews: apiNews.length > 0 || groupNews.length > 0,
+                firstApiNews: apiNews[0],
+                firstGroupNews: groupNews[0],
+              }
+            );
+            return apiNews.length > 0 || groupNews.length > 0;
+          })() ? (
             <>
-              {apiNews.map((item) => (
-                <View key={item.id} style={styles.enhancedNewsItem}>
-                  <View style={styles.newsItemHeader}>
-                    <View style={styles.newsAuthorSection}>
-                      <View style={styles.newsAuthorAvatar}>
-                        <FontAwesome
-                          name="user-circle"
-                          size={24}
-                          color="#4f46e5"
-                        />
-                      </View>
-                      <View style={styles.newsAuthorInfo}>
-                        <Text style={styles.newsAuthorName}>{item.author}</Text>
-                        <Text style={styles.newsDate}>
-                          {formatDate(item.createdAt)} •{" "}
-                          {formatTime(item.createdAt)}
-                        </Text>
+              {apiNews.map((item, index) => {
+                console.log("🔄 Rendering apiNews item:", {
+                  index,
+                  item,
+                  hasId: !!item.id,
+                  hasTitle: !!item.title,
+                  hasContent: !!(item.description || item.content),
+                  hasCreatedAt: !!item.createdAt,
+                });
+                return (
+                  <View
+                    key={`${item.id}-${index}-${item.createdAt}`}
+                    style={styles.enhancedNewsItem}
+                  >
+                    <View style={styles.newsItemHeader}>
+                      <View style={styles.newsAuthorSection}>
+                        <View style={styles.newsAuthorAvatar}>
+                          <FontAwesome
+                            name="user-circle"
+                            size={24}
+                            color="#4f46e5"
+                          />
+                        </View>
+                        <View style={styles.newsAuthorInfo}>
+                          <Text style={styles.newsAuthorName}>
+                            {item.author}
+                          </Text>
+                          <Text style={styles.newsDate}>
+                            {formatDate(item.createdAt)} •{" "}
+                            {formatTime(item.createdAt)}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
 
-                  {item.title && (
-                    <Text style={styles.enhancedNewsTitle}>{item.title}</Text>
-                  )}
+                    {item.title && (
+                      <Text style={styles.enhancedNewsTitle}>{item.title}</Text>
+                    )}
 
-                  <Text style={styles.enhancedNewsContent}>
-                    {item.description || item.content}
-                  </Text>
+                    <Text style={styles.enhancedNewsContent}>
+                      {(() => {
+                        const content = item.description || item.content;
+                        console.log("🔄 Displaying content for item:", {
+                          itemId: item.id,
+                          description: item.description,
+                          content: item.content,
+                          finalContent: content,
+                          contentLength: content?.length || 0,
+                        });
+                        return content || "[No content]";
+                      })()}
+                    </Text>
 
-                  <View style={styles.newsActions}>
-                    <TouchableOpacity
-                      style={styles.newsActionButton}
-                      onPress={() => toggleLike(item.id, item.isLiked || false)}
-                      activeOpacity={0.7}
-                    >
-                      <FontAwesome
-                        name={item.isLiked ? "heart" : "heart-o"}
-                        size={16}
-                        color={item.isLiked ? "#ef4444" : "#6b7280"}
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text
-                        style={[
-                          styles.newsActionText,
-                          item.isLiked && styles.newsActionTextLiked,
-                        ]}
+                    <View style={styles.newsActions}>
+                      <TouchableOpacity
+                        style={styles.newsActionButton}
+                        onPress={() =>
+                          toggleLike(item.id, item.isLiked || false)
+                        }
+                        activeOpacity={0.7}
                       >
-                        {item.likes || 0}
-                      </Text>
-                    </TouchableOpacity>
+                        <FontAwesome
+                          name={item.isLiked ? "heart" : "heart-o"}
+                          size={16}
+                          color={item.isLiked ? "#ef4444" : "#6b7280"}
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={[
+                            styles.newsActionText,
+                            item.isLiked && styles.newsActionTextLiked,
+                          ]}
+                        >
+                          {item.likes || 0}
+                        </Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.newsActionButton}
-                      activeOpacity={0.7}
-                    >
-                      <FontAwesome
-                        name="comment-o"
-                        size={16}
-                        color="#6b7280"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={styles.newsActionText}>Comment</Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.newsActionButton}
+                        activeOpacity={0.7}
+                      >
+                        <FontAwesome
+                          name="comment-o"
+                          size={16}
+                          color="#6b7280"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={styles.newsActionText}>Comment</Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.newsActionButton}
-                      activeOpacity={0.7}
-                    >
-                      <FontAwesome
-                        name="share"
-                        size={16}
-                        color="#6b7280"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={styles.newsActionText}>Share</Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.newsActionButton}
+                        activeOpacity={0.7}
+                      >
+                        <FontAwesome
+                          name="share"
+                          size={16}
+                          color="#6b7280"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={styles.newsActionText}>Share</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
 
               {/* Fallback to local news if no API news */}
               {apiNews.length === 0 &&
