@@ -5,6 +5,9 @@ import { RootState } from "../types";
 export const selectUser = (state: RootState) => state.user;
 export const selectIsAuthenticated = (state: RootState) =>
   state.user.isAuthenticated;
+export const selectUserProfile = (state: RootState) => state.user.profile;
+export const selectUserLoading = (state: RootState) => state.user.loading;
+export const selectUserError = (state: RootState) => state.user.error;
 export const selectToken = (state: RootState) => state.user.token;
 
 // Events selectors

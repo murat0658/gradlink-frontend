@@ -46,6 +46,8 @@ export interface User {
   name: string;
   email: string;
   phoneNumber: string;
+  phone?: string; // For backward compatibility
+  countryCode?: string;
   bio?: string;
   location?: string;
   university?: string;
@@ -92,6 +94,9 @@ export interface RootState {
   user: {
     isAuthenticated: boolean;
     token: string | null;
+    profile: User | null;
+    loading: boolean;
+    error: string | null;
   };
   events: {
     items: Event[];

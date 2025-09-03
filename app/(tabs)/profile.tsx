@@ -16,6 +16,9 @@ import * as ImagePicker from "expo-image-picker";
 import { useSelector, useDispatch } from "react-redux";
 import {
   selectToken,
+  selectUserProfile,
+  selectUserLoading,
+  selectUserError,
   getUserIdFromToken,
   setAuthenticated,
   setToken,
@@ -28,6 +31,9 @@ import {
   fetchEvents,
   fetchNotifications,
   fetchSubscriptions,
+  fetchUserProfile,
+  updateUserProfile,
+  uploadAvatar,
 } from "../store";
 import { useRouter } from "expo-router";
 import { groups } from "./groups/[code]/index";
@@ -40,10 +46,11 @@ import Colors, {
   shadows,
 } from "@/constants/Colors";
 
-const initialUser = {
-  name: "Jane Doe",
-  email: "jane.doe@email.com",
-  phone: "555-123-4567",
+// Default user data for fallback
+const defaultUser = {
+  name: "Loading...",
+  email: "loading@email.com",
+  phone: "000-000-0000",
   countryCode: "+1",
   avatar: "https://randomuser.me/api/portraits/women/44.jpg",
 };
@@ -73,17 +80,23 @@ function validatePhone(phone: string) {
 
 export default function ProfileScreen() {
   const token = useSelector(selectToken);
+  const userProfile = useSelector(selectUserProfile);
+  const userLoading = useSelector(selectUserLoading);
+  const userError = useSelector(selectUserError);
   const userId = getUserIdFromToken(token);
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
-  const [user, setUser] = useState(initialUser);
   const [editMode, setEditMode] = useState(false);
+  
+  // Use API data or fallback to default
+  const user = userProfile || defaultUser;
+  
   const [form, setForm] = useState({
     name: user.name,
     email: user.email,
-    phone: user.phone,
-    countryCode: user.countryCode,
-    avatar: user.avatar,
+    phone: (user as any).phoneNumber || (user as any).phone || "",
+    countryCode: (user as any).countryCode || "+1",
+    avatar: user.avatar || defaultUser.avatar,
   });
   const [touched, setTouched] = useState<{ email?: boolean; phone?: boolean }>(
     {}
@@ -122,23 +135,25 @@ export default function ProfileScreen() {
     dispatch(fetchEvents() as any);
     dispatch(fetchNotifications() as any);
     dispatch(fetchSubscriptions() as any);
-  }, [dispatch]);
+    
+    // Fetch user profile if authenticated
+    if (token && !userProfile) {
+      dispatch(fetchUserProfile() as any);
+    }
+  }, [dispatch, token, userProfile]);
 
+  // Update form when user profile changes
   useEffect(() => {
-    // TODO: Replace with actual user id extraction
-    if (!userId || !token) return;
-    const fetchProfile = async () => {
-      try {
-        // For now, use the API service directly
-        // This will be replaced with proper async thunks when user endpoints are implemented
-        console.log("Fetching user profile...");
-        // TODO: Implement user profile fetching via API service
-      } catch (err) {
-        // Optionally handle error
-      }
-    };
-    fetchProfile();
-  }, [userId, token]);
+    if (userProfile) {
+      setForm({
+        name: userProfile.name,
+        email: userProfile.email,
+        phone: userProfile.phoneNumber || "",
+        countryCode: userProfile.countryCode || "+1",
+        avatar: userProfile.avatar || defaultUser.avatar,
+      });
+    }
+  }, [userProfile]);
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -147,15 +162,18 @@ export default function ProfileScreen() {
       return;
     }
     try {
-      // TODO: Replace with API service call when user update endpoint is implemented
-      console.log("Updating user profile...");
-      // For now, just update local state
-      setUser({ ...user, ...form });
+      await dispatch(updateUserProfile({
+        name: form.name,
+        email: form.email,
+        phoneNumber: form.phone,
+        avatar: form.avatar,
+      }) as any);
+      
       setEditMode(false);
       setTouched({});
       alert("Profile updated successfully!");
-    } catch (err) {
-      alert("Could not connect to server. Please try again later.");
+    } catch (err: any) {
+      alert(err.message || "Could not connect to server. Please try again later.");
     }
   };
 
@@ -167,16 +185,29 @@ export default function ProfileScreen() {
       quality: 0.7,
     });
     if (!result.canceled && result.assets && result.assets[0]?.uri) {
-      setForm((f) => ({ ...f, avatar: result.assets[0].uri }));
+      const asset = result.assets[0];
+      setForm((f) => ({ ...f, avatar: asset.uri }));
+      
+      // If we have a file object, upload it
+      if (asset.file) {
+        try {
+          await dispatch(uploadAvatar(asset.file) as any);
+        } catch (err: any) {
+          console.error("Failed to upload avatar:", err);
+          alert("Failed to upload avatar. Please try again.");
+        }
+      }
     }
   };
 
   const handleLogout = async () => {
     try {
-      // TODO: Replace with API service call when logout endpoint is implemented
-      console.log("Logging out...");
+      // Call logout API endpoint
+      const { apiService } = await import("../services/ApiService");
+      await apiService.logout();
     } catch (err) {
-      // Optionally handle error
+      console.error("Logout API call failed:", err);
+      // Continue with logout even if API call fails
     }
     dispatch(setToken(null));
     dispatch(setAuthenticated(false));
@@ -206,6 +237,28 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Card style={styles.profileCard}>
+        {/* Loading State */}
+        {userLoading && (
+          <RNView style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading profile...</Text>
+          </RNView>
+        )}
+        
+        {/* Error State */}
+        {userError && (
+          <RNView style={styles.errorContainer}>
+            <Text style={styles.errorText}>{userError}</Text>
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={() => dispatch(fetchUserProfile() as any)}
+              style={styles.retryButton}
+            >
+              Retry
+            </Button>
+          </RNView>
+        )}
+        
         {/* Joined Badges */}
         {joinedGroups.length > 0 && (
           <RNView style={styles.badgeRow}>
@@ -315,9 +368,9 @@ export default function ProfileScreen() {
                   setForm({
                     name: user.name,
                     email: user.email,
-                    phone: user.phone,
-                    countryCode: user.countryCode,
-                    avatar: user.avatar,
+                    phone: (user as any).phoneNumber || (user as any).phone || "",
+                    countryCode: (user as any).countryCode || "+1",
+                    avatar: user.avatar || defaultUser.avatar,
                   });
                   setEditMode(false);
                   setTouched({});
@@ -382,8 +435,8 @@ export default function ProfileScreen() {
                 color={Colors.tint}
                 style={{ marginRight: spacing.xs }}
               />
-              <Text style={styles.countryCodeText}>{user.countryCode}</Text>
-              <Text style={styles.phone}>{user.phone}</Text>
+              <Text style={styles.countryCodeText}>{(user as any).countryCode || "+1"}</Text>
+              <Text style={styles.phone}>{(user as any).phoneNumber || (user as any).phone || ""}</Text>
             </RNView>
             <Button
               variant="primary"
@@ -690,6 +743,27 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   testNotificationButton: {
+    marginTop: spacing.sm,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+  },
+  loadingText: {
+    ...typography.base,
+    color: Colors.textSecondary,
+  },
+  errorContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+  },
+  errorText: {
+    ...typography.base,
+    color: Colors.error,
+    textAlign: "center",
+    marginBottom: spacing.sm,
+  },
+  retryButton: {
     marginTop: spacing.sm,
   },
 });

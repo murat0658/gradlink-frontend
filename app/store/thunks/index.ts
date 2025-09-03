@@ -20,6 +20,7 @@ import {
   setEnrollmentsLoading,
   setEnrollmentsError,
 } from "../slices/index";
+import { setProfile, setLoading, setError } from "../slices/userSlice";
 
 // Events thunks
 export const fetchEvents = createAsyncThunk(
@@ -203,6 +204,73 @@ export const fetchEnrollments = createAsyncThunk(
       return response;
     } catch (error: any) {
       throw error;
+    }
+  }
+);
+
+// User profile thunks
+export const fetchUserProfile = createAsyncThunk(
+  "user/fetchProfile",
+  async (_, { dispatch }) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const response = await apiService.getCurrentUser();
+      dispatch(setProfile(response));
+      return response;
+    } catch (error: any) {
+      dispatch(setError(error.message || "Failed to fetch profile"));
+      throw error;
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+);
+
+export const updateUserProfile = createAsyncThunk(
+  "user/updateProfile",
+  async (userData: {
+    name?: string;
+    email?: string;
+    phoneNumber?: string;
+    bio?: string;
+    location?: string;
+    university?: string;
+    graduationYear?: number;
+    major?: string;
+    avatar?: string;
+  }, { dispatch }) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const response = await apiService.updateUser(userData);
+      dispatch(setProfile(response));
+      return response;
+    } catch (error: any) {
+      dispatch(setError(error.message || "Failed to update profile"));
+      throw error;
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+);
+
+export const uploadAvatar = createAsyncThunk(
+  "user/uploadAvatar",
+  async (file: File, { dispatch }) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const response = await apiService.uploadFile(file, "avatar");
+      // Update profile with new avatar URL
+      const currentProfile = await apiService.getCurrentUser();
+      dispatch(setProfile(currentProfile));
+      return response;
+    } catch (error: any) {
+      dispatch(setError(error.message || "Failed to upload avatar"));
+      throw error;
+    } finally {
+      dispatch(setLoading(false));
     }
   }
 );
