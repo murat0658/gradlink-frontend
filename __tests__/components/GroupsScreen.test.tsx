@@ -4,7 +4,7 @@ import {
   renderWithProviders,
   createMockGroup,
   createMockEvent,
-} from "../../utils/test-utils";
+} from "../utils/test-utils";
 import GroupsScreen from "../../app/(tabs)/groups/index";
 
 // Mock the router

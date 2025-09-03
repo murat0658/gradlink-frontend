@@ -4,7 +4,7 @@ import {
   renderWithProviders,
   createMockEvent,
   createMockGroup,
-} from "../../utils/test-utils";
+} from "../utils/test-utils";
 import IndexScreen from "../../app/(tabs)/index";
 
 // Mock the router

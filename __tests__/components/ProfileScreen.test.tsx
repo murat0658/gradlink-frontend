@@ -4,7 +4,7 @@ import {
   renderWithProviders,
   createMockUser,
   createMockEvent,
-} from "../../utils/test-utils";
+} from "../utils/test-utils";
 import ProfileScreen from "../../app/(tabs)/profile";
 
 // Mock the router

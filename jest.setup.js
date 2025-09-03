@@ -34,6 +34,7 @@ jest.mock("expo-notifications", () => ({
   ),
   scheduleNotificationAsync: jest.fn(),
   cancelAllScheduledNotificationsAsync: jest.fn(),
+  setNotificationHandler: jest.fn(),
 }));
 
 jest.mock("expo-linear-gradient", () => ({

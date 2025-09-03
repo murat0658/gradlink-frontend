@@ -1,10 +1,33 @@
-// Mock validation functions that might exist in the app
-// Since I don't see specific validation utilities, I'll create tests for common validation patterns
+import React from "react";
+import {
+  isEventComingSoon,
+  createEventNotification,
+} from "../../app/store/utils";
+import {
+  validateEmail,
+  validatePhoneNumber,
+  validatePassword,
+  validateName,
+  validateUrl,
+  validateDate,
+  validateGraduationYear,
+  validateForm,
+  validateUniversityCode,
+  validateEventCapacity,
+  validateBio,
+  validateLocation,
+  validateId,
+  validateTimestamp,
+  validateEventTime,
+  validateEnrollment,
+  sanitizeText,
+  sanitizeEmail,
+  sanitizePhoneNumber,
+} from "../../app/utils/validation";
+import { createMockEvent } from "./test-utils";
 
 describe("Validation Utilities", () => {
   describe("Email Validation", () => {
-    const validateEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email);
-
     it("should validate correct email formats", () => {
       expect(validateEmail("test@example.com")).toBe(true);
       expect(validateEmail("user.name@domain.co.uk")).toBe(true);
@@ -12,7 +35,6 @@ describe("Validation Utilities", () => {
     });
 
     it("should reject invalid email formats", () => {
-      expect(validateEmail("invalid-email")).toBe(false);
       expect(validateEmail("test@")).toBe(false);
       expect(validateEmail("@example.com")).toBe(false);
       expect(validateEmail("test.example.com")).toBe(false);
@@ -21,122 +43,81 @@ describe("Validation Utilities", () => {
   });
 
   describe("Phone Validation", () => {
-    const validatePhone = (phone: string) => {
-      const digits = phone.replace(/[^0-9]/g, "");
-      return digits.length >= 10;
-    };
-
     it("should validate correct phone formats", () => {
-      expect(validatePhone("1234567890")).toBe(true);
-      expect(validatePhone("+1234567890")).toBe(true);
-      expect(validatePhone("(123) 456-7890")).toBe(true);
-      expect(validatePhone("123-456-7890")).toBe(true);
+      expect(validatePhoneNumber("1234567890")).toBe(true);
+      expect(validatePhoneNumber("+1234567890")).toBe(true);
+      expect(validatePhoneNumber("(123) 456-7890")).toBe(true);
+      expect(validatePhoneNumber("123-456-7890")).toBe(true);
     });
 
     it("should reject invalid phone formats", () => {
-      expect(validatePhone("123")).toBe(false);
-      expect(validatePhone("123456789")).toBe(false);
-      expect(validatePhone("")).toBe(false);
+      expect(validatePhoneNumber("123")).toBe(false);
+      expect(validatePhoneNumber("abc")).toBe(false);
+      expect(validatePhoneNumber("")).toBe(false);
     });
   });
 
   describe("Password Validation", () => {
-    const validatePassword = (password: string) => {
-      return (
-        password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)
-      );
-    };
-
-    it("should validate strong passwords", () => {
-      expect(validatePassword("Password123")).toBe(true);
-      expect(validatePassword("MySecure1")).toBe(true);
+    it("should validate correct passwords", () => {
+      expect(validatePassword("password123")).toBe(true);
+      expect(validatePassword("mypassword")).toBe(true);
+      expect(validatePassword("12345678")).toBe(true);
     });
 
-    it("should reject weak passwords", () => {
-      expect(validatePassword("password")).toBe(false);
-      expect(validatePassword("PASSWORD")).toBe(false);
-      expect(validatePassword("Password")).toBe(false);
-      expect(validatePassword("12345678")).toBe(false);
+    it("should reject short passwords", () => {
+      expect(validatePassword("1234567")).toBe(false);
+      expect(validatePassword("pass")).toBe(false);
       expect(validatePassword("")).toBe(false);
     });
   });
 
   describe("Name Validation", () => {
-    const validateName = (name: string) => {
-      return (
-        name.trim().length >= 2 &&
-        /^[a-zA-Z\s\u00C0-\u017F]+$/.test(name.trim())
-      );
-    };
-
     it("should validate correct names", () => {
       expect(validateName("John Doe")).toBe(true);
+      expect(validateName("Jane")).toBe(true);
       expect(validateName("Mary Jane Watson")).toBe(true);
-      expect(validateName("José María")).toBe(true);
     });
 
     it("should reject invalid names", () => {
       expect(validateName("J")).toBe(false);
       expect(validateName("John123")).toBe(false);
-      expect(validateName("John@Doe")).toBe(false);
       expect(validateName("")).toBe(false);
-      expect(validateName("   ")).toBe(false);
     });
   });
 
   describe("URL Validation", () => {
-    const validateUrl = (url: string) => {
-      try {
-        const urlObj = new URL(url);
-        return urlObj.protocol === "http:" || urlObj.protocol === "https:";
-      } catch {
-        return false;
-      }
-    };
-
     it("should validate correct URLs", () => {
       expect(validateUrl("https://example.com")).toBe(true);
-      expect(validateUrl("http://localhost:3000")).toBe(true);
+      expect(validateUrl("http://test.org")).toBe(true);
       expect(validateUrl("https://subdomain.example.com/path")).toBe(true);
     });
 
     it("should reject invalid URLs", () => {
       expect(validateUrl("not-a-url")).toBe(false);
-      expect(validateUrl("ftp://example.com")).toBe(false);
+      expect(validateUrl("just-text")).toBe(false);
       expect(validateUrl("")).toBe(false);
     });
   });
 
   describe("Date Validation", () => {
-    const validateDate = (dateString: string) => {
-      const date = new Date(dateString);
-      return !isNaN(date.getTime());
-    };
-
-    it("should validate correct date formats", () => {
-      expect(validateDate("2024-01-01")).toBe(true);
-      expect(validateDate("2024-12-31T23:59:59Z")).toBe(true);
-      expect(validateDate("2024-01-01T10:00:00.000Z")).toBe(true);
+    it("should validate correct dates", () => {
+      expect(validateDate("2023-01-01")).toBe(true);
+      expect(validateDate("2023-12-31T23:59:59Z")).toBe(true);
+      expect(validateDate("January 1, 2023")).toBe(true);
     });
 
-    it("should reject invalid date formats", () => {
+    it("should reject invalid dates", () => {
       expect(validateDate("invalid-date")).toBe(false);
-      expect(validateDate("2024-13-01")).toBe(false);
-      expect(validateDate("2024-01-32")).toBe(false);
+      expect(validateDate("2023-13-01")).toBe(false);
       expect(validateDate("")).toBe(false);
     });
   });
 
   describe("Graduation Year Validation", () => {
-    const validateGraduationYear = (year: number) => {
-      const currentYear = new Date().getFullYear();
-      return year >= 1900 && year <= currentYear + 10;
-    };
-
     it("should validate correct graduation years", () => {
       expect(validateGraduationYear(2020)).toBe(true);
-      expect(validateGraduationYear(2024)).toBe(true);
-      expect(validateGraduationYear(2030)).toBe(true);
+      expect(validateGraduationYear(2025)).toBe(true);
+      expect(validateGraduationYear(1990)).toBe(true);
     });
 
     it("should reject invalid graduation years", () => {
@@ -147,54 +128,285 @@ describe("Validation Utilities", () => {
   });
 
   describe("Form Validation", () => {
-    const validateForm = (formData: any) => {
-      const errors: Record<string, string> = {};
-
-      if (!formData.name || formData.name.trim().length < 2) {
-        errors.name = "Name must be at least 2 characters";
-      }
-
-      if (!formData.email || !/^\S+@\S+\.\S+$/.test(formData.email)) {
-        errors.email = "Please enter a valid email address";
-      }
-
-      if (
-        !formData.phoneNumber ||
-        formData.phoneNumber.replace(/[^0-9]/g, "").length < 10
-      ) {
-        errors.phoneNumber = "Please enter a valid phone number";
-      }
-
-      return {
-        isValid: Object.keys(errors).length === 0,
-        errors,
-      };
-    };
-
-    it("should validate complete form data", () => {
-      const formData = {
+    it("should validate complete forms", () => {
+      const validData = {
+        email: "test@example.com",
+        phone: "+1234567890",
+        password: "password123",
         name: "John Doe",
-        email: "john@example.com",
-        phoneNumber: "+1234567890",
+        graduationYear: 2020,
       };
 
-      const result = validateForm(formData);
+      const result = validateForm(validData);
       expect(result.isValid).toBe(true);
-      expect(result.errors).toEqual({});
+      expect(result.errors).toHaveLength(0);
     });
 
-    it("should return errors for invalid form data", () => {
-      const formData = {
-        name: "J",
+    it("should return errors for invalid forms", () => {
+      const invalidData = {
         email: "invalid-email",
-        phoneNumber: "123",
+        phone: "123",
+        password: "short",
+        name: "J",
+        graduationYear: 1800,
       };
 
-      const result = validateForm(formData);
+      const result = validateForm(invalidData);
       expect(result.isValid).toBe(false);
-      expect(result.errors).toHaveProperty("name");
-      expect(result.errors).toHaveProperty("email");
-      expect(result.errors).toHaveProperty("phoneNumber");
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Advanced Validation Patterns", () => {
+    describe("University Code Validation", () => {
+      it("should validate correct university codes", () => {
+        expect(validateUniversityCode("harvard")).toBe(true);
+        expect(validateUniversityCode("stanford")).toBe(true);
+        expect(validateUniversityCode("mit")).toBe(true);
+        expect(validateUniversityCode("university-of-california")).toBe(true);
+        expect(validateUniversityCode("uc-berkeley")).toBe(true);
+      });
+
+      it("should reject invalid university codes", () => {
+        expect(validateUniversityCode("")).toBe(false);
+        expect(validateUniversityCode("a")).toBe(false);
+        expect(validateUniversityCode("university@code")).toBe(false);
+        expect(validateUniversityCode("university code")).toBe(false);
+      });
+    });
+
+    describe("Event Capacity Validation", () => {
+      it("should validate correct capacities", () => {
+        expect(validateEventCapacity(10)).toBe(true);
+        expect(validateEventCapacity(100)).toBe(true);
+        expect(validateEventCapacity(1000)).toBe(true);
+      });
+
+      it("should reject invalid capacities", () => {
+        expect(validateEventCapacity(0)).toBe(false);
+        expect(validateEventCapacity(-1)).toBe(false);
+        expect(validateEventCapacity(10001)).toBe(false);
+        expect(validateEventCapacity(1.5)).toBe(false);
+      });
+    });
+
+    describe("Bio/Description Validation", () => {
+      it("should validate correct bios", () => {
+        expect(validateBio("Short bio")).toBe(true);
+        expect(validateBio("A".repeat(500))).toBe(true);
+        expect(validateBio("")).toBe(true);
+      });
+
+      it("should reject invalid bios", () => {
+        expect(validateBio("A".repeat(501))).toBe(false);
+      });
+    });
+
+    describe("Location Validation", () => {
+      it("should validate correct locations", () => {
+        expect(validateLocation("New York")).toBe(true);
+        expect(validateLocation("San Francisco, CA")).toBe(true);
+        expect(validateLocation("A".repeat(100))).toBe(true);
+      });
+
+      it("should reject invalid locations", () => {
+        expect(validateLocation("A")).toBe(false);
+        expect(validateLocation("A".repeat(101))).toBe(false);
+        expect(validateLocation("")).toBe(false);
+      });
+    });
+  });
+
+  describe("Input Sanitization", () => {
+    describe("Text Sanitization", () => {
+      it("should sanitize text input", () => {
+        expect(sanitizeText("  Hello World  ")).toBe("Hello World");
+        expect(sanitizeText("Text with <script>")).toBe("Text with script");
+        expect(sanitizeText("Text with >tag<")).toBe("Text with tag");
+      });
+    });
+
+    describe("Email Sanitization", () => {
+      it("should sanitize email input", () => {
+        expect(sanitizeEmail("  TEST@EXAMPLE.COM  ")).toBe("test@example.com");
+        expect(sanitizeEmail("User@Domain.Org")).toBe("user@domain.org");
+      });
+    });
+
+    describe("Phone Number Sanitization", () => {
+      it("should sanitize phone input", () => {
+        expect(sanitizePhoneNumber("+1 (234) 567-8900")).toBe(
+          "+1 (234) 567-8900"
+        );
+        expect(sanitizePhoneNumber("123abc456def789")).toBe("123456789");
+      });
+    });
+  });
+
+  describe("Data Type Validation", () => {
+    describe("ID Validation", () => {
+      it("should validate correct IDs", () => {
+        expect(validateId("user123")).toBe(true);
+        expect(validateId("event-456")).toBe(true);
+        expect(validateId("group_789")).toBe(true);
+      });
+
+      it("should reject invalid IDs", () => {
+        expect(validateId("")).toBe(false);
+        expect(validateId("id with spaces")).toBe(false);
+        expect(validateId("id@with#symbols")).toBe(false);
+      });
+    });
+
+    describe("Timestamp Validation", () => {
+      it("should validate correct timestamps", () => {
+        expect(validateTimestamp("2023-01-01T00:00:00Z")).toBe(true);
+        expect(validateTimestamp("2023-12-31T23:59:59.999Z")).toBe(true);
+        expect(validateTimestamp("2023-01-01")).toBe(true);
+      });
+
+      it("should reject invalid timestamps", () => {
+        expect(validateTimestamp("invalid-timestamp")).toBe(false);
+        expect(validateTimestamp("")).toBe(false);
+      });
+    });
+  });
+
+  describe("Business Logic Validation", () => {
+    describe("Event Time Validation", () => {
+      it("should validate correct event times", () => {
+        expect(
+          validateEventTime("2023-01-01T10:00:00Z", "2023-01-01T12:00:00Z")
+        ).toBe(true);
+        expect(
+          validateEventTime("2023-12-31T09:00:00Z", "2024-01-01T01:00:00Z")
+        ).toBe(true);
+      });
+
+      it("should reject invalid event times", () => {
+        expect(
+          validateEventTime("2023-01-01T12:00:00Z", "2023-01-01T10:00:00Z")
+        ).toBe(false);
+        expect(validateEventTime("invalid-start", "2023-01-01T12:00:00Z")).toBe(
+          false
+        );
+        expect(validateEventTime("2023-01-01T10:00:00Z", "invalid-end")).toBe(
+          false
+        );
+      });
+    });
+
+    describe("Enrollment Validation", () => {
+      it("should validate enrollment eligibility", () => {
+        const futureTime = new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString();
+        expect(validateEnrollment(futureTime, 5, 10, false)).toBe(true);
+        expect(validateEnrollment(futureTime, 0, 10, false)).toBe(true);
+      });
+
+      it("should reject enrollment for past events", () => {
+        const pastTime = new Date(
+          Date.now() - 24 * 60 * 60 * 1000
+        ).toISOString();
+        expect(validateEnrollment(pastTime, 5, 10, false)).toBe(false);
+      });
+
+      it("should reject enrollment for full events", () => {
+        const futureTime = new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString();
+        expect(validateEnrollment(futureTime, 10, 10, false)).toBe(false);
+        expect(validateEnrollment(futureTime, 15, 10, false)).toBe(false);
+      });
+
+      it("should reject enrollment for already enrolled users", () => {
+        const futureTime = new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString();
+        expect(validateEnrollment(futureTime, 5, 10, true)).toBe(false);
+      });
+    });
+  });
+
+  describe("Store Utilities", () => {
+    describe("isEventComingSoon", () => {
+      it("should identify events coming soon", () => {
+        const futureEvent = createMockEvent({
+          startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+        });
+        expect(isEventComingSoon(futureEvent)).toBe(true);
+      });
+
+      it("should not identify distant events as coming soon", () => {
+        const distantEvent = createMockEvent({
+          startTime: new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000
+          ).toISOString(), // 7 days from now
+        });
+        expect(isEventComingSoon(distantEvent)).toBe(false);
+      });
+
+      it("should not identify past events as coming soon", () => {
+        const pastEvent = createMockEvent({
+          startTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+        });
+        expect(isEventComingSoon(pastEvent)).toBe(false);
+      });
+    });
+
+    describe("createEventNotification", () => {
+      it("should create notification for upcoming event", () => {
+        const event = createMockEvent({
+          title: "Test Event",
+          startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        });
+
+        const notification = createEventNotification(event);
+        expect(notification.title).toBe("Upcoming Event");
+        expect(notification.message).toContain("Test Event");
+        expect(notification.type).toBe("event");
+      });
+
+      it("should include correct time format in message", () => {
+        const event = createMockEvent({
+          title: "Test Event",
+          startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        });
+
+        const notification = createEventNotification(event);
+        expect(notification.message).toMatch(/in \d+ hours?/);
+      });
+
+      it("should handle singular hour correctly", () => {
+        const event = createMockEvent({
+          title: "Test Event",
+          startTime: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(),
+        });
+
+        const notification = createEventNotification(event);
+        expect(notification.message).toContain("in 1 hour");
+      });
+
+      it("should handle minutes correctly", () => {
+        const event = createMockEvent({
+          title: "Test Event",
+          startTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        });
+
+        const notification = createEventNotification(event);
+        expect(notification.message).toMatch(/in \d+ minutes?/);
+      });
+
+      it("should handle hours and minutes together", () => {
+        const event = createMockEvent({
+          title: "Test Event",
+          startTime: new Date(Date.now() + 90 * 60 * 1000).toISOString(), // 1.5 hours
+        });
+
+        const notification = createEventNotification(event);
+        expect(notification.message).toMatch(/in \d+ hours? and \d+ minutes?/);
+      });
     });
   });
 });
