@@ -50,9 +50,14 @@ import Colors, {
 const defaultUser = {
   name: "Loading...",
   email: "loading@email.com",
-  phone: "000-000-0000",
+  phoneNumber: "000-000-0000",
   countryCode: "+1",
-  avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+  avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+  bio: "",
+  location: "",
+  university: "",
+  major: "",
+  graduationYear: null,
 };
 
 const COUNTRY_CODES = [
@@ -94,9 +99,14 @@ export default function ProfileScreen() {
   const [form, setForm] = useState({
     name: user.name,
     email: user.email,
-    phone: (user as any).phoneNumber || (user as any).phone || "",
+    phoneNumber: (user as any).phoneNumber || (user as any).phone || "",
     countryCode: (user as any).countryCode || "+1",
-    avatar: user.avatar || defaultUser.avatar,
+    avatarUrl: user.avatarUrl || (user as any).avatar || defaultUser.avatarUrl,
+    bio: user.bio || "",
+    location: user.location || "",
+    university: user.university || "",
+    major: user.major || "",
+    graduationYear: user.graduationYear || null,
   });
   const [touched, setTouched] = useState<{ email?: boolean; phone?: boolean }>(
     {}
@@ -121,7 +131,7 @@ export default function ProfileScreen() {
   };
 
   const emailValid = validateEmail(form.email);
-  const phoneValid = validatePhone(form.phone);
+  const phoneValid = validatePhone(form.phoneNumber);
   const canSave = form.name.trim() !== "" && emailValid && phoneValid;
 
   const filteredCountryCodes = COUNTRY_CODES.filter(
@@ -132,8 +142,8 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     // Fetch data from API when component mounts
-    dispatch(fetchEvents() as any);
-    dispatch(fetchNotifications() as any);
+    dispatch(fetchEvents({}) as any);
+    dispatch(fetchNotifications({}) as any);
     dispatch(fetchSubscriptions() as any);
 
     // Fetch user profile if authenticated
@@ -148,9 +158,17 @@ export default function ProfileScreen() {
       setForm({
         name: userProfile.name,
         email: userProfile.email,
-        phone: userProfile.phoneNumber || "",
+        phoneNumber: userProfile.phoneNumber || "",
         countryCode: userProfile.countryCode || "+1",
-        avatar: userProfile.avatar || defaultUser.avatar,
+        avatarUrl:
+          userProfile.avatarUrl ||
+          (userProfile as any).avatar ||
+          defaultUser.avatarUrl,
+        bio: userProfile.bio || "",
+        location: userProfile.location || "",
+        university: userProfile.university || "",
+        major: userProfile.major || "",
+        graduationYear: userProfile.graduationYear || null,
       });
     }
   }, [userProfile]);
@@ -166,8 +184,13 @@ export default function ProfileScreen() {
         updateUserProfile({
           name: form.name,
           email: form.email,
-          phoneNumber: form.phone,
-          avatar: form.avatar,
+          phoneNumber: form.phoneNumber,
+          avatarUrl: form.avatarUrl,
+          bio: form.bio,
+          location: form.location,
+          university: form.university,
+          major: form.major,
+          graduationYear: form.graduationYear || undefined,
         }) as any
       );
 
@@ -190,7 +213,7 @@ export default function ProfileScreen() {
     });
     if (!result.canceled && result.assets && result.assets[0]?.uri) {
       const asset = result.assets[0];
-      setForm((f) => ({ ...f, avatar: asset.uri }));
+      setForm((f) => ({ ...f, avatarUrl: asset.uri }));
 
       // If we have a file object, upload it
       if (asset.file) {
@@ -296,13 +319,16 @@ export default function ProfileScreen() {
             onPress={pickImage}
             style={styles.avatarEditWrapper}
           >
-            <Image source={{ uri: form.avatar }} style={styles.avatar} />
+            <Image source={{ uri: form.avatarUrl }} style={styles.avatar} />
             <RNView style={styles.avatarEditIcon}>
               <FontAwesome name="camera" size={18} color="#fff" />
             </RNView>
           </TouchableOpacity>
         ) : (
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <Image
+            source={{ uri: user.avatarUrl || (user as any).avatar }}
+            style={styles.avatar}
+          />
         )}
 
         {editMode ? (
@@ -343,8 +369,10 @@ export default function ProfileScreen() {
                 />
               </TouchableOpacity>
               <Input
-                value={form.phone}
-                onChangeText={(text) => setForm((f) => ({ ...f, phone: text }))}
+                value={form.phoneNumber}
+                onChangeText={(text) =>
+                  setForm((f) => ({ ...f, phoneNumber: text }))
+                }
                 onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
                 placeholder="Phone"
                 error={
@@ -355,6 +383,43 @@ export default function ProfileScreen() {
                 style={styles.inputPhone}
               />
             </RNView>
+            <Input
+              value={form.bio}
+              onChangeText={(text) => setForm((f) => ({ ...f, bio: text }))}
+              placeholder="Bio"
+              multiline
+              numberOfLines={3}
+              style={styles.bioInput}
+            />
+            <Input
+              value={form.location}
+              onChangeText={(text) =>
+                setForm((f) => ({ ...f, location: text }))
+              }
+              placeholder="Location"
+            />
+            <Input
+              value={form.university}
+              onChangeText={(text) =>
+                setForm((f) => ({ ...f, university: text }))
+              }
+              placeholder="University"
+            />
+            <Input
+              value={form.major}
+              onChangeText={(text) => setForm((f) => ({ ...f, major: text }))}
+              placeholder="Major"
+            />
+            <Input
+              value={form.graduationYear ? form.graduationYear.toString() : ""}
+              onChangeText={(text) =>
+                setForm((f) => ({
+                  ...f,
+                  graduationYear: text ? parseInt(text) : null,
+                }))
+              }
+              placeholder="Graduation Year"
+            />
             <RNView style={styles.buttonRow}>
               <Button
                 variant="success"
@@ -372,10 +437,18 @@ export default function ProfileScreen() {
                   setForm({
                     name: user.name,
                     email: user.email,
-                    phone:
+                    phoneNumber:
                       (user as any).phoneNumber || (user as any).phone || "",
                     countryCode: (user as any).countryCode || "+1",
-                    avatar: user.avatar || defaultUser.avatar,
+                    avatarUrl:
+                      user.avatarUrl ||
+                      (user as any).avatar ||
+                      defaultUser.avatarUrl,
+                    bio: user.bio || "",
+                    location: user.location || "",
+                    university: user.university || "",
+                    major: user.major || "",
+                    graduationYear: user.graduationYear || null,
                   });
                   setEditMode(false);
                   setTouched({});
@@ -447,6 +520,69 @@ export default function ProfileScreen() {
                 {(user as any).phoneNumber || (user as any).phone || ""}
               </Text>
             </RNView>
+
+            {/* Additional Profile Information */}
+            {user.bio && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="user"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.bio}</Text>
+              </RNView>
+            )}
+
+            {user.location && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="map-marker"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.location}</Text>
+              </RNView>
+            )}
+
+            {user.university && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="graduation-cap"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.university}</Text>
+              </RNView>
+            )}
+
+            {user.major && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="book"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.major}</Text>
+              </RNView>
+            )}
+
+            {user.graduationYear && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="calendar"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>
+                  Class of {user.graduationYear}
+                </Text>
+              </RNView>
+            )}
             <Button
               variant="primary"
               size="md"
@@ -774,5 +910,21 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: spacing.sm,
+  },
+  bioInput: {
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+  profileInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  profileInfoText: {
+    ...typography.base,
+    color: Colors.textSecondary,
+    flex: 1,
+    flexWrap: "wrap",
   },
 });

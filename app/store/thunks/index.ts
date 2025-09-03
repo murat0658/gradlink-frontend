@@ -25,7 +25,10 @@ import { setProfile, setLoading, setError } from "../slices/userSlice";
 // Events thunks
 export const fetchEvents = createAsyncThunk(
   "events/fetchEvents",
-  async (params: { page?: number; size?: number; groupCode?: string } = {}, { rejectWithValue }) => {
+  async (
+    params: { page?: number; size?: number; groupCode?: string } = {},
+    { rejectWithValue }
+  ) => {
     try {
       console.log("🔄 fetchEvents: Starting fetch with params", params);
       const response = await apiService.getEvents(params);
@@ -33,21 +36,23 @@ export const fetchEvents = createAsyncThunk(
       return response;
     } catch (error: any) {
       console.error("❌ fetchEvents: Error occurred", error);
-      
+
       // Extract meaningful error message
       let errorMessage = "Failed to fetch events";
       if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // For critical failures, return empty array as fallback
-      if (error.message?.includes("Database connection issue") || 
-          error.message?.includes("Server is temporarily unavailable") ||
-          error.message?.includes("JDBC exception")) {
+      if (
+        error.message?.includes("Database connection issue") ||
+        error.message?.includes("Server is temporarily unavailable") ||
+        error.message?.includes("JDBC exception")
+      ) {
         console.warn("⚠️ Using fallback empty events due to server issues");
         return [];
       }
-      
+
       console.error("❌ fetchEvents: Final error message", errorMessage);
       return rejectWithValue(errorMessage);
     }
@@ -138,7 +143,10 @@ export const leaveGroupAsync = createAsyncThunk(
 // Notifications thunks
 export const fetchNotifications = createAsyncThunk(
   "notifications/fetchNotifications",
-  async (params: { page?: number; size?: number; isRead?: boolean } = {}, { rejectWithValue }) => {
+  async (
+    params: { page?: number; size?: number; isRead?: boolean } = {},
+    { rejectWithValue }
+  ) => {
     try {
       console.log("🔄 fetchNotifications: Starting fetch with params", params);
       const response = await apiService.getNotifications(params);
@@ -146,21 +154,25 @@ export const fetchNotifications = createAsyncThunk(
       return response;
     } catch (error: any) {
       console.error("❌ fetchNotifications: Error occurred", error);
-      
+
       // Extract meaningful error message
       let errorMessage = "Failed to fetch notifications";
       if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // For critical failures, return empty array as fallback
-      if (error.message?.includes("Database connection issue") || 
-          error.message?.includes("Server is temporarily unavailable") ||
-          error.message?.includes("Bad request")) {
-        console.warn("⚠️ Using fallback empty notifications due to server issues");
+      if (
+        error.message?.includes("Database connection issue") ||
+        error.message?.includes("Server is temporarily unavailable") ||
+        error.message?.includes("Bad request")
+      ) {
+        console.warn(
+          "⚠️ Using fallback empty notifications due to server issues"
+        );
         return [];
       }
-      
+
       console.error("❌ fetchNotifications: Final error message", errorMessage);
       return rejectWithValue(errorMessage);
     }
@@ -190,20 +202,24 @@ export const fetchSubscriptions = createAsyncThunk(
       return response;
     } catch (error: any) {
       console.error("❌ fetchSubscriptions: Error occurred", error);
-      
+
       // Extract meaningful error message
       let errorMessage = "Failed to fetch subscriptions";
       if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // For critical failures, return empty array as fallback
-      if (error.message?.includes("Database connection issue") || 
-          error.message?.includes("Server is temporarily unavailable")) {
-        console.warn("⚠️ Using fallback empty subscriptions due to server issues");
+      if (
+        error.message?.includes("Database connection issue") ||
+        error.message?.includes("Server is temporarily unavailable")
+      ) {
+        console.warn(
+          "⚠️ Using fallback empty subscriptions due to server issues"
+        );
         return [];
       }
-      
+
       console.error("❌ fetchSubscriptions: Final error message", errorMessage);
       return rejectWithValue(errorMessage);
     }
@@ -377,7 +393,8 @@ export const updateUserProfile = createAsyncThunk(
       university?: string;
       graduationYear?: number;
       major?: string;
-      avatar?: string;
+      avatarUrl?: string;
+      avatar?: string; // For backward compatibility
     },
     { dispatch }
   ) => {

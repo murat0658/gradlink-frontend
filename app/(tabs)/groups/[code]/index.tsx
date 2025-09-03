@@ -46,6 +46,8 @@ import {
   selectEnrollments,
   subscribeToGroupAsync,
   unsubscribeFromGroupAsync,
+  enrollInEventAsync,
+  unenrollFromEventAsync,
 } from "../../../store";
 
 const groups = [
@@ -887,24 +889,59 @@ export default function GroupInfoScreen() {
     }
   };
 
-  const handleEnroll = (eventId: string) => {
-    dispatch(enrollInEvent(eventId));
-    dispatch(enroll(eventId));
-    Toast.show({
-      type: "success",
-      text1: "Enrolled!",
-      text2: "You have successfully enrolled in this event.",
-    });
+  const handleEnroll = async (eventId: string) => {
+    try {
+      // Optimistically update the UI
+      dispatch(enrollInEvent(eventId));
+      dispatch(enroll(eventId));
+
+      // Make the API call
+      await dispatch(enrollInEventAsync(eventId) as any);
+
+      Toast.show({
+        type: "success",
+        text1: "Enrolled!",
+        text2: "You have successfully enrolled in this event.",
+      });
+    } catch (error: any) {
+      // Revert the optimistic update on error
+      dispatch(unenrollFromEvent(eventId));
+      dispatch(unenroll(eventId));
+
+      Toast.show({
+        type: "error",
+        text1: "Enrollment Failed",
+        text2: error.message || "Failed to enroll in event. Please try again.",
+      });
+    }
   };
 
-  const handleUnenroll = (eventId: string) => {
-    dispatch(unenrollFromEvent(eventId));
-    dispatch(unenroll(eventId));
-    Toast.show({
-      type: "info",
-      text1: "Unenrolled",
-      text2: "You have unenrolled from this event.",
-    });
+  const handleUnenroll = async (eventId: string) => {
+    try {
+      // Optimistically update the UI
+      dispatch(unenrollFromEvent(eventId));
+      dispatch(unenroll(eventId));
+
+      // Make the API call
+      await dispatch(unenrollFromEventAsync(eventId) as any);
+
+      Toast.show({
+        type: "info",
+        text1: "Unenrolled",
+        text2: "You have unenrolled from this event.",
+      });
+    } catch (error: any) {
+      // Revert the optimistic update on error
+      dispatch(enrollInEvent(eventId));
+      dispatch(enroll(eventId));
+
+      Toast.show({
+        type: "error",
+        text1: "Unenrollment Failed",
+        text2:
+          error.message || "Failed to unenroll from event. Please try again.",
+      });
+    }
   };
 
   // Helper function to create a safe date string
@@ -991,7 +1028,8 @@ export default function GroupInfoScreen() {
     if (isNaN(endDate.getTime())) return false;
     return endDate < new Date();
   };
-  const isEnrolledInEvent = (eventId: string) => enrollments.includes(eventId);
+  const isEnrolledInEvent = (eventId: string) =>
+    enrollments.some((enrollment) => enrollment.eventId === eventId);
 
   // Placeholder data for topics
   const topics = [
