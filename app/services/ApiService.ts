@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ENDPOINTS } from "../config/api";
+import { API_BASE_URL } from "../config/api";
 
 // Base API service class
 class ApiService {
@@ -11,7 +11,15 @@ class ApiService {
   }
 
   setToken(token: string | null) {
+    console.log("🔑 ApiService.setToken() called");
+    console.log("Previous token exists:", !!this.token);
+    console.log("New token exists:", !!token);
+    console.log(
+      "New token preview:",
+      token ? `${token.substring(0, 20)}...` : "null"
+    );
     this.token = token;
+    console.log("Token set successfully");
   }
 
   setAuthErrorHandler(handler: () => void) {
@@ -23,12 +31,65 @@ class ApiService {
       "Content-Type": "application/json",
     };
 
+    console.log("🔍 getHeaders() called");
+    console.log("Current token exists:", !!this.token);
+    console.log(
+      "Token value:",
+      this.token ? `${this.token.substring(0, 20)}...` : "null"
+    );
+
     // All endpoints except auth endpoints require authentication
     if (this.token) {
       headers["Authorization"] = `Bearer ${this.token}`;
+      console.log("✅ Authorization header added");
+    } else {
+      console.log("❌ No token available, skipping Authorization header");
     }
 
+    console.log("Final headers:", headers);
     return headers;
+  }
+
+  private async requestWithRetry<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    requireAuth: boolean = true,
+    maxRetries: number = 2
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.request<T>(endpoint, options, requireAuth);
+      } catch (error) {
+        lastError = error as Error;
+
+        // Only retry on specific error conditions
+        const shouldRetry =
+          attempt < maxRetries &&
+          error instanceof Error &&
+          (error.message.includes("Database connection issue") ||
+            error.message.includes("Server is temporarily unavailable") ||
+            error.message.includes("Network error") ||
+            error.message.includes("Failed to fetch"));
+
+        if (shouldRetry) {
+          console.log(
+            `🔄 Retrying API call (attempt ${attempt + 1}/${maxRetries + 1}):`,
+            endpoint
+          );
+          // Exponential backoff: wait 1s, then 2s, then 4s
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, attempt) * 1000)
+          );
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw lastError;
   }
 
   private async request<T>(
@@ -43,6 +104,15 @@ class ApiService {
       ? this.getHeaders()
       : { "Content-Type": "application/json" };
 
+    // Debug logging for refresh token requests
+    if (endpoint === "/api/auth/refresh") {
+      console.log("🔍 Refresh token request details:");
+      console.log("URL:", url);
+      console.log("Require auth:", requireAuth);
+      console.log("Headers:", headers);
+      console.log("Token in headers:", (headers as any)["Authorization"]);
+    }
+
     const config: RequestInit = {
       ...options,
       headers,
@@ -52,16 +122,63 @@ class ApiService {
       const response = await fetch(url, config);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData: any = {};
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          console.warn("Failed to parse error response as JSON:", parseError);
+        }
 
         // Handle authentication errors
         if (response.status === 401 && this.onAuthError) {
           this.onAuthError();
         }
 
-        throw new Error(
-          errorData.message || `HTTP ${response.status}: ${response.statusText}`
-        );
+        // Create a more detailed error message
+        let errorMessage =
+          errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`;
+
+        // Handle specific backend error types
+        if (response.status === 500) {
+          if (
+            errorData.message?.includes("JDBC exception") ||
+            errorData.message?.includes("SQL")
+          ) {
+            errorMessage = "Database connection issue. Please try again later.";
+          } else if (
+            errorData.message?.includes("An unexpected error occurred")
+          ) {
+            errorMessage =
+              "Server is temporarily unavailable. Please try again later.";
+          } else {
+            errorMessage = "Internal server error. Please try again later.";
+          }
+        } else if (response.status === 400) {
+          if (errorData.validationErrors) {
+            errorMessage = "Invalid request data. Please check your input.";
+          } else {
+            errorMessage = "Bad request. Please try again.";
+          }
+        } else if (response.status === 404) {
+          errorMessage = "Requested resource not found.";
+        } else if (response.status === 401) {
+          errorMessage = "Authentication required. Please log in again.";
+        } else if (response.status === 403) {
+          errorMessage =
+            "Access denied. You don't have permission for this action.";
+        }
+
+        console.error(`❌ API Error [${response.status}]:`, {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          errorMessage,
+        });
+
+        throw new Error(errorMessage);
       }
 
       // Handle empty responses
@@ -71,11 +188,30 @@ class ApiService {
 
       return await response.json();
     } catch (error) {
+      console.error("❌ API Request failed:", {
+        url,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
       if (error instanceof Error) {
         throw error;
       }
       throw new Error("Network error occurred");
     }
+  }
+
+  // ========================================
+  // PUBLIC API METHODS FOR OTHER SERVICES
+  // ========================================
+
+  // Public method for other services to make authenticated requests
+  async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    requireAuth: boolean = true
+  ): Promise<T> {
+    return this.request<T>(endpoint, options, requireAuth);
   }
 
   // ========================================
@@ -110,13 +246,26 @@ class ApiService {
   }
 
   async refreshToken() {
+    console.log("🔄 ApiService.refreshToken() called");
+    console.log("Current token exists:", !!this.token);
+    console.log(
+      "Token preview:",
+      this.token ? `${this.token.substring(0, 20)}...` : "null"
+    );
+
+    // Check if we have a token before attempting refresh
+    if (!this.token) {
+      console.error("❌ Cannot refresh token: no token available");
+      throw new Error("No token available for refresh");
+    }
+
     return this.request<{ token: string }>(
       "/api/auth/refresh",
       {
         method: "POST",
       },
-      false
-    ); // No auth required for token refresh
+      true
+    ); // Auth required for token refresh - need current token to identify user
   }
 
   async logout() {
@@ -261,7 +410,7 @@ class ApiService {
     const queryString = queryParams.toString();
     const endpoint = `/events${queryString ? `?${queryString}` : ""}`;
 
-    return this.request<any[]>(endpoint);
+    return this.requestWithRetry<any[]>(endpoint);
   }
 
   async getEvent(eventId: string) {
@@ -351,7 +500,7 @@ class ApiService {
     const queryString = queryParams.toString();
     const endpoint = `/notifications${queryString ? `?${queryString}` : ""}`;
 
-    return this.request<any[]>(endpoint);
+    return this.requestWithRetry<any[]>(endpoint);
   }
 
   async getNotification(notificationId: string) {
@@ -505,17 +654,25 @@ class ApiService {
   // ========================================
 
   async getSubscriptions() {
-    return this.request<any[]>("/subscriptions");
+    return this.requestWithRetry<any[]>("/subscriptions");
   }
 
   async subscribeToGroup(groupCode: string) {
-    return this.request<any>(`/subscriptions/${groupCode}`, {
+    console.log(
+      "🔄 ApiService.subscribeToGroup() called for group:",
+      groupCode
+    );
+    return this.requestWithRetry<any>(`/subscriptions/${groupCode}`, {
       method: "POST",
     });
   }
 
   async unsubscribeFromGroup(groupCode: string) {
-    return this.request(`/subscriptions/${groupCode}`, {
+    console.log(
+      "🔄 ApiService.unsubscribeFromGroup() called for group:",
+      groupCode
+    );
+    return this.requestWithRetry(`/subscriptions/${groupCode}`, {
       method: "DELETE",
     });
   }

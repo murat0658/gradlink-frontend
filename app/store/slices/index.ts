@@ -2,7 +2,6 @@
 
 // User actions
 export {
-  incrementDonation,
   setAuthenticated,
   setToken,
   logout,

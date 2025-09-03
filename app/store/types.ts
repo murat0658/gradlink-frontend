@@ -45,16 +45,19 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
+  phone?: string; // For backward compatibility
+  countryCode?: string;
+  avatarUrl?: string;
   bio?: string;
   location?: string;
   university?: string;
-  graduationYear?: number;
   major?: string;
-  avatar?: string;
-  isVerified: boolean;
+  graduationYear?: number;
+  avatar?: string; // For backward compatibility
+  isVerified?: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 // API Response types
@@ -90,9 +93,11 @@ export interface LoadingState {
 // Root state type
 export interface RootState {
   user: {
-    donated: number;
     isAuthenticated: boolean;
     token: string | null;
+    profile: User | null;
+    loading: boolean;
+    error: string | null;
   };
   events: {
     items: Event[];

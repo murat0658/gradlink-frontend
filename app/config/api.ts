@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 // API Configuration
 export const API_BASE_URL = "http://localhost:8080";
 
@@ -38,4 +40,26 @@ export const API_ENDPOINTS = {
     PROFILE: "/api/users/profile",
     UPDATE: "/api/users/profile",
   },
+  // News
+  NEWS: {
+    BASE: "/api/news",
+    CREATE: "/api/news",
+    BY_GROUP: "/api/news/group/:code",
+    UPDATE: "/api/news/:id",
+    DELETE: "/api/news/:id",
+  },
 } as const;
+
+// Helper function to get the full URL for an endpoint
+export const getApiUrl = (endpoint: string): string => {
+  return `${API_BASE_URL}${endpoint}`;
+};
+
+// Log the current API configuration (only in development)
+if (__DEV__) {
+  console.log("🔗 API Configuration:", {
+    baseUrl: API_BASE_URL,
+    platform: Platform.OS,
+    isDev: __DEV__,
+  });
+}

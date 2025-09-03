@@ -20,16 +20,41 @@ import {
   setEnrollmentsLoading,
   setEnrollmentsError,
 } from "../slices/index";
+import { setProfile, setLoading, setError } from "../slices/userSlice";
 
 // Events thunks
 export const fetchEvents = createAsyncThunk(
   "events/fetchEvents",
-  async (params?: { page?: number; size?: number; groupCode?: string }) => {
+  async (
+    params: { page?: number; size?: number; groupCode?: string } = {},
+    { rejectWithValue }
+  ) => {
     try {
+      console.log("🔄 fetchEvents: Starting fetch with params", params);
       const response = await apiService.getEvents(params);
+      console.log("🔄 fetchEvents: Success response", response);
       return response;
     } catch (error: any) {
-      throw error;
+      console.error("❌ fetchEvents: Error occurred", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Failed to fetch events";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // For critical failures, return empty array as fallback
+      if (
+        error.message?.includes("Database connection issue") ||
+        error.message?.includes("Server is temporarily unavailable") ||
+        error.message?.includes("JDBC exception")
+      ) {
+        console.warn("⚠️ Using fallback empty events due to server issues");
+        return [];
+      }
+
+      console.error("❌ fetchEvents: Final error message", errorMessage);
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -118,12 +143,38 @@ export const leaveGroupAsync = createAsyncThunk(
 // Notifications thunks
 export const fetchNotifications = createAsyncThunk(
   "notifications/fetchNotifications",
-  async (params?: { page?: number; size?: number; isRead?: boolean }) => {
+  async (
+    params: { page?: number; size?: number; isRead?: boolean } = {},
+    { rejectWithValue }
+  ) => {
     try {
+      console.log("🔄 fetchNotifications: Starting fetch with params", params);
       const response = await apiService.getNotifications(params);
+      console.log("🔄 fetchNotifications: Success response", response);
       return response;
     } catch (error: any) {
-      throw error;
+      console.error("❌ fetchNotifications: Error occurred", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Failed to fetch notifications";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // For critical failures, return empty array as fallback
+      if (
+        error.message?.includes("Database connection issue") ||
+        error.message?.includes("Server is temporarily unavailable") ||
+        error.message?.includes("Bad request")
+      ) {
+        console.warn(
+          "⚠️ Using fallback empty notifications due to server issues"
+        );
+        return [];
+      }
+
+      console.error("❌ fetchNotifications: Final error message", errorMessage);
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -143,36 +194,140 @@ export const markNotificationAsReadAsync = createAsyncThunk(
 // Subscriptions thunks
 export const fetchSubscriptions = createAsyncThunk(
   "subscriptions/fetchSubscriptions",
-  async () => {
+  async (_, { rejectWithValue }) => {
     try {
+      console.log("🔄 fetchSubscriptions: Starting fetch");
       const response = await apiService.getSubscriptions();
+      console.log("🔄 fetchSubscriptions: Success response", response);
       return response;
     } catch (error: any) {
-      throw error;
+      console.error("❌ fetchSubscriptions: Error occurred", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Failed to fetch subscriptions";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // For critical failures, return empty array as fallback
+      if (
+        error.message?.includes("Database connection issue") ||
+        error.message?.includes("Server is temporarily unavailable")
+      ) {
+        console.warn(
+          "⚠️ Using fallback empty subscriptions due to server issues"
+        );
+        return [];
+      }
+
+      console.error("❌ fetchSubscriptions: Final error message", errorMessage);
+      return rejectWithValue(errorMessage);
     }
   }
 );
 
 export const subscribeToGroupAsync = createAsyncThunk(
   "subscriptions/subscribeToGroup",
-  async (groupCode: string) => {
+  async (groupCode: string, { rejectWithValue }) => {
     try {
+      console.log(
+        "🔄 subscribeToGroupAsync: Starting subscription for",
+        groupCode
+      );
       const response = await apiService.subscribeToGroup(groupCode);
+      console.log("🔄 subscribeToGroupAsync: Success response", response);
       return { groupCode, response };
     } catch (error: any) {
-      throw error;
+      console.error("❌ subscribeToGroupAsync: Error occurred", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Failed to subscribe to group";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      // Check if it's a network or server error
+      if (
+        error.message?.includes("Network error") ||
+        error.message?.includes("Failed to fetch")
+      ) {
+        errorMessage =
+          "Unable to connect to server. Please check your internet connection.";
+      } else if (
+        error.message?.includes("404") ||
+        error.message?.includes("Not Found")
+      ) {
+        errorMessage =
+          "Subscription endpoint not available. Please try again later.";
+      } else if (
+        error.message?.includes("500") ||
+        error.message?.includes("Internal Server Error")
+      ) {
+        errorMessage = "Server error occurred. Please try again later.";
+      }
+
+      console.error(
+        "❌ subscribeToGroupAsync: Final error message",
+        errorMessage
+      );
+      return rejectWithValue(errorMessage);
     }
   }
 );
 
 export const unsubscribeFromGroupAsync = createAsyncThunk(
   "subscriptions/unsubscribeFromGroup",
-  async (groupCode: string) => {
+  async (groupCode: string, { rejectWithValue }) => {
     try {
+      console.log(
+        "🔄 unsubscribeFromGroupAsync: Starting unsubscription for",
+        groupCode
+      );
       await apiService.unsubscribeFromGroup(groupCode);
+      console.log("🔄 unsubscribeFromGroupAsync: Success");
       return groupCode;
     } catch (error: any) {
-      throw error;
+      console.error("❌ unsubscribeFromGroupAsync: Error occurred", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Failed to unsubscribe from group";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      // Check if it's a network or server error
+      if (
+        error.message?.includes("Network error") ||
+        error.message?.includes("Failed to fetch")
+      ) {
+        errorMessage =
+          "Unable to connect to server. Please check your internet connection.";
+      } else if (
+        error.message?.includes("404") ||
+        error.message?.includes("Not Found")
+      ) {
+        errorMessage =
+          "Unsubscribe endpoint not available. Please try again later.";
+      } else if (
+        error.message?.includes("500") ||
+        error.message?.includes("Internal Server Error")
+      ) {
+        errorMessage = "Server error occurred. Please try again later.";
+      }
+
+      console.error(
+        "❌ unsubscribeFromGroupAsync: Final error message",
+        errorMessage
+      );
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -207,26 +362,73 @@ export const fetchEnrollments = createAsyncThunk(
   }
 );
 
-// Default export for all thunks
-export default {
-  // Events thunks
-  fetchEvents,
-  createEventAsync,
-  enrollInEventAsync,
-  unenrollFromEventAsync,
-  // Groups thunks
-  fetchGroups,
-  joinGroupAsync,
-  leaveGroupAsync,
-  // Notifications thunks
-  fetchNotifications,
-  markNotificationAsReadAsync,
-  // Subscriptions thunks
-  fetchSubscriptions,
-  subscribeToGroupAsync,
-  unsubscribeFromGroupAsync,
-  // Joined groups thunks
-  fetchJoinedGroups,
-  // Enrollments thunks
-  fetchEnrollments,
-};
+// User profile thunks
+export const fetchUserProfile = createAsyncThunk(
+  "user/fetchProfile",
+  async (_, { dispatch }) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const response = await apiService.getCurrentUser();
+      dispatch(setProfile(response));
+      return response;
+    } catch (error: any) {
+      dispatch(setError(error.message || "Failed to fetch profile"));
+      throw error;
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+);
+
+export const updateUserProfile = createAsyncThunk(
+  "user/updateProfile",
+  async (
+    userData: {
+      name?: string;
+      email?: string;
+      phoneNumber?: string;
+      bio?: string;
+      location?: string;
+      university?: string;
+      graduationYear?: number;
+      major?: string;
+      avatarUrl?: string;
+      avatar?: string; // For backward compatibility
+    },
+    { dispatch }
+  ) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const response = await apiService.updateUser(userData);
+      dispatch(setProfile(response));
+      return response;
+    } catch (error: any) {
+      dispatch(setError(error.message || "Failed to update profile"));
+      throw error;
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+);
+
+export const uploadAvatar = createAsyncThunk(
+  "user/uploadAvatar",
+  async (file: File, { dispatch }) => {
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      const response = await apiService.uploadFile(file, "avatar");
+      // Update profile with new avatar URL
+      const currentProfile = await apiService.getCurrentUser();
+      dispatch(setProfile(currentProfile));
+      return response;
+    } catch (error: any) {
+      dispatch(setError(error.message || "Failed to upload avatar"));
+      throw error;
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+);

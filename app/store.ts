@@ -38,8 +38,6 @@ export const getUserIdFromToken = (token: string | null): string | null => {
   }
 };
 
-// Import API configuration
-export { API_BASE_URL } from "./config/api";
 
 // Configure the store
 export const store = configureStore({

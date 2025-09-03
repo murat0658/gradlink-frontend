@@ -15,8 +15,10 @@ import React, { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { useSelector, useDispatch } from "react-redux";
 import {
-  selectDonated,
   selectToken,
+  selectUserProfile,
+  selectUserLoading,
+  selectUserError,
   getUserIdFromToken,
   setAuthenticated,
   setToken,
@@ -29,6 +31,9 @@ import {
   fetchEvents,
   fetchNotifications,
   fetchSubscriptions,
+  fetchUserProfile,
+  updateUserProfile,
+  uploadAvatar,
 } from "../store";
 import { useRouter } from "expo-router";
 import { groups } from "./groups/[code]/index";
@@ -41,12 +46,18 @@ import Colors, {
   shadows,
 } from "@/constants/Colors";
 
-const initialUser = {
-  name: "Jane Doe",
-  email: "jane.doe@email.com",
-  phone: "555-123-4567",
+// Default user data for fallback
+const defaultUser = {
+  name: "Loading...",
+  email: "loading@email.com",
+  phoneNumber: "000-000-0000",
   countryCode: "+1",
-  avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+  avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+  bio: "",
+  location: "",
+  university: "",
+  major: "",
+  graduationYear: null,
 };
 
 const COUNTRY_CODES = [
@@ -73,19 +84,29 @@ function validatePhone(phone: string) {
 }
 
 export default function ProfileScreen() {
-  const donated = useSelector(selectDonated);
   const token = useSelector(selectToken);
+  const userProfile = useSelector(selectUserProfile);
+  const userLoading = useSelector(selectUserLoading);
+  const userError = useSelector(selectUserError);
   const userId = getUserIdFromToken(token);
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
-  const [user, setUser] = useState(initialUser);
   const [editMode, setEditMode] = useState(false);
+
+  // Use API data or fallback to default
+  const user = userProfile || defaultUser;
+
   const [form, setForm] = useState({
     name: user.name,
     email: user.email,
-    phone: user.phone,
-    countryCode: user.countryCode,
-    avatar: user.avatar,
+    phoneNumber: (user as any).phoneNumber || (user as any).phone || "",
+    countryCode: (user as any).countryCode || "+1",
+    avatarUrl: user.avatarUrl || (user as any).avatar || defaultUser.avatarUrl,
+    bio: user.bio || "",
+    location: user.location || "",
+    university: user.university || "",
+    major: user.major || "",
+    graduationYear: user.graduationYear || null,
   });
   const [touched, setTouched] = useState<{ email?: boolean; phone?: boolean }>(
     {}
@@ -110,7 +131,7 @@ export default function ProfileScreen() {
   };
 
   const emailValid = validateEmail(form.email);
-  const phoneValid = validatePhone(form.phone);
+  const phoneValid = validatePhone(form.phoneNumber);
   const canSave = form.name.trim() !== "" && emailValid && phoneValid;
 
   const filteredCountryCodes = COUNTRY_CODES.filter(
@@ -121,26 +142,36 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     // Fetch data from API when component mounts
-    dispatch(fetchEvents() as any);
-    dispatch(fetchNotifications() as any);
+    dispatch(fetchEvents({}) as any);
+    dispatch(fetchNotifications({}) as any);
     dispatch(fetchSubscriptions() as any);
-  }, [dispatch]);
 
+    // Fetch user profile if authenticated
+    if (token && !userProfile) {
+      dispatch(fetchUserProfile() as any);
+    }
+  }, [dispatch, token, userProfile]);
+
+  // Update form when user profile changes
   useEffect(() => {
-    // TODO: Replace with actual user id extraction
-    if (!userId || !token) return;
-    const fetchProfile = async () => {
-      try {
-        // For now, use the API service directly
-        // This will be replaced with proper async thunks when user endpoints are implemented
-        console.log("Fetching user profile...");
-        // TODO: Implement user profile fetching via API service
-      } catch (err) {
-        // Optionally handle error
-      }
-    };
-    fetchProfile();
-  }, [userId, token]);
+    if (userProfile) {
+      setForm({
+        name: userProfile.name,
+        email: userProfile.email,
+        phoneNumber: userProfile.phoneNumber || "",
+        countryCode: userProfile.countryCode || "+1",
+        avatarUrl:
+          userProfile.avatarUrl ||
+          (userProfile as any).avatar ||
+          defaultUser.avatarUrl,
+        bio: userProfile.bio || "",
+        location: userProfile.location || "",
+        university: userProfile.university || "",
+        major: userProfile.major || "",
+        graduationYear: userProfile.graduationYear || null,
+      });
+    }
+  }, [userProfile]);
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -149,15 +180,27 @@ export default function ProfileScreen() {
       return;
     }
     try {
-      // TODO: Replace with API service call when user update endpoint is implemented
-      console.log("Updating user profile...");
-      // For now, just update local state
-      setUser({ ...user, ...form });
+      await dispatch(
+        updateUserProfile({
+          name: form.name,
+          email: form.email,
+          phoneNumber: form.phoneNumber,
+          avatarUrl: form.avatarUrl,
+          bio: form.bio,
+          location: form.location,
+          university: form.university,
+          major: form.major,
+          graduationYear: form.graduationYear || undefined,
+        }) as any
+      );
+
       setEditMode(false);
       setTouched({});
       alert("Profile updated successfully!");
-    } catch (err) {
-      alert("Could not connect to server. Please try again later.");
+    } catch (err: any) {
+      alert(
+        err.message || "Could not connect to server. Please try again later."
+      );
     }
   };
 
@@ -169,16 +212,29 @@ export default function ProfileScreen() {
       quality: 0.7,
     });
     if (!result.canceled && result.assets && result.assets[0]?.uri) {
-      setForm((f) => ({ ...f, avatar: result.assets[0].uri }));
+      const asset = result.assets[0];
+      setForm((f) => ({ ...f, avatarUrl: asset.uri }));
+
+      // If we have a file object, upload it
+      if (asset.file) {
+        try {
+          await dispatch(uploadAvatar(asset.file) as any);
+        } catch (err: any) {
+          console.error("Failed to upload avatar:", err);
+          alert("Failed to upload avatar. Please try again.");
+        }
+      }
     }
   };
 
   const handleLogout = async () => {
     try {
-      // TODO: Replace with API service call when logout endpoint is implemented
-      console.log("Logging out...");
+      // Call logout API endpoint
+      const { apiService } = await import("../services/ApiService");
+      await apiService.logout();
     } catch (err) {
-      // Optionally handle error
+      console.error("Logout API call failed:", err);
+      // Continue with logout even if API call fails
     }
     dispatch(setToken(null));
     dispatch(setAuthenticated(false));
@@ -208,6 +264,28 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Card style={styles.profileCard}>
+        {/* Loading State */}
+        {userLoading && (
+          <RNView style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading profile...</Text>
+          </RNView>
+        )}
+
+        {/* Error State */}
+        {userError && (
+          <RNView style={styles.errorContainer}>
+            <Text style={styles.errorText}>{userError}</Text>
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={() => dispatch(fetchUserProfile() as any)}
+              style={styles.retryButton}
+            >
+              Retry
+            </Button>
+          </RNView>
+        )}
+
         {/* Joined Badges */}
         {joinedGroups.length > 0 && (
           <RNView style={styles.badgeRow}>
@@ -241,13 +319,16 @@ export default function ProfileScreen() {
             onPress={pickImage}
             style={styles.avatarEditWrapper}
           >
-            <Image source={{ uri: form.avatar }} style={styles.avatar} />
+            <Image source={{ uri: form.avatarUrl }} style={styles.avatar} />
             <RNView style={styles.avatarEditIcon}>
               <FontAwesome name="camera" size={18} color="#fff" />
             </RNView>
           </TouchableOpacity>
         ) : (
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <Image
+            source={{ uri: user.avatarUrl || (user as any).avatar }}
+            style={styles.avatar}
+          />
         )}
 
         {editMode ? (
@@ -288,8 +369,10 @@ export default function ProfileScreen() {
                 />
               </TouchableOpacity>
               <Input
-                value={form.phone}
-                onChangeText={(text) => setForm((f) => ({ ...f, phone: text }))}
+                value={form.phoneNumber}
+                onChangeText={(text) =>
+                  setForm((f) => ({ ...f, phoneNumber: text }))
+                }
                 onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
                 placeholder="Phone"
                 error={
@@ -300,6 +383,43 @@ export default function ProfileScreen() {
                 style={styles.inputPhone}
               />
             </RNView>
+            <Input
+              value={form.bio}
+              onChangeText={(text) => setForm((f) => ({ ...f, bio: text }))}
+              placeholder="Bio"
+              multiline
+              numberOfLines={3}
+              style={styles.bioInput}
+            />
+            <Input
+              value={form.location}
+              onChangeText={(text) =>
+                setForm((f) => ({ ...f, location: text }))
+              }
+              placeholder="Location"
+            />
+            <Input
+              value={form.university}
+              onChangeText={(text) =>
+                setForm((f) => ({ ...f, university: text }))
+              }
+              placeholder="University"
+            />
+            <Input
+              value={form.major}
+              onChangeText={(text) => setForm((f) => ({ ...f, major: text }))}
+              placeholder="Major"
+            />
+            <Input
+              value={form.graduationYear ? form.graduationYear.toString() : ""}
+              onChangeText={(text) =>
+                setForm((f) => ({
+                  ...f,
+                  graduationYear: text ? parseInt(text) : null,
+                }))
+              }
+              placeholder="Graduation Year"
+            />
             <RNView style={styles.buttonRow}>
               <Button
                 variant="success"
@@ -317,9 +437,18 @@ export default function ProfileScreen() {
                   setForm({
                     name: user.name,
                     email: user.email,
-                    phone: user.phone,
-                    countryCode: user.countryCode,
-                    avatar: user.avatar,
+                    phoneNumber:
+                      (user as any).phoneNumber || (user as any).phone || "",
+                    countryCode: (user as any).countryCode || "+1",
+                    avatarUrl:
+                      user.avatarUrl ||
+                      (user as any).avatar ||
+                      defaultUser.avatarUrl,
+                    bio: user.bio || "",
+                    location: user.location || "",
+                    university: user.university || "",
+                    major: user.major || "",
+                    graduationYear: user.graduationYear || null,
                   });
                   setEditMode(false);
                   setTouched({});
@@ -384,9 +513,76 @@ export default function ProfileScreen() {
                 color={Colors.tint}
                 style={{ marginRight: spacing.xs }}
               />
-              <Text style={styles.countryCodeText}>{user.countryCode}</Text>
-              <Text style={styles.phone}>{user.phone}</Text>
+              <Text style={styles.countryCodeText}>
+                {(user as any).countryCode || "+1"}
+              </Text>
+              <Text style={styles.phone}>
+                {(user as any).phoneNumber || (user as any).phone || ""}
+              </Text>
             </RNView>
+
+            {/* Additional Profile Information */}
+            {user.bio && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="user"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.bio}</Text>
+              </RNView>
+            )}
+
+            {user.location && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="map-marker"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.location}</Text>
+              </RNView>
+            )}
+
+            {user.university && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="graduation-cap"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.university}</Text>
+              </RNView>
+            )}
+
+            {user.major && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="book"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>{user.major}</Text>
+              </RNView>
+            )}
+
+            {user.graduationYear && (
+              <RNView style={styles.profileInfoRow}>
+                <FontAwesome
+                  name="calendar"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.profileInfoText}>
+                  Class of {user.graduationYear}
+                </Text>
+              </RNView>
+            )}
             <Button
               variant="primary"
               size="md"
@@ -418,19 +614,6 @@ export default function ProfileScreen() {
             </Button>
           </>
         )}
-      </Card>
-
-      <Card style={styles.donationCard}>
-        <FontAwesome
-          name="handshake-o"
-          size={32}
-          color={Colors.tint}
-          style={{ marginBottom: spacing.sm }}
-        />
-        <Text style={styles.donationLabel}>Total Donated</Text>
-        <Text style={styles.donationAmount}>
-          ${(donated as number).toFixed(2)}
-        </Text>
       </Card>
 
       {/* Enrolled Events Section */}
@@ -617,22 +800,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSecondary,
   },
-  donationCard: {
-    alignItems: "center",
-    width: "100%",
-    marginBottom: spacing.xl,
-  },
-  donationLabel: {
-    ...typography.base,
-    color: Colors.tint,
-    fontWeight: "600",
-    marginBottom: spacing.xs,
-  },
-  donationAmount: {
-    ...typography["2xl"],
-    fontWeight: "bold",
-    color: Colors.success,
-  },
+
   avatarEditWrapper: {
     position: "relative",
     alignItems: "center",
@@ -721,5 +889,42 @@ const styles = StyleSheet.create({
   },
   testNotificationButton: {
     marginTop: spacing.sm,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+  },
+  loadingText: {
+    ...typography.base,
+    color: Colors.textSecondary,
+  },
+  errorContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+  },
+  errorText: {
+    ...typography.base,
+    color: Colors.error,
+    textAlign: "center",
+    marginBottom: spacing.sm,
+  },
+  retryButton: {
+    marginTop: spacing.sm,
+  },
+  bioInput: {
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+  profileInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  profileInfoText: {
+    ...typography.base,
+    color: Colors.textSecondary,
+    flex: 1,
+    flexWrap: "wrap",
   },
 });
