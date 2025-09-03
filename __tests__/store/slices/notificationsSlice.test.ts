@@ -2,7 +2,7 @@ import notificationsReducer, {
   setNotifications,
   addNotification,
   markAsRead,
-  markAllAsRead,
+  clearAllNotifications,
   removeNotification,
   setLoading,
   setError,
@@ -74,8 +74,8 @@ describe("notificationsSlice", () => {
     });
   });
 
-  describe("markAllAsRead", () => {
-    it("should mark all notifications as read", () => {
+  describe("clearAllNotifications", () => {
+    it("should clear all notifications", () => {
       const notifications = [
         createMockNotification({ id: "1", isRead: false }),
         createMockNotification({ id: "2", isRead: false }),
@@ -87,12 +87,10 @@ describe("notificationsSlice", () => {
         items: notifications,
       };
 
-      const action = markAllAsRead();
+      const action = clearAllNotifications();
       const state = notificationsReducer(stateWithNotifications, action);
 
-      expect(state.items.every((notification) => notification.isRead)).toBe(
-        true
-      );
+      expect(state.items).toHaveLength(0);
     });
   });
 

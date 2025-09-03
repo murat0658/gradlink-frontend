@@ -1,7 +1,7 @@
 import joinedGroupsReducer, {
   setJoinedGroups,
-  addJoinedGroup,
-  removeJoinedGroup,
+  joinGroup,
+  leaveGroup,
   setLoading,
   setError,
 } from "../../../app/store/slices/joinedGroupsSlice";
@@ -34,28 +34,27 @@ describe("joinedGroupsSlice", () => {
     });
   });
 
-  describe("addJoinedGroup", () => {
+  describe("joinGroup", () => {
     it("should add a new joined group", () => {
-      const joinedGroup = { id: "1", groupCode: "group-1" };
-      const action = addJoinedGroup(joinedGroup);
+      const action = joinGroup("group-1");
       const state = joinedGroupsReducer(initialState, action);
 
       expect(state.items).toHaveLength(1);
-      expect(state.items[0]).toEqual(joinedGroup);
+      expect(state.items[0].groupCode).toBe("group-1");
     });
   });
 
-  describe("removeJoinedGroup", () => {
+  describe("leaveGroup", () => {
     it("should remove a joined group by groupCode", () => {
-      const joinedGroup1 = { id: "1", groupCode: "group-1" };
-      const joinedGroup2 = { id: "2", groupCode: "group-2" };
+      const joinedGroup1 = { id: "1", groupCode: "group-1", groupName: "Group 1", joinedAt: "2023-01-01T00:00:00Z", role: "MEMBER" as const };
+      const joinedGroup2 = { id: "2", groupCode: "group-2", groupName: "Group 2", joinedAt: "2023-01-01T00:00:00Z", role: "MEMBER" as const };
 
       const stateWithJoinedGroups = {
         ...initialState,
         items: [joinedGroup1, joinedGroup2],
       };
 
-      const action = removeJoinedGroup("group-1");
+      const action = leaveGroup("group-1");
       const state = joinedGroupsReducer(stateWithJoinedGroups, action);
 
       expect(state.items).toHaveLength(1);
@@ -63,13 +62,13 @@ describe("joinedGroupsSlice", () => {
     });
 
     it("should handle removing non-existent joined group", () => {
-      const joinedGroup = { id: "1", groupCode: "group-1" };
+      const joinedGroup = { id: "1", groupCode: "group-1", groupName: "Group 1", joinedAt: "2023-01-01T00:00:00Z", role: "MEMBER" as const };
       const stateWithJoinedGroup = {
         ...initialState,
         items: [joinedGroup],
       };
 
-      const action = removeJoinedGroup("group-2");
+      const action = leaveGroup("group-2");
       const state = joinedGroupsReducer(stateWithJoinedGroup, action);
 
       expect(state.items).toHaveLength(1);

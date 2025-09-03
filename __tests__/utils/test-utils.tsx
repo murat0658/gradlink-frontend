@@ -153,3 +153,14 @@ export const mockFetch = (response: any, ok = true, status = 200) => {
 export const mockFetchError = (message = 'Network error', status = 500) => {
   (global.fetch as jest.Mock).mockRejectedValueOnce(new Error(message));
 };
+
+// Simple test to prevent "must contain at least one test" error
+describe('Test Utils', () => {
+  it('should export test utilities', () => {
+    expect(createMockUser).toBeDefined();
+    expect(createMockEvent).toBeDefined();
+    expect(createMockGroup).toBeDefined();
+    expect(createMockNotification).toBeDefined();
+    expect(createMockEnrollment).toBeDefined();
+  });
+});

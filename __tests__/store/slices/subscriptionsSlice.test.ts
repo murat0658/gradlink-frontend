@@ -1,7 +1,7 @@
 import subscriptionsReducer, {
   setSubscriptions,
-  addSubscription,
-  removeSubscription,
+  subscribe,
+  unsubscribe,
   setLoading,
   setError,
 } from "../../../app/store/slices/subscriptionsSlice";
@@ -34,28 +34,27 @@ describe("subscriptionsSlice", () => {
     });
   });
 
-  describe("addSubscription", () => {
+  describe("subscribe", () => {
     it("should add a new subscription", () => {
-      const subscription = { id: "1", groupCode: "group-1" };
-      const action = addSubscription(subscription);
+      const action = subscribe("group-1");
       const state = subscriptionsReducer(initialState, action);
 
       expect(state.items).toHaveLength(1);
-      expect(state.items[0]).toEqual(subscription);
+      expect(state.items[0].groupCode).toBe("group-1");
     });
   });
 
-  describe("removeSubscription", () => {
+  describe("unsubscribe", () => {
     it("should remove a subscription by groupCode", () => {
-      const subscription1 = { id: "1", groupCode: "group-1" };
-      const subscription2 = { id: "2", groupCode: "group-2" };
+      const subscription1 = { id: "1", groupCode: "group-1", groupName: "Group 1", subscribedAt: "2023-01-01T00:00:00Z" };
+      const subscription2 = { id: "2", groupCode: "group-2", groupName: "Group 2", subscribedAt: "2023-01-01T00:00:00Z" };
 
       const stateWithSubscriptions = {
         ...initialState,
         items: [subscription1, subscription2],
       };
 
-      const action = removeSubscription("group-1");
+      const action = unsubscribe("group-1");
       const state = subscriptionsReducer(stateWithSubscriptions, action);
 
       expect(state.items).toHaveLength(1);
@@ -63,13 +62,13 @@ describe("subscriptionsSlice", () => {
     });
 
     it("should handle removing non-existent subscription", () => {
-      const subscription = { id: "1", groupCode: "group-1" };
+      const subscription = { id: "1", groupCode: "group-1", groupName: "Group 1", subscribedAt: "2023-01-01T00:00:00Z" };
       const stateWithSubscription = {
         ...initialState,
         items: [subscription],
       };
 
-      const action = removeSubscription("group-2");
+      const action = unsubscribe("group-2");
       const state = subscriptionsReducer(stateWithSubscription, action);
 
       expect(state.items).toHaveLength(1);

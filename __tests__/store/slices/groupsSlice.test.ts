@@ -78,15 +78,15 @@ describe("groupsSlice", () => {
 
   describe("removeGroup", () => {
     it("should remove a group", () => {
-      const group1 = createMockGroup({ code: "group-1" });
-      const group2 = createMockGroup({ code: "group-2" });
+      const group1 = createMockGroup({ id: "1", code: "group-1" });
+      const group2 = createMockGroup({ id: "2", code: "group-2" });
 
       const stateWithGroups = {
         ...initialState,
         items: [group1, group2],
       };
 
-      const action = removeGroup("group-1");
+      const action = removeGroup("1");
       const state = groupsReducer(stateWithGroups, action);
 
       expect(state.items).toHaveLength(1);

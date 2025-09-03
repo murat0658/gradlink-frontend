@@ -1,6 +1,6 @@
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
-import { Button, Badge, Header, Input, Divider } from "../../../components/UI";
+import { Button, Badge, Header, Input, Divider } from "../../components/UI";
 
 describe("UI Components", () => {
   describe("Button", () => {
@@ -186,16 +186,16 @@ describe("UI Components", () => {
 
   describe("Divider", () => {
     it("should render divider", () => {
-      const { getByTestId } = render(<Divider testID="divider" />);
-      expect(getByTestId("divider")).toBeTruthy();
+      const { UNSAFE_getByType } = render(<Divider />);
+      expect(UNSAFE_getByType("View")).toBeTruthy();
     });
 
     it("should render with custom style", () => {
       const customStyle = { height: 2, backgroundColor: "red" };
-      const { getByTestId } = render(
-        <Divider testID="divider" style={customStyle} />
+      const { UNSAFE_getByType } = render(
+        <Divider style={customStyle} />
       );
-      expect(getByTestId("divider")).toBeTruthy();
+      expect(UNSAFE_getByType("View")).toBeTruthy();
     });
   });
 });

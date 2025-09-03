@@ -4,7 +4,7 @@ import {
   mockFetchError,
   createMockUser,
   createMockEvent,
-} from "../../utils/test-utils";
+} from "../../utils/test-utils.tsx";
 
 // Mock the API_BASE_URL
 jest.mock("../../app/config/api", () => ({
