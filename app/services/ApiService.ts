@@ -50,6 +50,45 @@ class ApiService {
     return headers;
   }
 
+  private async requestWithRetry<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    requireAuth: boolean = true,
+    maxRetries: number = 2
+  ): Promise<T> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.request<T>(endpoint, options, requireAuth);
+      } catch (error) {
+        lastError = error as Error;
+        
+        // Only retry on specific error conditions
+        const shouldRetry = 
+          attempt < maxRetries && (
+            error instanceof Error && (
+              error.message.includes("Database connection issue") ||
+              error.message.includes("Server is temporarily unavailable") ||
+              error.message.includes("Network error") ||
+              error.message.includes("Failed to fetch")
+            )
+          );
+        
+        if (shouldRetry) {
+          console.log(`🔄 Retrying API call (attempt ${attempt + 1}/${maxRetries + 1}):`, endpoint);
+          // Exponential backoff: wait 1s, then 2s, then 4s
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          continue;
+        }
+        
+        throw error;
+      }
+    }
+    
+    throw lastError;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
@@ -93,16 +132,40 @@ class ApiService {
         }
 
         // Create a more detailed error message
-        const errorMessage = errorData.message || 
-                           errorData.error || 
-                           `HTTP ${response.status}: ${response.statusText}`;
-        
+        let errorMessage =
+          errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`;
+
+        // Handle specific backend error types
+        if (response.status === 500) {
+          if (errorData.message?.includes("JDBC exception") || errorData.message?.includes("SQL")) {
+            errorMessage = "Database connection issue. Please try again later.";
+          } else if (errorData.message?.includes("An unexpected error occurred")) {
+            errorMessage = "Server is temporarily unavailable. Please try again later.";
+          } else {
+            errorMessage = "Internal server error. Please try again later.";
+          }
+        } else if (response.status === 400) {
+          if (errorData.validationErrors) {
+            errorMessage = "Invalid request data. Please check your input.";
+          } else {
+            errorMessage = "Bad request. Please try again.";
+          }
+        } else if (response.status === 404) {
+          errorMessage = "Requested resource not found.";
+        } else if (response.status === 401) {
+          errorMessage = "Authentication required. Please log in again.";
+        } else if (response.status === 403) {
+          errorMessage = "Access denied. You don't have permission for this action.";
+        }
+
         console.error(`❌ API Error [${response.status}]:`, {
           url,
           status: response.status,
           statusText: response.statusText,
           errorData,
-          errorMessage
+          errorMessage,
         });
 
         throw new Error(errorMessage);
@@ -118,9 +181,9 @@ class ApiService {
       console.error("❌ API Request failed:", {
         url,
         error: error instanceof Error ? error.message : error,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
-      
+
       if (error instanceof Error) {
         throw error;
       }
@@ -337,7 +400,7 @@ class ApiService {
     const queryString = queryParams.toString();
     const endpoint = `/events${queryString ? `?${queryString}` : ""}`;
 
-    return this.request<any[]>(endpoint);
+    return this.requestWithRetry<any[]>(endpoint);
   }
 
   async getEvent(eventId: string) {
@@ -427,7 +490,7 @@ class ApiService {
     const queryString = queryParams.toString();
     const endpoint = `/notifications${queryString ? `?${queryString}` : ""}`;
 
-    return this.request<any[]>(endpoint);
+    return this.requestWithRetry<any[]>(endpoint);
   }
 
   async getNotification(notificationId: string) {
@@ -581,7 +644,7 @@ class ApiService {
   // ========================================
 
   async getSubscriptions() {
-    return this.request<any[]>("/api/subscriptions");
+    return this.requestWithRetry<any[]>("/api/subscriptions");
   }
 
   async subscribeToGroup(groupCode: string) {
@@ -589,7 +652,7 @@ class ApiService {
       "🔄 ApiService.subscribeToGroup() called for group:",
       groupCode
     );
-    return this.request<any>(`/api/groups/${groupCode}/subscribe`, {
+    return this.requestWithRetry<any>(`/api/groups/${groupCode}/subscribe`, {
       method: "POST",
     });
   }
@@ -599,7 +662,7 @@ class ApiService {
       "🔄 ApiService.unsubscribeFromGroup() called for group:",
       groupCode
     );
-    return this.request(`/api/groups/${groupCode}/unsubscribe`, {
+    return this.requestWithRetry(`/api/groups/${groupCode}/unsubscribe`, {
       method: "DELETE",
     });
   }

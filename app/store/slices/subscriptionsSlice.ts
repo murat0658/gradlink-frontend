@@ -89,7 +89,8 @@ const subscriptionsSlice = createSlice({
       })
       .addCase(fetchSubscriptions.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || "Failed to fetch subscriptions";
+        state.error = action.payload as string || action.error.message || "Failed to fetch subscriptions";
+        console.error("❌ fetchSubscriptions.rejected:", action.payload || action.error.message);
       });
 
     // Handle subscribeToGroupAsync
