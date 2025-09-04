@@ -220,7 +220,7 @@ class ApiService {
 
   async login(email: string, password: string) {
     return this.request<{ token: string; user: any }>(
-      "/api/auth/login",
+      "/auth/login",
       {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -236,7 +236,7 @@ class ApiService {
     phoneNumber: string;
   }) {
     return this.request<{ message: string }>(
-      "/api/auth/register",
+      "/auth/register",
       {
         method: "POST",
         body: JSON.stringify(userData),
@@ -260,7 +260,7 @@ class ApiService {
     }
 
     return this.request<{ token: string }>(
-      "/api/auth/refresh",
+      "/auth/refresh",
       {
         method: "POST",
       },
@@ -269,7 +269,7 @@ class ApiService {
   }
 
   async logout() {
-    return this.request("/api/auth/logout", {
+    return this.request("/auth/logout", {
       method: "POST",
     }); // Auth required for logout
   }
@@ -317,8 +317,8 @@ class ApiService {
     return this.request<any[]>(endpoint);
   }
 
-  async getGroup(groupCode: string) {
-    return this.request<any>(`/groups/${groupCode}`);
+  async getGroup(groupId: string | number) {
+    return this.request<any>(`/groups/${groupId}`);
   }
 
   async createGroup(groupData: {
@@ -336,33 +336,33 @@ class ApiService {
     });
   }
 
-  async updateGroup(groupCode: string, groupData: Partial<any>) {
-    return this.request<any>(`/groups/${groupCode}`, {
+  async updateGroup(groupId: string | number, groupData: Partial<any>) {
+    return this.request<any>(`/groups/${groupId}`, {
       method: "PUT",
       body: JSON.stringify(groupData),
     });
   }
 
-  async deleteGroup(groupCode: string) {
-    return this.request(`/groups/${groupCode}`, {
+  async deleteGroup(groupId: string | number) {
+    return this.request(`/groups/${groupId}`, {
       method: "DELETE",
     });
   }
 
-  async joinGroup(groupCode: string) {
-    return this.request<any>(`/groups/${groupCode}/join`, {
+  async joinGroup(groupId: string | number) {
+    return this.request<any>(`/groups/${groupId}/join`, {
       method: "POST",
     });
   }
 
-  async leaveGroup(groupCode: string) {
-    return this.request(`/groups/${groupCode}/leave`, {
+  async leaveGroup(groupId: string | number) {
+    return this.request(`/groups/${groupId}/leave`, {
       method: "DELETE",
     });
   }
 
   async getGroupMembers(
-    groupCode: string,
+    groupId: string | number,
     params?: {
       page?: number;
       size?: number;
@@ -377,7 +377,7 @@ class ApiService {
     if (params?.role) queryParams.append("role", params.role);
 
     const queryString = queryParams.toString();
-    const endpoint = `/groups/${groupCode}/members${
+    const endpoint = `/groups/${groupId}/members${
       queryString ? `?${queryString}` : ""
     }`;
 
@@ -424,7 +424,7 @@ class ApiService {
     endTime: string;
     location: string;
     capacity: number;
-    groupCode: string;
+    groupId: string | number;
   }) {
     return this.request<any>("/events", {
       method: "POST",
@@ -536,7 +536,7 @@ class ApiService {
   // ========================================
 
   async getTopics(
-    groupCode: string,
+    groupId: string | number,
     params?: {
       page?: number;
       size?: number;
@@ -551,52 +551,52 @@ class ApiService {
     if (params?.search) queryParams.append("search", params.search);
 
     const queryString = queryParams.toString();
-    const endpoint = `/groups/${groupCode}/topics${
+    const endpoint = `/groups/${groupId}/topics${
       queryString ? `?${queryString}` : ""
     }`;
 
     return this.request<any[]>(endpoint);
   }
 
-  async getTopic(groupCode: string, topicTitle: string) {
+  async getTopic(groupId: string | number, topicTitle: string) {
     const encodedTitle = encodeURIComponent(topicTitle);
-    return this.request<any>(`/groups/${groupCode}/topics/${encodedTitle}`);
+    return this.request<any>(`/groups/${groupId}/topics/${encodedTitle}`);
   }
 
   async createTopic(
-    groupCode: string,
+    groupId: string | number,
     topicData: {
       title: string;
       content: string;
     }
   ) {
-    return this.request<any>(`/groups/${groupCode}/topics`, {
+    return this.request<any>(`/groups/${groupId}/topics`, {
       method: "POST",
       body: JSON.stringify(topicData),
     });
   }
 
   async updateTopic(
-    groupCode: string,
+    groupId: string | number,
     topicTitle: string,
     topicData: Partial<any>
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
-    return this.request<any>(`/groups/${groupCode}/topics/${encodedTitle}`, {
+    return this.request<any>(`/groups/${groupId}/topics/${encodedTitle}`, {
       method: "PUT",
       body: JSON.stringify(topicData),
     });
   }
 
-  async deleteTopic(groupCode: string, topicTitle: string) {
+  async deleteTopic(groupId: string | number, topicTitle: string) {
     const encodedTitle = encodeURIComponent(topicTitle);
-    return this.request(`/groups/${groupCode}/topics/${encodedTitle}`, {
+    return this.request(`/groups/${groupId}/topics/${encodedTitle}`, {
       method: "DELETE",
     });
   }
 
   async addReply(
-    groupCode: string,
+    groupId: string | number,
     topicTitle: string,
     replyData: {
       content: string;
@@ -605,7 +605,7 @@ class ApiService {
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request<any>(
-      `/groups/${groupCode}/topics/${encodedTitle}/replies`,
+      `/groups/${groupId}/topics/${encodedTitle}/replies`,
       {
         method: "POST",
         body: JSON.stringify(replyData),
@@ -614,14 +614,14 @@ class ApiService {
   }
 
   async updateReply(
-    groupCode: string,
+    groupId: string | number,
     topicTitle: string,
     replyId: string,
     replyData: Partial<any>
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request<any>(
-      `/groups/${groupCode}/topics/${encodedTitle}/replies/${replyId}`,
+      `/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}`,
       {
         method: "PUT",
         body: JSON.stringify(replyData),
@@ -629,20 +629,28 @@ class ApiService {
     );
   }
 
-  async deleteReply(groupCode: string, topicTitle: string, replyId: string) {
+  async deleteReply(
+    groupId: string | number,
+    topicTitle: string,
+    replyId: string
+  ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request(
-      `/groups/${groupCode}/topics/${encodedTitle}/replies/${replyId}`,
+      `/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}`,
       {
         method: "DELETE",
       }
     );
   }
 
-  async upvoteReply(groupCode: string, topicTitle: string, replyId: string) {
+  async upvoteReply(
+    groupId: string | number,
+    topicTitle: string,
+    replyId: string
+  ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request<any>(
-      `/groups/${groupCode}/topics/${encodedTitle}/replies/${replyId}/upvote`,
+      `/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}/upvote`,
       {
         method: "POST",
       }
@@ -657,22 +665,20 @@ class ApiService {
     return this.requestWithRetry<any[]>("/subscriptions");
   }
 
-  async subscribeToGroup(groupCode: string) {
-    console.log(
-      "🔄 ApiService.subscribeToGroup() called for group:",
-      groupCode
-    );
-    return this.requestWithRetry<any>(`/subscriptions/${groupCode}`, {
+  async subscribeToGroup(groupId: string | number) {
+    console.log("🔄 ApiService.subscribeToGroup() called for group:", groupId);
+    return this.requestWithRetry<any>("/subscriptions", {
       method: "POST",
+      body: JSON.stringify({ groupId }),
     });
   }
 
-  async unsubscribeFromGroup(groupCode: string) {
+  async unsubscribeFromGroup(subscriptionId: string | number) {
     console.log(
-      "🔄 ApiService.unsubscribeFromGroup() called for group:",
-      groupCode
+      "🔄 ApiService.unsubscribeFromGroup() called for subscription:",
+      subscriptionId
     );
-    return this.requestWithRetry(`/subscriptions/${groupCode}`, {
+    return this.requestWithRetry(`/subscriptions/${subscriptionId}`, {
       method: "DELETE",
     });
   }
@@ -684,7 +690,7 @@ class ApiService {
   async uploadFile(file: File, type: "avatar" | "event" | "topic") {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("type", type);
+    formData.append("uploadType", type);
 
     return this.request<{ url: string; filename: string }>("/files/upload", {
       method: "POST",

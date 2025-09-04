@@ -132,7 +132,7 @@ export default function TabLayout() {
   const LogoutButton = () => {
     const handleLogout = async () => {
       try {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
+        await fetch(`${API_BASE_URL}/logout`, {
           method: "POST",
           credentials: "include",
           headers: {

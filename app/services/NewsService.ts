@@ -7,7 +7,7 @@ export interface NewsItem {
   content?: string;
   description?: string;
   author: string;
-  groupCode: string;
+  groupId: string | number;
   groupName: string;
   createdAt: string;
   updatedAt: string;
@@ -18,7 +18,7 @@ export interface NewsItem {
 export interface CreateNewsRequest {
   title?: string;
   description: string;
-  groupCode: string;
+  groupId: string | number;
   location?: string;
   startTime?: string;
   endTime?: string;
@@ -39,9 +39,12 @@ class NewsService {
     });
   }
 
-  async getNewsByGroup(groupCode: string): Promise<NewsItem[]> {
-    console.log("📰 NewsService.getNewsByGroup() called for group:", groupCode);
-    const endpoint = API_ENDPOINTS.NEWS.BY_GROUP.replace(":code", groupCode);
+  async getNewsByGroup(groupId: string | number): Promise<NewsItem[]> {
+    console.log("📰 NewsService.getNewsByGroup() called for group:", groupId);
+    const endpoint = API_ENDPOINTS.NEWS.BY_GROUP.replace(
+      ":id",
+      groupId.toString()
+    );
     return apiService.makeRequest<NewsItem[]>(endpoint);
   }
 
