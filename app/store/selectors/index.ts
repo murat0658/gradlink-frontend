@@ -113,7 +113,6 @@ export const selectHasAnyError = createSelector(
 // Default export for the selectors
 export default {
   selectUser,
-  selectDonated,
   selectIsAuthenticated,
   selectToken,
   selectEvents,

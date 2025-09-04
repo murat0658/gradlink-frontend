@@ -49,7 +49,6 @@ import {
   enrollInEventAsync,
   unenrollFromEventAsync,
 } from "../../../store";
-import { Event } from "../../../store/types";
 
 const groups = [
   {
