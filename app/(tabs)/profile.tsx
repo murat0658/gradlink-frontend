@@ -25,7 +25,6 @@ import {
   selectJoinedGroups,
   selectEvents,
   selectEnrollments,
-  Event,
   unenrollFromEvent,
   unenroll,
   fetchEvents,
@@ -35,6 +34,7 @@ import {
   updateUserProfile,
   uploadAvatar,
 } from "../store";
+import { AppEvent } from "../store/types";
 import { useRouter } from "expo-router";
 import { groups } from "./groups/[code]/index";
 import { NotificationService } from "../services/NotificationService";
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
   const joinedGroups = useSelector(selectJoinedGroups);
 
   // Get enrolled events
-  const enrolledEvents = events.filter((event) =>
+  const enrolledEvents = events.filter((event: any) =>
     enrollments.includes(event.id)
   );
 
@@ -289,7 +289,7 @@ export default function ProfileScreen() {
         {/* Joined Badges */}
         {joinedGroups.length > 0 && (
           <RNView style={styles.badgeRow}>
-            {joinedGroups.map((code) => {
+            {joinedGroups.map((code: any) => {
               const group = groups.find((g) => g.code === code);
               if (!group) return null;
               return (
@@ -333,106 +333,216 @@ export default function ProfileScreen() {
 
         {editMode ? (
           <>
-            <Input
-              value={form.name}
-              onChangeText={(text) => setForm((f) => ({ ...f, name: text }))}
-              placeholder="Name"
-            />
-            <Input
-              value={form.email}
-              onChangeText={(text) => setForm((f) => ({ ...f, email: text }))}
-              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-              placeholder="Email"
-              error={
-                !emailValid && touched.email
-                  ? "Please enter a valid email address."
-                  : undefined
-              }
-            />
-            <RNView style={styles.phoneRow}>
-              <FontAwesome
-                name="phone"
-                size={16}
-                color={Colors.tint}
-                style={{ marginRight: spacing.xs }}
-              />
-              <TouchableOpacity
-                style={styles.countryCodeButton}
-                onPress={() => setCountryModalVisible(true)}
-              >
-                <Text style={styles.countryCodeText}>{form.countryCode}</Text>
-                <FontAwesome
-                  name="chevron-down"
-                  size={14}
-                  color={Colors.tint}
-                  style={{ marginLeft: spacing.xs }}
-                />
-              </TouchableOpacity>
-              <Input
-                value={form.phoneNumber}
-                onChangeText={(text) =>
-                  setForm((f) => ({ ...f, phoneNumber: text }))
-                }
-                onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
-                placeholder="Phone"
-                error={
-                  !phoneValid && touched.phone
-                    ? "Please enter a valid phone number."
-                    : undefined
-                }
-                style={styles.inputPhone}
-              />
+            {/* Basic Information Section */}
+            <RNView style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Basic Information</Text>
+              <RNView style={styles.inputGroup}>
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="user"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.name}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, name: text }))
+                    }
+                    placeholder="Full Name"
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="envelope"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.email}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, email: text }))
+                    }
+                    onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                    placeholder="Email Address"
+                    error={
+                      !emailValid && touched.email
+                        ? "Please enter a valid email address."
+                        : undefined
+                    }
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="phone"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <RNView style={styles.phoneInputContainer}>
+                    <TouchableOpacity
+                      style={styles.countryCodeButton}
+                      onPress={() => setCountryModalVisible(true)}
+                    >
+                      <Text style={styles.countryCodeText}>
+                        {form.countryCode}
+                      </Text>
+                      <FontAwesome
+                        name="chevron-down"
+                        size={12}
+                        color={Colors.tint}
+                        style={{ marginLeft: spacing.xs }}
+                      />
+                    </TouchableOpacity>
+                    <Input
+                      value={form.phoneNumber}
+                      onChangeText={(text) =>
+                        setForm((f) => ({ ...f, phoneNumber: text }))
+                      }
+                      onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                      placeholder="Phone Number"
+                      error={
+                        !phoneValid && touched.phone
+                          ? "Please enter a valid phone number."
+                          : undefined
+                      }
+                      style={styles.phoneInput}
+                    />
+                  </RNView>
+                </RNView>
+              </RNView>
             </RNView>
-            <Input
-              value={form.bio}
-              onChangeText={(text) => setForm((f) => ({ ...f, bio: text }))}
-              placeholder="Bio"
-              multiline
-              numberOfLines={3}
-              style={styles.bioInput}
-            />
-            <Input
-              value={form.location}
-              onChangeText={(text) =>
-                setForm((f) => ({ ...f, location: text }))
-              }
-              placeholder="Location"
-            />
-            <Input
-              value={form.university}
-              onChangeText={(text) =>
-                setForm((f) => ({ ...f, university: text }))
-              }
-              placeholder="University"
-            />
-            <Input
-              value={form.major}
-              onChangeText={(text) => setForm((f) => ({ ...f, major: text }))}
-              placeholder="Major"
-            />
-            <Input
-              value={form.graduationYear ? form.graduationYear.toString() : ""}
-              onChangeText={(text) =>
-                setForm((f) => ({
-                  ...f,
-                  graduationYear: text ? parseInt(text) : null,
-                }))
-              }
-              placeholder="Graduation Year"
-            />
+
+            {/* About Section */}
+            <RNView style={styles.formSection}>
+              <Text style={styles.sectionTitle}>About You</Text>
+              <RNView style={styles.inputGroup}>
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="quote-left"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.bio}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, bio: text }))
+                    }
+                    placeholder="Tell us about yourself..."
+                    multiline
+                    numberOfLines={4}
+                    style={[styles.bioInput, styles.inputWithIconField]}
+                  />
+                </RNView>
+
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="map-marker"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.location}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, location: text }))
+                    }
+                    placeholder="Location (City, Country)"
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+              </RNView>
+            </RNView>
+
+            {/* Education Section */}
+            <RNView style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Education</Text>
+              <RNView style={styles.inputGroup}>
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="graduation-cap"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.university}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, university: text }))
+                    }
+                    placeholder="University Name"
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="book"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.major}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, major: text }))
+                    }
+                    placeholder="Field of Study"
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="calendar"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={
+                      form.graduationYear ? form.graduationYear.toString() : ""
+                    }
+                    onChangeText={(text) =>
+                      setForm((f) => ({
+                        ...f,
+                        graduationYear: text ? parseInt(text) : null,
+                      }))
+                    }
+                    placeholder="Graduation Year"
+                    keyboardType="numeric"
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+              </RNView>
+            </RNView>
+
+            {/* Action Buttons */}
             <RNView style={styles.buttonRow}>
               <Button
                 variant="success"
-                size="md"
+                size="lg"
                 onPress={handleSave}
                 disabled={!canSave}
                 style={styles.saveButton}
               >
-                Save
+                <FontAwesome
+                  name="check"
+                  size={16}
+                  color="#fff"
+                  style={{ marginRight: spacing.xs }}
+                />
+                Save Changes
               </Button>
               <Button
-                variant="danger"
-                size="md"
+                variant="outline"
+                size="lg"
                 onPress={() => {
                   setForm({
                     name: user.name,
@@ -455,6 +565,12 @@ export default function ProfileScreen() {
                 }}
                 style={styles.cancelButton}
               >
+                <FontAwesome
+                  name="times"
+                  size={16}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
                 Cancel
               </Button>
             </RNView>
@@ -521,97 +637,107 @@ export default function ProfileScreen() {
               </Text>
             </RNView>
 
-            {/* Additional Profile Information */}
-            {user.bio && (
-              <RNView style={styles.profileInfoRow}>
+            {/* Profile Information Cards */}
+            {(user.bio ||
+              user.location ||
+              user.university ||
+              user.major ||
+              user.graduationYear) && (
+              <RNView style={styles.profileInfoSection}>
+                {user.bio && (
+                  <Card style={styles.infoCard}>
+                    <RNView style={styles.infoCardHeader}>
+                      <FontAwesome
+                        name="quote-left"
+                        size={16}
+                        color={Colors.tint}
+                        style={{ marginRight: spacing.xs }}
+                      />
+                      <Text style={styles.infoCardTitle}>About</Text>
+                    </RNView>
+                    <Text style={styles.infoCardText}>{user.bio}</Text>
+                  </Card>
+                )}
+
+                {user.location && (
+                  <Card style={styles.infoCard}>
+                    <RNView style={styles.infoCardHeader}>
+                      <FontAwesome
+                        name="map-marker"
+                        size={16}
+                        color={Colors.tint}
+                        style={{ marginRight: spacing.xs }}
+                      />
+                      <Text style={styles.infoCardTitle}>Location</Text>
+                    </RNView>
+                    <Text style={styles.infoCardText}>{user.location}</Text>
+                  </Card>
+                )}
+
+                {(user.university || user.major || user.graduationYear) && (
+                  <Card style={styles.infoCard}>
+                    <RNView style={styles.infoCardHeader}>
+                      <FontAwesome
+                        name="graduation-cap"
+                        size={16}
+                        color={Colors.tint}
+                        style={{ marginRight: spacing.xs }}
+                      />
+                      <Text style={styles.infoCardTitle}>Education</Text>
+                    </RNView>
+                    {user.university && (
+                      <Text style={styles.infoCardText}>{user.university}</Text>
+                    )}
+                    {user.major && (
+                      <Text
+                        style={[styles.infoCardText, styles.infoCardSubtext]}
+                      >
+                        {user.major}
+                      </Text>
+                    )}
+                    {user.graduationYear && (
+                      <Text
+                        style={[styles.infoCardText, styles.infoCardSubtext]}
+                      >
+                        Class of {user.graduationYear}
+                      </Text>
+                    )}
+                  </Card>
+                )}
+              </RNView>
+            )}
+
+            <RNView style={styles.actionButtons}>
+              <Button
+                variant="primary"
+                size="lg"
+                onPress={() => setEditMode(true)}
+                style={styles.editButton}
+              >
                 <FontAwesome
-                  name="user"
+                  name="pencil"
+                  size={16}
+                  color="#fff"
+                  style={{ marginRight: spacing.xs }}
+                />
+                Edit Profile
+              </Button>
+
+              <Button
+                variant="outline"
+                size="lg"
+                onPress={handleTestNotification}
+                style={styles.testNotificationButton}
+              >
+                <FontAwesome
+                  name="bell"
                   size={16}
                   color={Colors.tint}
                   style={{ marginRight: spacing.xs }}
                 />
-                <Text style={styles.profileInfoText}>{user.bio}</Text>
-              </RNView>
-            )}
-
-            {user.location && (
-              <RNView style={styles.profileInfoRow}>
-                <FontAwesome
-                  name="map-marker"
-                  size={16}
-                  color={Colors.tint}
-                  style={{ marginRight: spacing.xs }}
-                />
-                <Text style={styles.profileInfoText}>{user.location}</Text>
-              </RNView>
-            )}
-
-            {user.university && (
-              <RNView style={styles.profileInfoRow}>
-                <FontAwesome
-                  name="graduation-cap"
-                  size={16}
-                  color={Colors.tint}
-                  style={{ marginRight: spacing.xs }}
-                />
-                <Text style={styles.profileInfoText}>{user.university}</Text>
-              </RNView>
-            )}
-
-            {user.major && (
-              <RNView style={styles.profileInfoRow}>
-                <FontAwesome
-                  name="book"
-                  size={16}
-                  color={Colors.tint}
-                  style={{ marginRight: spacing.xs }}
-                />
-                <Text style={styles.profileInfoText}>{user.major}</Text>
-              </RNView>
-            )}
-
-            {user.graduationYear && (
-              <RNView style={styles.profileInfoRow}>
-                <FontAwesome
-                  name="calendar"
-                  size={16}
-                  color={Colors.tint}
-                  style={{ marginRight: spacing.xs }}
-                />
-                <Text style={styles.profileInfoText}>
-                  Class of {user.graduationYear}
-                </Text>
-              </RNView>
-            )}
-            <Button
-              variant="primary"
-              size="md"
-              onPress={() => setEditMode(true)}
-              style={styles.editButton}
-            >
-              <FontAwesome
-                name="pencil"
-                size={16}
-                color="#fff"
-                style={{ marginRight: spacing.xs }}
-              />
-              Edit
-            </Button>
-
-            <Button
-              variant="primary"
-              size="md"
-              onPress={handleTestNotification}
-              style={styles.testNotificationButton}
-            >
-              <FontAwesome
-                name="bell"
-                size={16}
-                color="#fff"
-                style={{ marginRight: spacing.xs }}
-              />
-              Test Notification
-            </Button>
+                Test Notification
+              </Button>
+            </RNView>
           </>
         )}
       </Card>
@@ -620,7 +746,7 @@ export default function ProfileScreen() {
       {enrolledEvents.length > 0 && (
         <RNView style={styles.enrolledEventsSection}>
           <Header title="My Enrolled Events" icon="📅" color={Colors.tint} />
-          {enrolledEvents.map((event) => {
+          {enrolledEvents.map((event: any) => {
             const dateTime = formatDateTime(event.startTime);
             const isPast = new Date(event.endTime) < new Date();
 
@@ -706,12 +832,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: spacing.xl,
     width: "100%",
+    padding: spacing.xl,
+    backgroundColor: Colors.card,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...shadows.lg,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: spacing.md,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: spacing.lg,
+    borderWidth: 4,
+    borderColor: Colors.tint,
+    ...shadows.md,
   },
   name: {
     ...typography.xl,
@@ -732,45 +867,26 @@ const styles = StyleSheet.create({
     ...typography.base,
     color: Colors.textSecondary,
   },
-  countryCodeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.backgroundTertiary,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginRight: spacing.xs,
-  },
-  countryCodeText: {
-    ...typography.base,
-    color: Colors.tint,
-    fontWeight: "bold",
-  },
   countryNameText: {
     ...typography.sm,
     color: Colors.text,
     marginLeft: spacing.sm,
   },
-  inputPhone: {
-    flex: 1,
-    marginBottom: 0,
-  },
   editButton: {
-    marginTop: spacing.sm,
+    flex: 1,
   },
   saveButton: {
-    marginTop: spacing.sm,
+    flex: 1,
   },
   cancelButton: {
-    marginTop: spacing.sm,
+    flex: 1,
   },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: spacing.sm,
+    marginTop: spacing.xl,
     width: "100%",
+    gap: spacing.md,
   },
   closeModalButton: {
     marginTop: spacing.sm,
@@ -805,17 +921,18 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   avatarEditIcon: {
     position: "absolute",
-    bottom: 6,
-    right: 6,
+    bottom: 8,
+    right: 8,
     backgroundColor: Colors.tint,
-    borderRadius: 16,
-    padding: 4,
-    borderWidth: 2,
+    borderRadius: 20,
+    padding: 6,
+    borderWidth: 3,
     borderColor: "#fff",
+    ...shadows.sm,
   },
   badgeRow: {
     flexDirection: "row",
@@ -888,7 +1005,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   testNotificationButton: {
-    marginTop: spacing.sm,
+    flex: 1,
   },
   loadingContainer: {
     alignItems: "center",
@@ -912,7 +1029,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   bioInput: {
-    minHeight: 80,
+    minHeight: 100,
     textAlignVertical: "top",
   },
   profileInfoRow: {
@@ -926,5 +1043,120 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     flex: 1,
     flexWrap: "wrap",
+  },
+  // New form styling
+  formSection: {
+    width: "100%",
+    marginBottom: spacing.xl,
+    backgroundColor: Colors.backgroundTertiary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderSecondary,
+  },
+  sectionTitle: {
+    ...typography.lg,
+    fontWeight: "bold",
+    color: Colors.text,
+    marginBottom: spacing.lg,
+    textAlign: "center",
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.tint,
+  },
+  inputGroup: {
+    gap: spacing.md,
+  },
+  inputWithIcon: {
+    position: "relative",
+    width: "100%",
+  },
+  inputIcon: {
+    position: "absolute",
+    left: spacing.md,
+    top: spacing.md + 2,
+    zIndex: 1,
+  },
+  inputWithIconField: {
+    paddingLeft: spacing.xl + spacing.sm,
+    backgroundColor: Colors.background,
+    borderColor: Colors.border,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    ...shadows.sm,
+  },
+  phoneInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+    borderColor: Colors.border,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    paddingLeft: spacing.xl + spacing.sm,
+    ...shadows.sm,
+  },
+  phoneInput: {
+    flex: 1,
+    marginBottom: 0,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    paddingLeft: spacing.sm,
+  },
+  countryCodeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.tint,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginRight: spacing.sm,
+    minWidth: 60,
+    justifyContent: "center",
+  },
+  countryCodeText: {
+    ...typography.sm,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  // Profile info display styling
+  profileInfoSection: {
+    width: "100%",
+    marginTop: spacing.lg,
+    gap: spacing.md,
+  },
+  infoCard: {
+    padding: spacing.lg,
+    backgroundColor: Colors.backgroundTertiary,
+    borderWidth: 1,
+    borderColor: Colors.borderSecondary,
+    borderRadius: borderRadius.lg,
+    ...shadows.sm,
+  },
+  infoCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  infoCardTitle: {
+    ...typography.base,
+    fontWeight: "bold",
+    color: Colors.text,
+  },
+  infoCardText: {
+    ...typography.base,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+  },
+  infoCardSubtext: {
+    marginTop: spacing.xs,
+    ...typography.sm,
+    color: Colors.textTertiary,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: spacing.xl,
+    width: "100%",
+    gap: spacing.md,
   },
 });
