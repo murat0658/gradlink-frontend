@@ -7,7 +7,8 @@ export interface NewsItem {
   content?: string;
   description?: string;
   author: string;
-  groupId: string | number;
+  groupId?: string | number;
+  groupCode?: string; // For backward compatibility
   groupName: string;
   createdAt: string;
   updatedAt: string;
@@ -18,7 +19,8 @@ export interface NewsItem {
 export interface CreateNewsRequest {
   title?: string;
   description: string;
-  groupId: string | number;
+  groupId?: string | number;
+  groupCode?: string; // For backward compatibility
   location?: string;
   startTime?: string;
   endTime?: string;

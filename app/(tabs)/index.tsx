@@ -8,7 +8,8 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import { groups } from "./groups/[code]/index";
 import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, Provider } from "react-redux";
+import { store } from "../store";
 import {
   RootState,
   selectSubscriptions,
@@ -103,7 +104,7 @@ type Topic = {
   date: string; // We'll add a date for sorting
 };
 
-export default function TabOneScreen() {
+function TabOneScreenInner() {
   const subscriptions = useSelector((state: RootState) =>
     selectSubscriptions(state)
   );
@@ -115,23 +116,23 @@ export default function TabOneScreen() {
 
   // Fetch data from API when component mounts
   useEffect(() => {
-    dispatch(fetchEvents() as any);
-    dispatch(fetchNotifications() as any);
+    dispatch(fetchEvents({}) as any);
+    dispatch(fetchNotifications({}) as any);
     dispatch(fetchSubscriptions() as any);
   }, [dispatch]);
 
   // Check for upcoming events and create notifications
   useEffect(() => {
     const checkUpcomingEvents = () => {
-      const enrolledEvents = events.filter((event) =>
+      const enrolledEvents = events.filter((event: any) =>
         enrollments.includes(event.id)
       );
 
-      enrolledEvents.forEach((event) => {
+      enrolledEvents.forEach((event: any) => {
         if (isEventComingSoon(event)) {
           // Check if notification already exists for this event
           const existingNotification = notifications.find(
-            (n) => n.type === "event" && n.eventId === event.id
+            (n: any) => n.type === "event" && n.eventId === event.id
           );
 
           if (!existingNotification) {
@@ -250,7 +251,7 @@ export default function TabOneScreen() {
             <TouchableOpacity
               style={styles.notificationButton}
               onPress={() => {
-                unreadNotifications.forEach((notification) => {
+                unreadNotifications.forEach((notification: any) => {
                   dispatch(markAsRead(notification.id));
                 });
               }}
@@ -396,3 +397,11 @@ const styles = StyleSheet.create({
     ...typography.base,
   },
 });
+
+export default function TabOneScreen() {
+  return (
+    <Provider store={store}>
+      <TabOneScreenInner />
+    </Provider>
+  );
+}

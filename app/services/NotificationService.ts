@@ -1,6 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
-import { Event } from "../store/types";
+import { AppEvent } from "../store/types";
 import { store } from "../store";
 import { addNotification } from "../store/slices/notificationsSlice";
 
@@ -33,7 +33,7 @@ export class NotificationService {
     return true;
   }
 
-  static async scheduleEventNotification(event: Event) {
+  static async scheduleEventNotification(event: AppEvent) {
     const eventTime = new Date(event.startTime);
     const now = new Date();
     const timeUntilEvent = eventTime.getTime() - now.getTime();

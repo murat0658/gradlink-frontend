@@ -1,7 +1,7 @@
-import { Event, Notification } from "./types";
+import { AppEvent, Notification } from "./types";
 
 // Check if an event is coming soon (within 24 hours)
-export const isEventComingSoon = (event: Event): boolean => {
+export const isEventComingSoon = (event: AppEvent): boolean => {
   const eventTime = new Date(event.startTime);
   const now = new Date();
   const timeDiff = eventTime.getTime() - now.getTime();
@@ -13,7 +13,7 @@ export const isEventComingSoon = (event: Event): boolean => {
 
 // Create a notification for an upcoming event
 export const createEventNotification = (
-  event: Event
+  event: AppEvent
 ): Omit<Notification, "id"> => {
   return {
     title: "Upcoming Event",

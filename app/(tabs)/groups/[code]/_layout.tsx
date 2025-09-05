@@ -1,5 +1,16 @@
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 
 export default function GroupCodeLayout() {
-  return <Slot />;
+  return (
+    <Stack>
+      <Stack.Screen
+        name="index"
+        options={{ title: "Group Details", headerShown: false }}
+      />
+      <Stack.Screen
+        name="[topicTitle]"
+        options={{ title: "Topic", headerShown: false }}
+      />
+    </Stack>
+  );
 }

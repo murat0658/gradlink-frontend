@@ -220,7 +220,7 @@ class ApiService {
 
   async login(email: string, password: string) {
     return this.request<{ token: string; user: any }>(
-      "/auth/login",
+      "/api/auth/login",
       {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -236,7 +236,7 @@ class ApiService {
     phoneNumber: string;
   }) {
     return this.request<{ message: string }>(
-      "/auth/register",
+      "/api/auth/register",
       {
         method: "POST",
         body: JSON.stringify(userData),
@@ -260,7 +260,7 @@ class ApiService {
     }
 
     return this.request<{ token: string }>(
-      "/auth/refresh",
+      "/api/auth/refresh",
       {
         method: "POST",
       },
@@ -269,7 +269,7 @@ class ApiService {
   }
 
   async logout() {
-    return this.request("/auth/logout", {
+    return this.request("/api/auth/logout", {
       method: "POST",
     }); // Auth required for logout
   }
@@ -279,18 +279,18 @@ class ApiService {
   // ========================================
 
   async getCurrentUser() {
-    return this.request<any>("/users/me");
+    return this.request<any>("/api/users/me");
   }
 
   async updateUser(userData: Partial<any>) {
-    return this.request<any>("/users/me", {
+    return this.request<any>("/api/users/me", {
       method: "PUT",
       body: JSON.stringify(userData),
     });
   }
 
   async getUserProfile(userId: string) {
-    return this.request<any>(`/users/${userId}`);
+    return this.request<any>(`/api/users/${userId}`);
   }
 
   // ========================================
@@ -312,13 +312,13 @@ class ApiService {
     if (params?.university) queryParams.append("university", params.university);
 
     const queryString = queryParams.toString();
-    const endpoint = `/groups${queryString ? `?${queryString}` : ""}`;
+    const endpoint = `/api/groups${queryString ? `?${queryString}` : ""}`;
 
     return this.request<any[]>(endpoint);
   }
 
   async getGroup(groupId: string | number) {
-    return this.request<any>(`/groups/${groupId}`);
+    return this.request<any>(`/api/groups/${groupId}`);
   }
 
   async createGroup(groupData: {
@@ -330,34 +330,34 @@ class ApiService {
     color: string;
     icon: string;
   }) {
-    return this.request<any>("/groups", {
+    return this.request<any>("/api/groups", {
       method: "POST",
       body: JSON.stringify(groupData),
     });
   }
 
   async updateGroup(groupId: string | number, groupData: Partial<any>) {
-    return this.request<any>(`/groups/${groupId}`, {
+    return this.request<any>(`/api/groups/${groupId}`, {
       method: "PUT",
       body: JSON.stringify(groupData),
     });
   }
 
   async deleteGroup(groupId: string | number) {
-    return this.request(`/groups/${groupId}`, {
+    return this.request(`/api/groups/${groupId}`, {
       method: "DELETE",
     });
   }
 
   async joinGroup(groupId: string | number) {
-    return this.request<any>(`/groups/${groupId}/join`, {
+    return this.request<any>(`/api/groups/${groupId}/join`, {
       method: "POST",
     });
   }
 
   async leaveGroup(groupId: string | number) {
-    return this.request(`/groups/${groupId}/leave`, {
-      method: "DELETE",
+    return this.request(`/api/groups/${groupId}/leave`, {
+      method: "POST",
     });
   }
 
@@ -377,7 +377,7 @@ class ApiService {
     if (params?.role) queryParams.append("role", params.role);
 
     const queryString = queryParams.toString();
-    const endpoint = `/groups/${groupId}/members${
+    const endpoint = `/api/groups/${groupId}/members${
       queryString ? `?${queryString}` : ""
     }`;
 
@@ -408,13 +408,13 @@ class ApiService {
       queryParams.append("isEnrolled", params.isEnrolled.toString());
 
     const queryString = queryParams.toString();
-    const endpoint = `/events${queryString ? `?${queryString}` : ""}`;
+    const endpoint = `/api/events${queryString ? `?${queryString}` : ""}`;
 
     return this.requestWithRetry<any[]>(endpoint);
   }
 
   async getEvent(eventId: string) {
-    return this.request<any>(`/events/${eventId}`);
+    return this.request<any>(`/api/events/${eventId}`);
   }
 
   async createEvent(eventData: {
@@ -426,33 +426,33 @@ class ApiService {
     capacity: number;
     groupId: string | number;
   }) {
-    return this.request<any>("/events", {
+    return this.request<any>("/api/events", {
       method: "POST",
       body: JSON.stringify(eventData),
     });
   }
 
   async updateEvent(eventId: string, eventData: Partial<any>) {
-    return this.request<any>(`/events/${eventId}`, {
+    return this.request<any>(`/api/events/${eventId}`, {
       method: "PUT",
       body: JSON.stringify(eventData),
     });
   }
 
   async deleteEvent(eventId: string) {
-    return this.request(`/events/${eventId}`, {
+    return this.request(`/api/events/${eventId}`, {
       method: "DELETE",
     });
   }
 
   async enrollInEvent(eventId: string) {
-    return this.request<any>(`/events/${eventId}/enroll`, {
+    return this.request<any>(`/api/events/${eventId}/enroll`, {
       method: "POST",
     });
   }
 
   async unenrollFromEvent(eventId: string) {
-    return this.request(`/events/${eventId}/unenroll`, {
+    return this.request(`/api/events/${eventId}/unenroll`, {
       method: "DELETE",
     });
   }
@@ -471,7 +471,7 @@ class ApiService {
       queryParams.append("size", params.size.toString());
 
     const queryString = queryParams.toString();
-    const endpoint = `/events/${eventId}/enrollments${
+    const endpoint = `/api/events/${eventId}/enrollments${
       queryString ? `?${queryString}` : ""
     }`;
 
@@ -498,35 +498,37 @@ class ApiService {
     if (params?.type) queryParams.append("type", params.type);
 
     const queryString = queryParams.toString();
-    const endpoint = `/notifications${queryString ? `?${queryString}` : ""}`;
+    const endpoint = `/api/notifications${
+      queryString ? `?${queryString}` : ""
+    }`;
 
     return this.requestWithRetry<any[]>(endpoint);
   }
 
   async getNotification(notificationId: string) {
-    return this.request<any>(`/notifications/${notificationId}`);
+    return this.request<any>(`/api/notifications/${notificationId}`);
   }
 
   async markNotificationAsRead(notificationId: string) {
-    return this.request<any>(`/notifications/${notificationId}/read`, {
+    return this.request<any>(`/api/notifications/${notificationId}/read`, {
       method: "PUT",
     });
   }
 
   async markAllNotificationsAsRead() {
-    return this.request<any>("/notifications/read-all", {
+    return this.request<any>("/api/notifications/read-all", {
       method: "PUT",
     });
   }
 
   async deleteNotification(notificationId: string) {
-    return this.request(`/notifications/${notificationId}`, {
+    return this.request(`/api/notifications/${notificationId}`, {
       method: "DELETE",
     });
   }
 
   async deleteAllNotifications() {
-    return this.request("/notifications", {
+    return this.request("/api/notifications", {
       method: "DELETE",
     });
   }
@@ -551,7 +553,7 @@ class ApiService {
     if (params?.search) queryParams.append("search", params.search);
 
     const queryString = queryParams.toString();
-    const endpoint = `/groups/${groupId}/topics${
+    const endpoint = `/api/groups/${groupId}/topics${
       queryString ? `?${queryString}` : ""
     }`;
 
@@ -560,7 +562,7 @@ class ApiService {
 
   async getTopic(groupId: string | number, topicTitle: string) {
     const encodedTitle = encodeURIComponent(topicTitle);
-    return this.request<any>(`/groups/${groupId}/topics/${encodedTitle}`);
+    return this.request<any>(`/api/groups/${groupId}/topics/${encodedTitle}`);
   }
 
   async createTopic(
@@ -570,7 +572,7 @@ class ApiService {
       content: string;
     }
   ) {
-    return this.request<any>(`/groups/${groupId}/topics`, {
+    return this.request<any>(`/api/groups/${groupId}/topics`, {
       method: "POST",
       body: JSON.stringify(topicData),
     });
@@ -582,7 +584,7 @@ class ApiService {
     topicData: Partial<any>
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
-    return this.request<any>(`/groups/${groupId}/topics/${encodedTitle}`, {
+    return this.request<any>(`/api/groups/${groupId}/topics/${encodedTitle}`, {
       method: "PUT",
       body: JSON.stringify(topicData),
     });
@@ -590,7 +592,7 @@ class ApiService {
 
   async deleteTopic(groupId: string | number, topicTitle: string) {
     const encodedTitle = encodeURIComponent(topicTitle);
-    return this.request(`/groups/${groupId}/topics/${encodedTitle}`, {
+    return this.request(`/api/groups/${groupId}/topics/${encodedTitle}`, {
       method: "DELETE",
     });
   }
@@ -605,7 +607,7 @@ class ApiService {
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request<any>(
-      `/groups/${groupId}/topics/${encodedTitle}/replies`,
+      `/api/groups/${groupId}/topics/${encodedTitle}/replies`,
       {
         method: "POST",
         body: JSON.stringify(replyData),
@@ -621,7 +623,7 @@ class ApiService {
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request<any>(
-      `/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}`,
+      `/api/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}`,
       {
         method: "PUT",
         body: JSON.stringify(replyData),
@@ -636,7 +638,7 @@ class ApiService {
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request(
-      `/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}`,
+      `/api/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}`,
       {
         method: "DELETE",
       }
@@ -650,7 +652,7 @@ class ApiService {
   ) {
     const encodedTitle = encodeURIComponent(topicTitle);
     return this.request<any>(
-      `/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}/upvote`,
+      `/api/groups/${groupId}/topics/${encodedTitle}/replies/${replyId}/upvote`,
       {
         method: "POST",
       }
@@ -662,23 +664,25 @@ class ApiService {
   // ========================================
 
   async getSubscriptions() {
-    return this.requestWithRetry<any[]>("/subscriptions");
+    return this.requestWithRetry<any[]>("/api/subscriptions");
   }
 
-  async subscribeToGroup(groupId: string | number) {
-    console.log("🔄 ApiService.subscribeToGroup() called for group:", groupId);
-    return this.requestWithRetry<any>("/subscriptions", {
+  async subscribeToGroup(groupCode: string | number) {
+    console.log(
+      "🔄 ApiService.subscribeToGroup() called for group:",
+      groupCode
+    );
+    return this.requestWithRetry<any>(`/api/subscriptions/${groupCode}`, {
       method: "POST",
-      body: JSON.stringify({ groupId }),
     });
   }
 
-  async unsubscribeFromGroup(subscriptionId: string | number) {
+  async unsubscribeFromGroup(groupCode: string | number) {
     console.log(
-      "🔄 ApiService.unsubscribeFromGroup() called for subscription:",
-      subscriptionId
+      "🔄 ApiService.unsubscribeFromGroup() called for group:",
+      groupCode
     );
-    return this.requestWithRetry(`/subscriptions/${subscriptionId}`, {
+    return this.requestWithRetry(`/api/subscriptions/${groupCode}`, {
       method: "DELETE",
     });
   }
@@ -692,14 +696,17 @@ class ApiService {
     formData.append("file", file);
     formData.append("uploadType", type);
 
-    return this.request<{ url: string; filename: string }>("/files/upload", {
-      method: "POST",
-      headers: {
-        // Remove Content-Type for FormData, but keep Authorization
-        Authorization: this.token ? `Bearer ${this.token}` : "",
-      },
-      body: formData,
-    });
+    return this.request<{ url: string; filename: string }>(
+      "/api/files/upload",
+      {
+        method: "POST",
+        headers: {
+          // Remove Content-Type for FormData, but keep Authorization
+          Authorization: this.token ? `Bearer ${this.token}` : "",
+        },
+        body: formData,
+      }
+    );
   }
 
   // ========================================
@@ -715,7 +722,7 @@ class ApiService {
     }
   ) {
     const queryParams = new URLSearchParams();
-    queryParams.append("q", query);
+    queryParams.append("query", query);
     if (params?.type) queryParams.append("type", params.type);
     if (params?.page !== undefined)
       queryParams.append("page", params.page.toString());
@@ -723,7 +730,7 @@ class ApiService {
       queryParams.append("size", params.size.toString());
 
     const queryString = queryParams.toString();
-    const endpoint = `/search${queryString ? `?${queryString}` : ""}`;
+    const endpoint = `/api/search${queryString ? `?${queryString}` : ""}`;
 
     return this.request<any[]>(endpoint);
   }

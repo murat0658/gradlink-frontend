@@ -1,52 +1,52 @@
 import { Platform } from "react-native";
 
 // API Configuration
-export const API_BASE_URL = "http://localhost:8080/api";
+export const API_BASE_URL = "http://10.236.139.66:8080";
 
 // API Endpoints
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: "/auth/login",
-    REGISTER: "/auth/register",
-    REFRESH: "/auth/refresh",
+    LOGIN: "/api/auth/login",
+    REGISTER: "/api/auth/register",
+    REFRESH: "/api/auth/refresh",
   },
   // Events
   EVENTS: {
-    BASE: "/events",
-    CREATE: "/events",
-    ENROLL: "/events/:id/enroll",
-    UNENROLL: "/events/:id/unenroll",
+    BASE: "/api/events",
+    CREATE: "/api/events",
+    ENROLL: "/api/events/:id/enroll",
+    UNENROLL: "/api/events/:id/unenroll",
   },
   // Groups
   GROUPS: {
-    BASE: "/groups",
-    JOIN: "/groups/:id/join",
-    LEAVE: "/groups/:id/leave",
+    BASE: "/api/groups",
+    JOIN: "/api/groups/:id/join",
+    LEAVE: "/api/groups/:id/leave",
   },
   // Notifications
   NOTIFICATIONS: {
-    BASE: "/notifications",
-    MARK_READ: "/notifications/:id/read",
+    BASE: "/api/notifications",
+    MARK_READ: "/api/notifications/:id/read",
   },
   // Subscriptions
   SUBSCRIPTIONS: {
-    BASE: "/subscriptions",
-    SUBSCRIBE: "/subscriptions",
-    UNSUBSCRIBE: "/subscriptions/:id",
+    BASE: "/api/subscriptions",
+    SUBSCRIBE: "/api/subscriptions",
+    UNSUBSCRIBE: "/api/subscriptions/:id",
   },
   // Users
   USERS: {
-    PROFILE: "/users/me",
-    UPDATE: "/users/me",
+    PROFILE: "/api/users/me",
+    UPDATE: "/api/users/me",
   },
   // News
   NEWS: {
-    BASE: "/news",
-    CREATE: "/news",
-    BY_GROUP: "/news/group/:id",
-    UPDATE: "/news/:id",
-    DELETE: "/news/:id",
+    BASE: "/api/news",
+    CREATE: "/api/news",
+    BY_GROUP: "/api/news/group/:id",
+    UPDATE: "/api/news/:id",
+    DELETE: "/api/news/:id",
   },
 } as const;
 

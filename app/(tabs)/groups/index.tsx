@@ -10,11 +10,12 @@ import Colors, {
   shadows,
 } from "@/constants/Colors";
 import { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, Provider } from "react-redux";
 import { fetchGroups } from "@/app/store/thunks";
 import { selectGroups } from "@/app/store/selectors";
+import { store } from "@/app/store";
 
-export default function GroupsScreen() {
+function GroupsScreenInner() {
   const dispatch = useDispatch();
   const groups = useSelector(selectGroups);
 
@@ -190,3 +191,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 });
+
+export default function GroupsScreen() {
+  return (
+    <Provider store={store}>
+      <GroupsScreenInner />
+    </Provider>
+  );
+}

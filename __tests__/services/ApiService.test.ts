@@ -184,7 +184,7 @@ describe("ApiService", () => {
         const result = await apiService.getCurrentUser();
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/users/me",
+          "http://localhost:8080/api/users/me",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -205,7 +205,7 @@ describe("ApiService", () => {
         const result = await apiService.updateUser(updateData);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/users/me",
+          "http://localhost:8080/api/users/me",
           expect.objectContaining({
             method: "PUT",
             headers: {
@@ -227,7 +227,7 @@ describe("ApiService", () => {
         const result = await apiService.getUserProfile("user-123");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/users/user-123",
+          "http://localhost:8080/api/users/user-123",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -253,7 +253,7 @@ describe("ApiService", () => {
         const result = await apiService.getGroups();
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups",
+          "http://localhost:8080/api/groups",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -278,7 +278,7 @@ describe("ApiService", () => {
         const result = await apiService.getGroups(params);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups?page=0&size=10&search=harvard&university=Harvard+University",
+          "http://localhost:8080/api/groups?page=0&size=10&search=harvard&university=Harvard+University",
           expect.any(Object)
         );
         expect(result).toEqual(mockGroups);
@@ -293,7 +293,7 @@ describe("ApiService", () => {
         const result = await apiService.getGroup("harvard");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups/harvard",
+          "http://localhost:8080/api/groups/harvard",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -322,7 +322,7 @@ describe("ApiService", () => {
         const result = await apiService.createGroup(groupData);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups",
+          "http://localhost:8080/api/groups",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -344,7 +344,7 @@ describe("ApiService", () => {
         const result = await apiService.joinGroup("harvard");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups/harvard/join",
+          "http://localhost:8080/api/groups/harvard/join",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -364,9 +364,9 @@ describe("ApiService", () => {
         await apiService.leaveGroup("harvard");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups/harvard/leave",
+          "http://localhost:8080/api/groups/harvard/leave",
           expect.objectContaining({
-            method: "DELETE",
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: "Bearer test-token",
@@ -393,7 +393,7 @@ describe("ApiService", () => {
         const result = await apiService.getEvents();
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/events",
+          "http://localhost:8080/api/events",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -420,7 +420,7 @@ describe("ApiService", () => {
         const result = await apiService.getEvents(params);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/events?page=0&size=10&groupCode=test-group&startDate=2024-01-01&endDate=2024-12-31&isEnrolled=true",
+          "http://localhost:8080/api/events?page=0&size=10&groupCode=test-group&startDate=2024-01-01&endDate=2024-12-31&isEnrolled=true",
           expect.any(Object)
         );
         expect(result).toEqual(mockEvents);
@@ -435,7 +435,7 @@ describe("ApiService", () => {
         const result = await apiService.getEvent("event-123");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/events/event-123",
+          "http://localhost:8080/api/events/event-123",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -457,14 +457,14 @@ describe("ApiService", () => {
           endTime: "2024-12-31T12:00:00Z",
           location: "Test Location",
           capacity: 100,
-          groupCode: "harvard",
+          groupId: "harvard",
         };
         mockFetch(mockEvent);
 
         const result = await apiService.createEvent(eventData);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/events",
+          "http://localhost:8080/api/events",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -486,7 +486,7 @@ describe("ApiService", () => {
         const result = await apiService.enrollInEvent("event-1");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/events/event-1/enroll",
+          "http://localhost:8080/api/events/event-1/enroll",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -506,7 +506,7 @@ describe("ApiService", () => {
         await apiService.unenrollFromEvent("event-1");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/events/event-1/unenroll",
+          "http://localhost:8080/api/events/event-1/unenroll",
           expect.objectContaining({
             method: "DELETE",
             headers: {
@@ -535,7 +535,7 @@ describe("ApiService", () => {
         const result = await apiService.getNotifications();
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/notifications",
+          "http://localhost:8080/api/notifications",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -560,7 +560,7 @@ describe("ApiService", () => {
         const result = await apiService.getNotifications(params);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/notifications?page=0&size=10&isRead=false&type=event",
+          "http://localhost:8080/api/notifications?page=0&size=10&isRead=false&type=event",
           expect.any(Object)
         );
         expect(result).toEqual(mockNotifications);
@@ -577,7 +577,7 @@ describe("ApiService", () => {
         );
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/notifications/notification-123/read",
+          "http://localhost:8080/api/notifications/notification-123/read",
           expect.objectContaining({
             method: "PUT",
             headers: {
@@ -598,7 +598,7 @@ describe("ApiService", () => {
         const result = await apiService.markAllNotificationsAsRead();
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/notifications/read-all",
+          "http://localhost:8080/api/notifications/read-all",
           expect.objectContaining({
             method: "PUT",
             headers: {
@@ -628,7 +628,7 @@ describe("ApiService", () => {
         const result = await apiService.getSubscriptions();
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/subscriptions",
+          "http://localhost:8080/api/subscriptions",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -648,7 +648,7 @@ describe("ApiService", () => {
         const result = await apiService.subscribeToGroup("group-1");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/subscriptions/group-1",
+          "http://localhost:8080/api/subscriptions/group-1",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -668,7 +668,7 @@ describe("ApiService", () => {
         await apiService.unsubscribeFromGroup("group-1");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/subscriptions/group-1",
+          "http://localhost:8080/api/subscriptions/group-1",
           expect.objectContaining({
             method: "DELETE",
             headers: {
@@ -697,7 +697,7 @@ describe("ApiService", () => {
         const result = await apiService.getTopics("harvard");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups/harvard/topics",
+          "http://localhost:8080/api/groups/harvard/topics",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -725,7 +725,7 @@ describe("ApiService", () => {
         const result = await apiService.createTopic("harvard", topicData);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups/harvard/topics",
+          "http://localhost:8080/api/groups/harvard/topics",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -754,7 +754,7 @@ describe("ApiService", () => {
         );
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/groups/harvard/topics/topic-title/replies",
+          "http://localhost:8080/api/groups/harvard/topics/topic-title/replies",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -786,7 +786,7 @@ describe("ApiService", () => {
         const result = await apiService.uploadFile(file, "avatar");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/files/upload",
+          "http://localhost:8080/api/files/upload",
           expect.objectContaining({
             method: "POST",
             headers: {
@@ -817,7 +817,7 @@ describe("ApiService", () => {
         const result = await apiService.search("john");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/search?q=john",
+          "http://localhost:8080/api/search?query=john",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -841,7 +841,7 @@ describe("ApiService", () => {
         const result = await apiService.search("harvard", params);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/search?q=harvard&type=groups&page=0&size=10",
+          "http://localhost:8080/api/search?query=harvard&type=groups&page=0&size=10",
           expect.any(Object)
         );
         expect(result).toEqual(mockResults);

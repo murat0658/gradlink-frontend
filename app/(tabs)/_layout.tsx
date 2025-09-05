@@ -18,6 +18,8 @@ import Colors, {
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthenticated, setToken } from "../store/slices";
 import { selectToken, selectUnreadNotifications } from "../store/selectors";
+import { Provider } from "react-redux";
+import { store } from "../store";
 import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 
@@ -123,16 +125,24 @@ const headerNotificationBadgeStyles = StyleSheet.create({
   },
 });
 
-export default function TabLayout() {
+function TabLayoutInner() {
   const router = useRouter();
+
+  console.log("🔧 TabLayout: About to use Redux hooks");
+
   const token = useSelector(selectToken);
   const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
 
+  console.log("🔧 TabLayout: Redux hooks successful", {
+    token: !!token,
+    notifications: unreadNotifications.length,
+  });
+
   const LogoutButton = () => {
     const handleLogout = async () => {
       try {
-        await fetch(`${API_BASE_URL}/logout`, {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: "POST",
           credentials: "include",
           headers: {
@@ -264,5 +274,13 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <Provider store={store}>
+      <TabLayoutInner />
+    </Provider>
   );
 }

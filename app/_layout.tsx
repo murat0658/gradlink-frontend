@@ -3,7 +3,7 @@ import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
 import { store } from "./store";
@@ -57,6 +57,12 @@ export default function RootLayout() {
   }, [loaded]);
 
   if (!loaded) {
+    return null;
+  }
+
+  // Ensure store is ready before rendering
+  if (!store) {
+    console.error("🔧 Store not available");
     return null;
   }
 

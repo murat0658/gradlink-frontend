@@ -1,5 +1,5 @@
 // Event types
-export interface Event {
+export interface AppEvent {
   id: string;
   title: string;
   description: string;
@@ -90,52 +90,20 @@ export interface LoadingState {
   error: string | null;
 }
 
-// Root state type
+// Root state type - will be defined in store.ts
 export interface RootState {
-  user: {
-    isAuthenticated: boolean;
-    token: string | null;
-    profile: User | null;
-    loading: boolean;
-    error: string | null;
-  };
-  events: {
-    items: Event[];
-    loading: boolean;
-    error: string | null;
-  };
-  groups: {
-    items: any[];
-    loading: boolean;
-    error: string | null;
-  };
-  notifications: {
-    items: Notification[];
-    loading: boolean;
-    error: string | null;
-  };
-  subscriptions: {
-    items: any[];
-    loading: boolean;
-    error: string | null;
-  };
-  joinedGroups: {
-    items: any[];
-    loading: boolean;
-    error: string | null;
-  };
-  enrollments: {
-    items: any[];
-    loading: boolean;
-    error: string | null;
-  };
-  topicAnswers: {
-    [key: string]: ThreadAnswer[];
-  };
+  user: any;
+  events: any;
+  notifications: any;
+  subscriptions: any;
+  enrollments: any;
+  groups: any;
+  joinedGroups: any;
+  topicAnswers: any;
 }
 
 // Default export for all types
 export default {
-  Event,
-  Notification,
+  AppEvent: {} as AppEvent,
+  Notification: {} as Notification,
 };

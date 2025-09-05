@@ -5,7 +5,7 @@
  * Run with: node test-api-endpoints.js
  */
 
-const API_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL = "http://localhost:8080";
 
 async function testApiEndpoints() {
   console.log("🔍 Testing updated API endpoints with /api prefix...");
@@ -13,13 +13,13 @@ async function testApiEndpoints() {
   console.log("");
 
   const endpoints = [
-    "/auth/login",
-    "/auth/register",
-    "/users/me",
-    "/groups",
-    "/events",
-    "/notifications",
-    "/subscriptions",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/users/me",
+    "/api/groups",
+    "/api/events",
+    "/api/notifications",
+    "/api/subscriptions",
   ];
 
   for (const endpoint of endpoints) {

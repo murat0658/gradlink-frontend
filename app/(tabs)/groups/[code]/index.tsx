@@ -36,7 +36,6 @@ import {
   joinGroup,
   leaveGroup,
   selectJoinedGroups,
-  Event,
   addEvent,
   enrollInEvent,
   unenrollFromEvent,
@@ -49,6 +48,7 @@ import {
   enrollInEventAsync,
   unenrollFromEventAsync,
 } from "../../../store";
+import { AppEvent } from "../../../store/types";
 
 const groups = [
   {
@@ -600,10 +600,10 @@ export default function GroupInfoScreen() {
 
   // Initialize events for this group if they don't exist
   useEffect(() => {
-    const groupEvents = events.filter((e) => e.groupCode === code);
+    const groupEvents = events.filter((e: any) => e.groupCode === code);
     if (groupEvents.length === 0) {
       // Add sample events for this group with recent dates (June 2025 onwards)
-      const sampleEvents: Event[] = [
+      const sampleEvents: AppEvent[] = [
         {
           id: `${code}-event-1`,
           title: "Alumni Networking Mixer",
@@ -786,7 +786,7 @@ export default function GroupInfoScreen() {
     }
   }, [code, group.university, events.length, dispatch]);
 
-  const groupEvents = events.filter((e) => e.groupCode === code);
+  const groupEvents = events.filter((e: any) => e.groupCode === code);
 
   const handleSubscribe = async () => {
     if (subscribed) {
@@ -1021,15 +1021,16 @@ export default function GroupInfoScreen() {
     };
   };
 
-  const isEventFull = (event: Event) => event.enrolledCount >= event.capacity;
-  const isEventPast = (event: Event) => {
+  const isEventFull = (event: AppEvent) =>
+    event.enrolledCount >= event.capacity;
+  const isEventPast = (event: AppEvent) => {
     if (!event.endTime) return false;
     const endDate = new Date(event.endTime);
     if (isNaN(endDate.getTime())) return false;
     return endDate < new Date();
   };
   const isEnrolledInEvent = (eventId: string) =>
-    enrollments.some((enrollment) => enrollment.eventId === eventId);
+    enrollments.some((enrollment: any) => enrollment.eventId === eventId);
 
   // Placeholder data for topics
   const topics = [
@@ -1429,7 +1430,7 @@ export default function GroupInfoScreen() {
               No events scheduled.
             </Text>
           ) : (
-            groupEvents.map((event) => {
+            groupEvents.map((event: any) => {
               const dateTime = formatDateTime(event.startTime);
               const isPast = isEventPast(event);
               const isFull = isEventFull(event);

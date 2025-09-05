@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Event } from "../types";
+import { AppEvent } from "../types";
 
 export interface EventsState {
-  items: Event[];
+  items: AppEvent[];
   loading: boolean;
   error: string | null;
 }
@@ -17,15 +17,15 @@ const eventsSlice = createSlice({
   name: "events",
   initialState,
   reducers: {
-    setEvents: (state, action: PayloadAction<Event[]>) => {
+    setEvents: (state, action: PayloadAction<AppEvent[]>) => {
       state.items = action.payload;
       state.loading = false;
       state.error = null;
     },
-    addEvent: (state, action: PayloadAction<Event>) => {
+    addEvent: (state, action: PayloadAction<AppEvent>) => {
       state.items.push(action.payload);
     },
-    updateEvent: (state, action: PayloadAction<Event>) => {
+    updateEvent: (state, action: PayloadAction<AppEvent>) => {
       const index = state.items.findIndex((e) => e.id === action.payload.id);
       if (index !== -1) {
         state.items[index] = action.payload;

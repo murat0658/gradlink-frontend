@@ -23,6 +23,9 @@ export * from "./store/slices";
 // Import types
 export * from "./store/types";
 
+// Export specific types that are commonly used
+export type { AppEvent, Notification, User } from "./store/types";
+
 // Import utilities
 export * from "./store/utils";
 
@@ -37,7 +40,6 @@ export const getUserIdFromToken = (token: string | null): string | null => {
     return null;
   }
 };
-
 
 // Configure the store
 export const store = configureStore({
@@ -59,6 +61,9 @@ export const store = configureStore({
       },
     }),
 });
+
+// Store is now properly initialized
+console.log("🔧 Store initialized successfully");
 
 // Export types
 export type RootState = ReturnType<typeof store.getState>;
