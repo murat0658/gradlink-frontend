@@ -14,11 +14,11 @@ module.exports = {
     "!**/coverage/**",
   ],
   coverageReporters: ["text", "lcov", "html"],
-  moduleNameMapping: {
+  moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(jest-)?react-native|@react-native|@expo|expo|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|@react-navigation)",
+    "node_modules/(?!(jest-)?react-native|@react-native|@expo|expo|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|@react-navigation|react-native-worklets)",
   ],
   testEnvironment: "jsdom",
 };

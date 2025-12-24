@@ -2,7 +2,7 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "types": ["jest", "@testing-library/jest-native"],
+    "types": ["jest"],
     "paths": {
       "@/*": ["./*"]
     }
