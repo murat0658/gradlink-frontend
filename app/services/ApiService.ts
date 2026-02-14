@@ -119,7 +119,21 @@ class ApiService {
     };
 
     try {
+      // Log request details for debugging
+      if (__DEV__) {
+        console.log(`🌐 API Request: ${options.method || "GET"} ${url}`);
+        console.log(`📤 Request headers:`, headers);
+        if (options.body) {
+          console.log(`📤 Request body:`, options.body);
+        }
+      }
+
       const response = await fetch(url, config);
+
+      if (__DEV__) {
+        console.log(`📥 API Response: ${response.status} ${response.statusText}`);
+        console.log(`📥 Response URL: ${response.url}`);
+      }
 
       if (!response.ok) {
         let errorData: any = {};
@@ -188,16 +202,39 @@ class ApiService {
 
       return await response.json();
     } catch (error) {
+      // Enhanced error logging for network issues
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : "Unknown";
+      
       console.error("❌ API Request failed:", {
         url,
-        error: error instanceof Error ? error.message : error,
+        method: options.method || "GET",
+        errorName,
+        errorMessage,
+        error: error instanceof Error ? error : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
+
+      // Provide more specific error messages based on error type
+      if (errorMessage.includes("Network request failed") || 
+          errorMessage.includes("Failed to fetch") ||
+          errorMessage.includes("NetworkError")) {
+        console.error("🚨 Network Error Details:");
+        console.error("   - Check if backend is running");
+        console.error("   - Check if device and computer are on same WiFi");
+        console.error("   - Check firewall settings");
+        console.error("   - Try accessing API from phone browser:", url);
+        throw new Error(`Network error: Unable to connect to ${url}. Check your connection and ensure the backend is running.`);
+      }
+
+      if (errorMessage.includes("timeout") || errorMessage.includes("TIMEOUT")) {
+        throw new Error("Request timeout: The server took too long to respond.");
+      }
 
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error("Network error occurred");
+      throw new Error(`Network error occurred: ${errorMessage}`);
     }
   }
 
