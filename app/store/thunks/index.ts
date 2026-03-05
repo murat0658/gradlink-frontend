@@ -209,14 +209,19 @@ export const fetchSubscriptions = createAsyncThunk(
         errorMessage = error.message;
       }
 
-      // For critical failures, return empty array as fallback
+      // For critical failures or unauthenticated (403), return empty array as fallback
       if (
         error.message?.includes("Database connection issue") ||
-        error.message?.includes("Server is temporarily unavailable")
+        error.message?.includes("Server is temporarily unavailable") ||
+        error.message?.includes("Access denied")
       ) {
-        console.warn(
-          "⚠️ Using fallback empty subscriptions due to server issues"
-        );
+        if (error.message?.includes("Access denied")) {
+          console.warn("⚠️ Subscriptions skipped: not authenticated");
+        } else {
+          console.warn(
+            "⚠️ Using fallback empty subscriptions due to server issues"
+          );
+        }
         return [];
       }
 

@@ -12,6 +12,7 @@ import { useSelector, useDispatch, Provider } from "react-redux";
 import { store } from "../store";
 import {
   RootState,
+  selectToken,
   selectSubscriptions,
   selectSubscribedGroupCodes,
   selectEvents,
@@ -105,6 +106,7 @@ type Topic = {
 };
 
 function TabOneScreenInner() {
+  const token = useSelector(selectToken);
   const subscriptions = useSelector((state: RootState) =>
     selectSubscriptions(state)
   );
@@ -114,12 +116,14 @@ function TabOneScreenInner() {
   const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
 
-  // Fetch data from API when component mounts
+  // Fetch data from API when component mounts (subscriptions only when authenticated)
   useEffect(() => {
     dispatch(fetchEvents({}) as any);
     dispatch(fetchNotifications({}) as any);
-    dispatch(fetchSubscriptions() as any);
-  }, [dispatch]);
+    if (token) {
+      dispatch(fetchSubscriptions() as any);
+    }
+  }, [dispatch, token]);
 
   // Check for upcoming events and create notifications
   useEffect(() => {
