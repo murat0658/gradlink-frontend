@@ -126,8 +126,11 @@ export default function ProfileScreen() {
   const upcomingEnrolledEvents = enrolledEvents.filter(
     (event: any) => !event.endTime || new Date(event.endTime) >= new Date()
   );
+  const pastEnrolledEvents = enrolledEvents.filter(
+    (event: any) => event.endTime && new Date(event.endTime) < new Date()
+  );
   const displayedEnrolledEvents = showPastEnrolledEvents
-    ? enrolledEvents
+    ? [...upcomingEnrolledEvents, ...pastEnrolledEvents]
     : upcomingEnrolledEvents;
 
   const formatDateTime = (dateTime: string) => {

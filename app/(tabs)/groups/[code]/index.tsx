@@ -791,7 +791,10 @@ export default function GroupInfoScreen() {
   const groupEvents = events.filter((e: any) => e.groupCode === code);
   const isPast = (e: any) => e.endTime && new Date(e.endTime) < new Date();
   const upcomingEvents = groupEvents.filter((e: any) => !isPast(e));
-  const eventsToShow = showPastEvents ? groupEvents : upcomingEvents;
+  const pastEvents = groupEvents.filter((e: any) => isPast(e));
+  const eventsToShow = showPastEvents
+    ? [...upcomingEvents, ...pastEvents]
+    : upcomingEvents;
 
   const handleSubscribe = async () => {
     if (subscribed) {
