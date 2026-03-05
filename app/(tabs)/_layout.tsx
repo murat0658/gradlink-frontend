@@ -7,6 +7,8 @@ import {
   View,
   StyleSheet,
   View as RNView,
+  useWindowDimensions,
+  Platform,
 } from "react-native";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import Colors, {
@@ -72,15 +74,31 @@ type HeaderTitleProps = {
 };
 
 function HeaderTitle({ title, icon, color = Colors.tint }: HeaderTitleProps) {
+  const { width } = useWindowDimensions();
+  // Leave space for header right/left content and safe area on iPhone
+  const maxTitleWidth = Platform.OS === "ios" ? width - 140 : width - 120;
+  const paddingH = Platform.OS === "ios" ? spacing.md : spacing.lg;
+
   return (
-    <RNView style={[headerTitleStyles.bg, { backgroundColor: color }]}>
+    <RNView
+      style={[
+        headerTitleStyles.bg,
+        { backgroundColor: color, maxWidth: maxTitleWidth, paddingHorizontal: paddingH },
+      ]}
+    >
       <FontAwesome
         name={icon}
         size={20}
         color="#fff"
         style={{ marginRight: spacing.sm }}
       />
-      <Text style={headerTitleStyles.title}>{title}</Text>
+      <Text
+        style={headerTitleStyles.title}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {title}
+      </Text>
     </RNView>
   );
 }
@@ -90,7 +108,6 @@ const headerTitleStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     marginVertical: spacing.xs,
     alignSelf: "center",
@@ -101,6 +118,7 @@ const headerTitleStyles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
 });
 
@@ -184,6 +202,10 @@ function TabLayoutInner() {
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
+        // Give header title room on iPhone (safe area / notch)
+        ...(Platform.OS === "ios" && {
+          headerTitleContainerStyle: { paddingHorizontal: spacing.sm },
+        }),
       }}
     >
       <Tabs.Screen
