@@ -629,7 +629,7 @@ export default function ProfileScreen() {
                 color={Colors.tint}
                 style={{ marginRight: spacing.xs }}
               />
-              <Text style={styles.countryCodeText}>
+              <Text style={styles.phoneCountryCode}>
                 {(user as any).countryCode || "+1"}
               </Text>
               <Text style={styles.phone}>
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: Colors.border,
-    ...shadows.lg,
+    ...shadows.md,
   },
   avatar: {
     width: 100,
@@ -849,23 +849,37 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   name: {
-    ...typography.xl,
-    fontWeight: "bold",
-    marginBottom: spacing.xs,
+    ...typography["2xl"],
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: spacing.sm,
+    textAlign: "center",
   },
   email: {
     ...typography.base,
+    fontSize: 16,
     color: Colors.textSecondary,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+    textAlign: "center",
   },
   phoneRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+    flexWrap: "wrap",
+    justifyContent: "center",
   },
   phone: {
     ...typography.base,
+    fontSize: 16,
     color: Colors.textSecondary,
+  },
+  phoneCountryCode: {
+    ...typography.base,
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginRight: spacing.xs,
   },
   countryNameText: {
     ...typography.sm,
@@ -904,17 +918,19 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     ...typography.lg,
-    fontWeight: "bold",
-    marginBottom: spacing.sm,
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: spacing.md,
     textAlign: "center",
   },
   countryItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSecondary,
+    borderBottomColor: Colors.border,
   },
 
   avatarEditWrapper: {
@@ -950,8 +966,8 @@ const styles = StyleSheet.create({
   },
   joinedBadgeText: {
     color: "#fff",
-    fontWeight: "bold",
-    ...typography.sm,
+    fontWeight: "700",
+    fontSize: 13,
     letterSpacing: 0.2,
   },
   enrolledEventsSection: {
@@ -970,12 +986,15 @@ const styles = StyleSheet.create({
   },
   enrolledEventTitle: {
     ...typography.lg,
-    fontWeight: "bold",
+    fontSize: 17,
+    fontWeight: "700",
+    color: Colors.text,
     flex: 1,
     flexWrap: "wrap",
   },
   enrolledEventGroup: {
     ...typography.base,
+    fontSize: 15,
     color: Colors.textSecondary,
     marginBottom: spacing.sm,
     flexWrap: "wrap",
@@ -996,7 +1015,8 @@ const styles = StyleSheet.create({
   },
   enrolledEventDetailText: {
     ...typography.base,
-    color: Colors.textSecondary,
+    fontSize: 14,
+    color: Colors.text,
     marginLeft: spacing.xs,
     flexShrink: 1,
     flexWrap: "wrap",
@@ -1013,7 +1033,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...typography.base,
-    color: Colors.textSecondary,
+    fontSize: 16,
+    color: Colors.text,
   },
   errorContainer: {
     alignItems: "center",
@@ -1021,6 +1042,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...typography.base,
+    fontSize: 16,
     color: Colors.error,
     textAlign: "center",
     marginBottom: spacing.sm,
@@ -1048,18 +1070,20 @@ const styles = StyleSheet.create({
   formSection: {
     width: "100%",
     marginBottom: spacing.xl,
-    backgroundColor: Colors.backgroundTertiary,
+    backgroundColor: Colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.borderSecondary,
+    borderColor: Colors.border,
+    ...shadows.sm,
   },
   sectionTitle: {
     ...typography.lg,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "700",
     color: Colors.text,
     marginBottom: spacing.lg,
-    textAlign: "center",
+    textAlign: "left",
     paddingBottom: spacing.sm,
     borderBottomWidth: 2,
     borderBottomColor: Colors.tint,
@@ -1079,6 +1103,9 @@ const styles = StyleSheet.create({
   },
   inputWithIconField: {
     paddingLeft: spacing.xl + spacing.sm,
+    paddingVertical: spacing.sm,
+    fontSize: 16,
+    color: Colors.text,
     backgroundColor: Colors.background,
     borderColor: Colors.border,
     borderWidth: 1,
@@ -1101,22 +1128,25 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     backgroundColor: "transparent",
     paddingLeft: spacing.sm,
+    fontSize: 16,
+    color: Colors.text,
   },
   countryCodeButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.tint,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     marginRight: spacing.sm,
-    minWidth: 60,
+    minWidth: 64,
     justifyContent: "center",
   },
   countryCodeText: {
     ...typography.sm,
+    fontSize: 14,
+    fontWeight: "700",
     color: "#fff",
-    fontWeight: "bold",
   },
   // Profile info display styling
   profileInfoSection: {
@@ -1126,9 +1156,9 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     padding: spacing.lg,
-    backgroundColor: Colors.backgroundTertiary,
+    backgroundColor: Colors.card,
     borderWidth: 1,
-    borderColor: Colors.borderSecondary,
+    borderColor: Colors.border,
     borderRadius: borderRadius.lg,
     ...shadows.sm,
   },
@@ -1139,18 +1169,21 @@ const styles = StyleSheet.create({
   },
   infoCardTitle: {
     ...typography.base,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "700",
     color: Colors.text,
   },
   infoCardText: {
     ...typography.base,
-    color: Colors.textSecondary,
+    fontSize: 15,
     lineHeight: 22,
+    color: Colors.text,
   },
   infoCardSubtext: {
     marginTop: spacing.xs,
     ...typography.sm,
-    color: Colors.textTertiary,
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
   actionButtons: {
     flexDirection: "row",
