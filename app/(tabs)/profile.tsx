@@ -8,6 +8,7 @@ import {
   FlatList,
   Pressable,
   ScrollView,
+  Switch,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
@@ -113,6 +114,7 @@ export default function ProfileScreen() {
   );
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
+  const [showPastEnrolledEvents, setShowPastEnrolledEvents] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
   const joinedGroups = useSelector(selectJoinedGroups);
@@ -121,6 +123,12 @@ export default function ProfileScreen() {
   const enrolledEvents = events.filter((event: any) =>
     enrollments.includes(event.id)
   );
+  const upcomingEnrolledEvents = enrolledEvents.filter(
+    (event: any) => !event.endTime || new Date(event.endTime) >= new Date()
+  );
+  const displayedEnrolledEvents = showPastEnrolledEvents
+    ? enrolledEvents
+    : upcomingEnrolledEvents;
 
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
@@ -747,7 +755,16 @@ export default function ProfileScreen() {
       {enrolledEvents.length > 0 && (
         <RNView style={styles.enrolledEventsSection}>
           <Header title="My Enrolled Events" icon="📅" color={Colors.tint} />
-          {enrolledEvents.map((event: any) => {
+          <RNView style={styles.showPastEventsRow}>
+            <Text style={styles.showPastEventsLabel}>Show past events</Text>
+            <Switch
+              value={showPastEnrolledEvents}
+              onValueChange={setShowPastEnrolledEvents}
+              trackColor={{ false: Colors.border, true: Colors.tint }}
+              thumbColor="#fff"
+            />
+          </RNView>
+          {displayedEnrolledEvents.map((event: any) => {
             const dateTime = formatDateTime(event.startTime);
             const isPast = new Date(event.endTime) < new Date();
 
@@ -974,6 +991,17 @@ const styles = StyleSheet.create({
   enrolledEventsSection: {
     width: "100%",
     marginBottom: spacing.xl,
+  },
+  showPastEventsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  showPastEventsLabel: {
+    fontSize: 15,
+    color: Colors.text,
   },
   enrolledEventItem: {
     marginBottom: spacing.md,

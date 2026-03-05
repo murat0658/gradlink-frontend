@@ -14,6 +14,7 @@ import {
   Dimensions,
   TextInput,
   RefreshControl,
+  Switch,
 } from "react-native";
 
 // Third-party libraries
@@ -296,6 +297,7 @@ export default function GroupInfoScreen() {
   const [apiNews, setApiNews] = useState<NewsItem[]>([]);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
+  const [showPastEvents, setShowPastEvents] = useState(false);
 
   if (!group) {
     return (
@@ -787,6 +789,9 @@ export default function GroupInfoScreen() {
   }, [code, group.university, events.length, dispatch]);
 
   const groupEvents = events.filter((e: any) => e.groupCode === code);
+  const isPast = (e: any) => e.endTime && new Date(e.endTime) < new Date();
+  const upcomingEvents = groupEvents.filter((e: any) => !isPast(e));
+  const eventsToShow = showPastEvents ? groupEvents : upcomingEvents;
 
   const handleSubscribe = async () => {
     if (subscribed) {
@@ -1425,12 +1430,27 @@ export default function GroupInfoScreen() {
           <Text style={styles.newsSubtitle}>
             Join events organized by this group. Enroll to secure your spot!
           </Text>
-          {groupEvents.length === 0 ? (
+          {groupEvents.length > 0 && (
+            <RNView style={styles.showPastEventsRow}>
+              <Text style={styles.showPastEventsLabel}>Show past events</Text>
+              <Switch
+                value={showPastEvents}
+                onValueChange={setShowPastEvents}
+                trackColor={{ false: "#e5e7eb", true: "#4f46e5" }}
+                thumbColor="#fff"
+              />
+            </RNView>
+          )}
+          {eventsToShow.length === 0 ? (
             <Text style={{ color: "#888", marginTop: 12 }}>
-              No events scheduled.
+              {groupEvents.length === 0
+                ? "No events scheduled."
+                : showPastEvents
+                ? "No events."
+                : "No upcoming events."}
             </Text>
           ) : (
-            groupEvents.map((event: any) => {
+            eventsToShow.map((event: any) => {
               const dateTime = formatDateTime(event.startTime);
               const isPast = isEventPast(event);
               const isFull = isEventFull(event);
@@ -1759,6 +1779,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginLeft: 2,
     textAlign: "left",
+  },
+  showPastEventsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  showPastEventsLabel: {
+    fontSize: 15,
+    color: "#374151",
   },
   newsItem: {
     marginBottom: 18,
