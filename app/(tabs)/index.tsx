@@ -116,11 +116,11 @@ function TabOneScreenInner() {
   const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
 
-  // Fetch data from API when component mounts (subscriptions only when authenticated)
+  // Fetch data from API when component mounts (only when authenticated)
   useEffect(() => {
-    dispatch(fetchEvents({}) as any);
-    dispatch(fetchNotifications({}) as any);
     if (token) {
+      dispatch(fetchEvents({}) as any);
+      dispatch(fetchNotifications({}) as any);
       dispatch(fetchSubscriptions() as any);
     }
   }, [dispatch, token]);

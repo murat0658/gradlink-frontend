@@ -11,6 +11,7 @@ import { Text, View } from "@/components/Themed";
 import { useSelector, useDispatch } from "react-redux";
 import {
   RootState,
+  selectToken,
   selectNotifications,
   markAsRead,
   removeNotification,
@@ -21,14 +22,17 @@ import {
 import { useRouter } from "expo-router";
 
 export default function NotificationsModal() {
+  const token = useSelector(selectToken);
   const notifications = useSelector(selectNotifications);
   const dispatch = useDispatch();
   const router = useRouter();
 
-  // Fetch notifications when component mounts
+  // Fetch notifications when component mounts (only when authenticated)
   React.useEffect(() => {
-    dispatch(fetchNotifications() as any);
-  }, [dispatch]);
+    if (token) {
+      dispatch(fetchNotifications() as any);
+    }
+  }, [dispatch, token]);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);

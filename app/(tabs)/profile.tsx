@@ -141,10 +141,10 @@ export default function ProfileScreen() {
   );
 
   useEffect(() => {
-    // Fetch data from API when component mounts (subscriptions only when authenticated)
-    dispatch(fetchEvents({}) as any);
-    dispatch(fetchNotifications({}) as any);
+    // Fetch data from API when component mounts (only when authenticated)
     if (token) {
+      dispatch(fetchEvents({}) as any);
+      dispatch(fetchNotifications({}) as any);
       dispatch(fetchSubscriptions() as any);
       if (!userProfile) {
         dispatch(fetchUserProfile() as any);

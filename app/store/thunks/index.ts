@@ -43,13 +43,18 @@ export const fetchEvents = createAsyncThunk(
         errorMessage = error.message;
       }
 
-      // For critical failures, return empty array as fallback
+      // For critical failures or unauthenticated (403), return empty array as fallback
       if (
         error.message?.includes("Database connection issue") ||
         error.message?.includes("Server is temporarily unavailable") ||
-        error.message?.includes("JDBC exception")
+        error.message?.includes("JDBC exception") ||
+        error.message?.includes("Access denied")
       ) {
-        console.warn("⚠️ Using fallback empty events due to server issues");
+        if (error.message?.includes("Access denied")) {
+          console.warn("⚠️ Events skipped: not authenticated");
+        } else {
+          console.warn("⚠️ Using fallback empty events due to server issues");
+        }
         return [];
       }
 
@@ -161,15 +166,20 @@ export const fetchNotifications = createAsyncThunk(
         errorMessage = error.message;
       }
 
-      // For critical failures, return empty array as fallback
+      // For critical failures or unauthenticated (403), return empty array as fallback
       if (
         error.message?.includes("Database connection issue") ||
         error.message?.includes("Server is temporarily unavailable") ||
-        error.message?.includes("Bad request")
+        error.message?.includes("Bad request") ||
+        error.message?.includes("Access denied")
       ) {
-        console.warn(
-          "⚠️ Using fallback empty notifications due to server issues"
-        );
+        if (error.message?.includes("Access denied")) {
+          console.warn("⚠️ Notifications skipped: not authenticated");
+        } else {
+          console.warn(
+            "⚠️ Using fallback empty notifications due to server issues"
+          );
+        }
         return [];
       }
 
