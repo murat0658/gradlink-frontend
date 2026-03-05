@@ -34,10 +34,10 @@ import {
   unsubscribe,
   selectSubscriptions,
   selectSubscribedGroupCodes,
+  selectGroups,
   joinGroup,
   leaveGroup,
   selectJoinedGroups,
-  addEvent,
   enrollInEvent,
   unenrollFromEvent,
   enroll,
@@ -48,213 +48,10 @@ import {
   unsubscribeFromGroupAsync,
   enrollInEventAsync,
   unenrollFromEventAsync,
+  fetchGroups,
 } from "../../../store";
 import { AppEvent } from "../../../store/types";
 import { isUuid } from "../../../utils/validation";
-
-const groups = [
-  {
-    code: "harvard",
-    university: "Harvard University",
-    description: "A group for Harvard graduates to connect and network.",
-    members: 210,
-    icon: "university",
-    color: "#a51c30",
-    founded: 1636,
-    location: "Cambridge, MA, USA",
-    news: [
-      {
-        title: "Harvard Alumni Meetup 2024",
-        date: "2024-06-01",
-        content: "Join us for the annual alumni meetup in Cambridge!",
-      },
-      {
-        title: "New Research Grant Announced",
-        date: "2024-05-15",
-        content: "Harvard announces a new research grant for alumni projects.",
-      },
-      {
-        title: "Spring Career Fair Success",
-        date: "2024-04-10",
-        content: "Over 100 companies attended the Harvard Spring Career Fair.",
-      },
-      {
-        title: "Alumni Spotlight: Dr. Jane Smith",
-        date: "2024-03-22",
-        content: "Dr. Jane Smith receives the Distinguished Alumni Award.",
-      },
-      {
-        title: "Harvard Innovation Lab Expansion",
-        date: "2024-02-18",
-        content: "The i-lab expands to support more student startups.",
-      },
-    ],
-  },
-  {
-    code: "stanford",
-    university: "Stanford University",
-    description: "Stanford alumni sharing opportunities and experiences.",
-    members: 180,
-    icon: "graduation-cap",
-    color: "#8c1515",
-    founded: 1885,
-    location: "Stanford, CA, USA",
-    news: [
-      {
-        title: "Stanford Tech Fair",
-        date: "2024-06-10",
-        content: "Showcase your startup at the Stanford Tech Fair!",
-      },
-      {
-        title: "Alumni Panel: Women in STEM",
-        date: "2024-05-05",
-        content: "Join our panel discussion with leading women in STEM fields.",
-      },
-      {
-        title: "Stanford Homecoming Announced",
-        date: "2024-04-20",
-        content: "Save the date for the annual Stanford Homecoming weekend.",
-      },
-      {
-        title: "New AI Research Center Opens",
-        date: "2024-03-30",
-        content: "Stanford opens a new center dedicated to AI research.",
-      },
-    ],
-  },
-  {
-    code: "mit",
-    university: "MIT",
-    description: "MIT graduates collaborating on tech and research.",
-    members: 150,
-    icon: "flask",
-    color: "#a2a2a1",
-    founded: 1861,
-    location: "Cambridge, MA, USA",
-    news: [
-      {
-        title: "MIT Hackathon Winners",
-        date: "2024-05-20",
-        content: "Congratulations to the winners of the 2024 MIT Hackathon!",
-      },
-      {
-        title: "Robotics Lab Receives Funding",
-        date: "2024-04-12",
-        content: "MIT's Robotics Lab secures $5M in new research funding.",
-      },
-      {
-        title: "Alumni Networking Night",
-        date: "2024-03-28",
-        content: "Network with fellow MIT alumni at our spring event.",
-      },
-      {
-        title: "MIT Energy Conference",
-        date: "2024-02-15",
-        content: "Register for the annual MIT Energy Conference.",
-      },
-      {
-        title: "Startup Incubator Launch",
-        date: "2024-01-25",
-        content: "MIT launches a new incubator for tech startups.",
-      },
-      {
-        title: "Alumni Spotlight: Dr. Alan Turing",
-        date: "2023-12-10",
-        content: "Celebrating the achievements of Dr. Alan Turing.",
-      },
-    ],
-  },
-  {
-    code: "oxford",
-    university: "Oxford University",
-    description: "Oxford alumni group for global networking.",
-    members: 120,
-    icon: "book",
-    color: "#002147",
-    founded: 1096,
-    location: "Oxford, England",
-    news: [
-      {
-        title: "Oxford Global Summit",
-        date: "2024-07-01",
-        content: "Register for the Oxford Global Summit this summer.",
-      },
-      {
-        title: "Alumni Book Club Launch",
-        date: "2024-05-22",
-        content: "Join the new Oxford Alumni Book Club.",
-      },
-      {
-        title: "Oxford Science Festival",
-        date: "2024-04-14",
-        content: "Experience the annual Oxford Science Festival.",
-      },
-      {
-        title: "Distinguished Alumni Lecture",
-        date: "2024-03-10",
-        content: "Attend the lecture by Nobel Laureate Dr. Emily Carter.",
-      },
-      {
-        title: "Oxford Rowing Team Wins",
-        date: "2024-02-05",
-        content: "Oxford's rowing team wins the annual regatta.",
-      },
-    ],
-  },
-  {
-    code: "metu",
-    university: "Middle East Technical University",
-    description: "A group for METU graduates to connect and network.",
-    members: 210,
-    icon: "building",
-    color: "#a51c30",
-    founded: 1956,
-    location: "Ankara, Turkey",
-    news: [
-      {
-        title: "METU Alumni Picnic",
-        date: "2024-06-15",
-        content: "Join the annual METU alumni picnic in Ankara!",
-      },
-      {
-        title: "Career Day Announced",
-        date: "2024-05-10",
-        content:
-          "METU Career Day will host top employers from Turkey and abroad.",
-      },
-      {
-        title: "Alumni Mentorship Program",
-        date: "2024-04-18",
-        content:
-          "Become a mentor or mentee in the new METU mentorship program.",
-      },
-      {
-        title: "Spring Festival Success",
-        date: "2024-03-25",
-        content: "The METU Spring Festival saw record attendance this year.",
-      },
-      {
-        title: "Research Symposium",
-        date: "2024-02-12",
-        content: "Submit your paper for the METU Research Symposium.",
-      },
-      {
-        title: "Alumni Spotlight: Dr. Elif Yılmaz",
-        date: "2024-01-30",
-        content:
-          "Dr. Elif Yılmaz recognized for her contributions to engineering.",
-      },
-      {
-        title: "New Campus Library Opens",
-        date: "2023-12-20",
-        content:
-          "The new METU campus library is now open to students and alumni.",
-      },
-    ],
-  },
-];
-
-export { groups };
 
 // Add a type for topic posts
 type TopicPost = {
@@ -265,8 +62,16 @@ type TopicPost = {
 
 export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
-  const group = groups.find((g) => g.code === code);
   const dispatch = useDispatch();
+  const groupsFromStore = useSelector(selectGroups);
+  const group = groupsFromStore.find((g: any) => g.code === code);
+
+  useEffect(() => {
+    if (groupsFromStore.length === 0) {
+      dispatch(fetchGroups() as any);
+    }
+  }, [dispatch, groupsFromStore.length]);
+
   const subscribedGroupCodes = useSelector((state: RootState) =>
     selectSubscribedGroupCodes(state)
   );
@@ -277,14 +82,6 @@ export default function GroupInfoScreen() {
   );
   const joined = joinedGroups.includes(code as string);
 
-  // Debug logging
-  console.log("🔍 Group Screen Debug:", {
-    groupCode: code,
-    subscribedGroupCodes,
-    subscribed,
-    joinedGroups,
-    joined,
-  });
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
   const router = useRouter();
@@ -308,8 +105,6 @@ export default function GroupInfoScreen() {
     );
   }
 
-  const [groupNews, setGroupNews] = useState(group.news || []);
-
   // Load news from API
   const loadNews = async () => {
     if (!subscribed) return;
@@ -329,34 +124,7 @@ export default function GroupInfoScreen() {
       }
     } catch (error: any) {
       console.error("❌ Failed to load news:", error);
-
-      // Check if it's a 404 error (group doesn't exist in backend)
-      if (
-        error.message?.includes("404") ||
-        error.message?.includes("not found")
-      ) {
-        console.log("⚠️ Group not found in backend, using local news data");
-        // Use local news data from the groups array
-        const localGroup = groups.find((g) => g.code === code);
-        if (localGroup?.news) {
-          const localNews = localGroup.news.map((item, index) => ({
-            id: `local-${index}`,
-            title: item.title,
-            content: item.content,
-            author: "System",
-            groupCode: code as string,
-            groupName: localGroup.university,
-            createdAt: item.date,
-            updatedAt: item.date,
-            likes: 0,
-            isLiked: false,
-          }));
-          setApiNews(localNews);
-        }
-      } else {
-        // Other errors - fallback to empty array
-        setApiNews([]);
-      }
+      setApiNews([]);
     } finally {
       setIsLoadingNews(false);
     }
@@ -428,12 +196,6 @@ export default function GroupInfoScreen() {
         return updated;
       });
 
-      // Note: We don't need to update groupNews when we have API news
-      // groupNews is only used as a fallback when apiNews is empty
-      console.log(
-        "🔄 API news added successfully, no need to update groupNews"
-      );
-
       setNewsHeader("");
       setNewsContent("");
 
@@ -449,70 +211,11 @@ export default function GroupInfoScreen() {
       console.log("✅ News shared successfully:", newNews);
     } catch (error: any) {
       console.error("❌ Failed to share news:", error);
-
-      // Check if it's a 404 error (group doesn't exist in backend)
-      if (
-        error.message?.includes("404") ||
-        error.message?.includes("not found")
-      ) {
-        console.log("⚠️ Group not found in backend, adding news locally");
-
-        // Add news locally since the group doesn't exist in backend
-        const localNewsItem = {
-          id: `local-${Date.now()}`,
-          title: newsHeader.trim() || "Untitled",
-          content: newsContent.trim(),
-          description: newsContent.trim(),
-          author: "You",
-          groupCode: code as string,
-          groupName: group?.university || (code as string),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          likes: 0,
-          isLiked: false,
-        };
-
-        console.log("🔄 Adding local news item to apiNews:", localNewsItem);
-        setApiNews((prev) => {
-          const updated = [localNewsItem, ...prev];
-          console.log("🔄 Updated apiNews state (local):", updated);
-          return updated;
-        });
-
-        // Also add to groupNews as fallback since API failed
-        console.log("🔄 Adding local news to groupNews as fallback");
-        const localGroupNewsItem = {
-          title: newsHeader.trim() || "",
-          date: createSafeDateString(),
-          content: newsContent.trim(),
-        };
-
-        console.log("🔄 Local groupNews item:", localGroupNewsItem);
-
-        setGroupNews((prev) => {
-          const updated = [localGroupNewsItem, ...prev];
-          console.log("🔄 Updated groupNews state (local):", updated);
-          return updated;
-        });
-
-        setNewsHeader("");
-        setNewsContent("");
-
-        // Force refresh of news display
-        setNewsRefreshKey((prev) => prev + 1);
-
-        Toast.show({
-          type: "success",
-          text1: "News shared locally!",
-          text2: "Note: Group not found in backend, news saved locally.",
-        });
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Failed to share news",
-          text2: "Please try again later.",
-        });
-      }
+      Toast.show({
+        type: "error",
+        text1: "Failed to share news",
+        text2: error.message || "Please try again later.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -600,194 +303,6 @@ export default function GroupInfoScreen() {
       groupCode: code,
     });
   }, [showUnsubModal, subscribed, code]);
-
-  // Initialize events for this group if they don't exist
-  useEffect(() => {
-    const groupEvents = events.filter((e: any) => e.groupCode === code);
-    if (groupEvents.length === 0) {
-      // Add sample events for this group with recent dates (June 2025 onwards)
-      const sampleEvents: AppEvent[] = [
-        {
-          id: `${code}-event-1`,
-          title: "Alumni Networking Mixer",
-          description:
-            "Join fellow alumni for an evening of networking, drinks, and meaningful connections. Perfect opportunity to expand your professional network.",
-          startTime: "2025-06-28T19:00:00Z",
-          endTime: "2025-06-28T22:00:00Z",
-          location: "Downtown Conference Center",
-          capacity: 80,
-          enrolledCount: 23,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-15T10:00:00Z",
-          updatedAt: "2025-01-15T10:00:00Z",
-        },
-        {
-          id: `${code}-event-2`,
-          title: "Tech Industry Panel Discussion",
-          description:
-            "Hear from successful alumni working in tech companies. Learn about industry trends, career paths, and get your questions answered.",
-          startTime: "2025-06-29T14:00:00Z",
-          endTime: "2025-06-29T16:30:00Z",
-          location: "Virtual (Zoom)",
-          capacity: 150,
-          enrolledCount: 67,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-16T10:00:00Z",
-          updatedAt: "2025-01-16T10:00:00Z",
-        },
-        {
-          id: `${code}-event-3`,
-          title: "Summer Career Fair 2025",
-          description:
-            "Connect with top employers from various industries. Bring your resume and make lasting impressions with potential employers.",
-          startTime: "2025-07-15T10:00:00Z",
-          endTime: "2025-07-15T17:00:00Z",
-          location: "Main Campus Gymnasium",
-          capacity: 300,
-          enrolledCount: 189,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-17T10:00:00Z",
-          updatedAt: "2025-01-17T10:00:00Z",
-        },
-        {
-          id: `${code}-event-4`,
-          title: "Startup Pitch Competition",
-          description:
-            "Watch alumni entrepreneurs pitch their innovative ideas. Network with investors and fellow entrepreneurs.",
-          startTime: "2025-07-28T18:00:00Z",
-          endTime: "2025-07-28T21:00:00Z",
-          location: "Innovation Hub",
-          capacity: 120,
-          enrolledCount: 45,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-18T10:00:00Z",
-          updatedAt: "2025-01-18T10:00:00Z",
-        },
-        {
-          id: `${code}-event-5`,
-          title: "Research Collaboration Workshop",
-          description:
-            "Explore opportunities for research collaboration with fellow alumni. Share your research interests and find potential collaborators.",
-          startTime: "2025-08-10T09:00:00Z",
-          endTime: "2025-08-10T12:00:00Z",
-          location: "Science Building, Room 205",
-          capacity: 60,
-          enrolledCount: 18,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-19T10:00:00Z",
-          updatedAt: "2025-01-19T10:00:00Z",
-        },
-        {
-          id: `${code}-event-6`,
-          title: "Leadership Development Seminar",
-          description:
-            "Enhance your leadership skills with expert-led workshops. Perfect for mid-career professionals looking to advance.",
-          startTime: "2025-08-22T13:00:00Z",
-          endTime: "2025-08-22T17:00:00Z",
-          location: "Virtual (Microsoft Teams)",
-          capacity: 100,
-          enrolledCount: 34,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-20T10:00:00Z",
-          updatedAt: "2025-01-20T10:00:00Z",
-        },
-        {
-          id: `${code}-event-7`,
-          title: "Summer Alumni Picnic",
-          description:
-            "Enjoy a relaxing afternoon with fellow alumni and their families. Great food, games, and networking in a casual setting.",
-          startTime: "2025-09-06T12:00:00Z",
-          endTime: "2025-09-06T16:00:00Z",
-          location: "Campus Park",
-          capacity: 200,
-          enrolledCount: 78,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-21T10:00:00Z",
-          updatedAt: "2025-01-21T10:00:00Z",
-        },
-        {
-          id: `${code}-event-8`,
-          title: "Industry-Specific Roundtables",
-          description:
-            "Join focused discussions with alumni in your industry. Share insights, challenges, and opportunities.",
-          startTime: "2025-09-20T15:00:00Z",
-          endTime: "2025-09-20T18:00:00Z",
-          location: "Business School, Various Rooms",
-          capacity: 80,
-          enrolledCount: 29,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: "2025-01-22T10:00:00Z",
-          updatedAt: "2025-01-22T10:00:00Z",
-        },
-        // Test events for push notifications (within 24 hours)
-        {
-          id: `${code}-event-test-1`,
-          title: "Quick Coffee Meetup (2 hours)",
-          description:
-            "A quick coffee meetup to test push notifications. This event is scheduled for 2 hours from now.",
-          startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-          location: "Campus Coffee Shop",
-          capacity: 20,
-          enrolledCount: 5,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: `${code}-event-test-2`,
-          title: "Lunch Networking (6 hours)",
-          description:
-            "Lunch networking event to test push notifications. This event is scheduled for 6 hours from now.",
-          startTime: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-          location: "Faculty Club Restaurant",
-          capacity: 30,
-          enrolledCount: 12,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: `${code}-event-test-3`,
-          title: "Evening Workshop (12 hours)",
-          description:
-            "Evening workshop to test push notifications. This event is scheduled for 12 hours from now.",
-          startTime: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 14 * 60 * 60 * 1000).toISOString(),
-          location: "Engineering Building, Room 101",
-          capacity: 50,
-          enrolledCount: 18,
-          isEnrolled: false,
-          groupCode: code as string,
-          groupName: group.university,
-          createdAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
-      sampleEvents.forEach((event) => dispatch(addEvent(event)));
-    }
-  }, [code, group.university, events.length, dispatch]);
 
   const groupEvents = events.filter((e: any) => e.groupCode === code);
   const isPast = (e: any) => e.endTime && new Date(e.endTime) < new Date();
@@ -1283,24 +798,7 @@ export default function GroupInfoScreen() {
             )}
           </View>
 
-          {/* Display API news first, then fallback to local news */}
-          {(() => {
-            console.log(
-              "🔄 News display check (refresh key:",
-              newsRefreshKey,
-              "):",
-              {
-                apiNewsLength: apiNews.length,
-                groupNewsLength: groupNews.length,
-                hasApiNews: apiNews.length > 0,
-                hasGroupNews: groupNews.length > 0,
-                willShowNews: apiNews.length > 0 || groupNews.length > 0,
-                firstApiNews: apiNews[0],
-                firstGroupNews: groupNews[0],
-              }
-            );
-            return apiNews.length > 0 || groupNews.length > 0;
-          })() ? (
+          {apiNews.length > 0 ? (
             <>
               {apiNews.map((item, index) => {
                 console.log("🔄 Rendering apiNews item:", {
@@ -1408,21 +906,6 @@ export default function GroupInfoScreen() {
                   </View>
                 );
               })}
-
-              {/* Fallback to local news if no API news */}
-              {apiNews.length === 0 &&
-                groupNews.map((item, idx) => (
-                  <View
-                    key={item.content + item.date + idx}
-                    style={styles.newsItem}
-                  >
-                    {item.title ? (
-                      <Text style={styles.newsTitle}>{item.title}</Text>
-                    ) : null}
-                    <Text style={styles.newsDate}>{item.date}</Text>
-                    <Text style={styles.newsContent}>{item.content}</Text>
-                  </View>
-                ))}
             </>
           ) : (
             <View style={styles.emptyNewsContainer}>

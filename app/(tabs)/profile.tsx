@@ -20,6 +20,7 @@ import {
   selectUserProfile,
   selectUserLoading,
   selectUserError,
+  selectGroups,
   getUserIdFromToken,
   setAuthenticated,
   setToken,
@@ -37,7 +38,6 @@ import {
 } from "../store";
 import { AppEvent } from "../store/types";
 import { useRouter } from "expo-router";
-import { groups } from "./groups/[code]/index";
 import { NotificationService } from "../services/NotificationService";
 import { Card, Button, Badge, Header, Input, Divider } from "@/components/UI";
 import Colors, {
@@ -118,6 +118,7 @@ export default function ProfileScreen() {
   const dispatch = useDispatch();
   const router = useRouter();
   const joinedGroups = useSelector(selectJoinedGroups);
+  const groupsFromStore = useSelector(selectGroups);
 
   // Get enrolled events
   const enrolledEvents = events.filter((event: any) =>
@@ -302,7 +303,7 @@ export default function ProfileScreen() {
         {joinedGroups.length > 0 && (
           <RNView style={styles.badgeRow}>
             {joinedGroups.map((code: any) => {
-              const group = groups.find((g) => g.code === code);
+              const group = groupsFromStore.find((g: any) => g.code === code);
               if (!group) return null;
               return (
                 <Badge

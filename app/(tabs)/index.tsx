@@ -6,13 +6,13 @@ import {
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
-import { groups } from "./groups/[code]/index";
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch, Provider } from "react-redux";
 import { store } from "../store";
 import {
   RootState,
   selectToken,
+  selectGroups,
   selectSubscriptions,
   selectSubscribedGroupCodes,
   selectEvents,
@@ -26,6 +26,7 @@ import {
   fetchEvents,
   fetchNotifications,
   fetchSubscriptions,
+  fetchGroups,
 } from "../store";
 import { Card, Badge, Header } from "@/components/UI";
 import Colors, {
@@ -34,46 +35,6 @@ import Colors, {
   typography,
   shadows,
 } from "@/constants/Colors";
-
-type TimelineEvent = {
-  title: string;
-  date: string;
-  description: string;
-  icon: string;
-  color: string;
-  group?: string;
-};
-
-const staticTimeline: TimelineEvent[] = [
-  {
-    title: "Account Created",
-    date: "2023-01-01",
-    description: "You joined GradLink and created your account.",
-    icon: "user-plus",
-    color: "#4f46e5",
-  },
-  {
-    title: "First Project",
-    date: "2023-02-15",
-    description: "You started your first project on the platform.",
-    icon: "folder-open",
-    color: "#22c55e",
-  },
-  {
-    title: "Upgraded to Pro",
-    date: "2023-03-10",
-    description: "You upgraded your subscription to Pro.",
-    icon: "star",
-    color: "#f59e42",
-  },
-  {
-    title: "Completed Project",
-    date: "2023-04-05",
-    description: "You completed your first project. Congratulations!",
-    icon: "check-circle",
-    color: "#10b981",
-  },
-];
 
 type News = {
   title: string;
@@ -91,18 +52,6 @@ type Group = {
   founded: number;
   location: string;
   news?: News[];
-};
-
-type TimelineEventItem = {
-  title: string;
-  date: string;
-  description: string;
-};
-
-type Topic = {
-  title: string;
-  posts: number;
-  date: string; // We'll add a date for sorting
 };
 
 function TabOneScreenInner() {
@@ -161,32 +110,17 @@ function TabOneScreenInner() {
     return () => clearInterval(interval);
   }, [events, enrollments, notifications, dispatch]);
 
-  // Get subscribed group codes
   const subscribedGroupCodes = useSelector(selectSubscribedGroupCodes);
+  const groupsFromStore = useSelector(selectGroups);
 
-  // Debug logging
-  console.log("📰 News aggregation debug:");
-  console.log("All subscriptions:", subscriptions);
-  console.log("Subscribed group codes:", subscribedGroupCodes);
-  console.log(
-    "All groups:",
-    groups.map((g) => g.code)
-  );
+  useEffect(() => {
+    if (groupsFromStore.length === 0) {
+      dispatch(fetchGroups() as any);
+    }
+  }, [dispatch, groupsFromStore.length]);
 
-  // Aggregate news from all subscribed groups
-  const subscribedGroups = groups.filter((g: Group) =>
+  const subscribedGroups = groupsFromStore.filter((g: Group) =>
     subscribedGroupCodes.includes(g.code)
-  );
-
-  console.log(
-    "Subscribed groups found:",
-    subscribedGroups.map((g) => g.code)
-  );
-  console.log(
-    "Subscribed groups with news:",
-    subscribedGroups
-      .filter((g) => g.news && g.news.length > 0)
-      .map((g) => ({ code: g.code, newsCount: g.news?.length }))
   );
   const subscribedGroupNews = subscribedGroups.flatMap((g: Group) =>
     (g.news || []).map((news: News) => ({
@@ -199,35 +133,9 @@ function TabOneScreenInner() {
       type: "news",
     }))
   );
-
-  console.log("Total subscribed group news items:", subscribedGroupNews.length);
-  console.log(
-    "News items:",
-    subscribedGroupNews.map((n) => ({ title: n.title, group: n.group }))
+  const timeline = [...subscribedGroupNews].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-  // Aggregate events (placeholder, same as in group page, assign a recent date for sorting)
-  const groupTopics: Topic[] = [
-    { title: "Networking", posts: 12, date: "2024-07-01" },
-    { title: "Job Opportunities", posts: 8, date: "2024-06-20" },
-    { title: "Research", posts: 5, date: "2024-06-10" },
-  ];
-  const subscribedGroupTopics = subscribedGroups.flatMap((g: Group) =>
-    groupTopics.map((topic) => ({
-      title: topic.title,
-      date: topic.date,
-      description: `${topic.posts} posts`,
-      icon: "comments",
-      color: g.color,
-      group: g.university,
-      type: "topic",
-    }))
-  );
-  // Merge and sort all events by date descending
-  const timeline = [
-    ...staticTimeline,
-    ...subscribedGroupNews,
-    ...subscribedGroupTopics,
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const handleNotificationPress = (notificationId: string) => {
     dispatch(markAsRead(notificationId));
@@ -274,7 +182,15 @@ function TabOneScreenInner() {
       />
 
       <RNView style={styles.timelineContainer}>
-        {timeline.map((event: any, idx) => (
+        {timeline.length === 0 ? (
+          <Card style={styles.timelineEmpty}>
+            <Text style={styles.timelineEmptyText}>No updates yet</Text>
+            <Text style={styles.timelineEmptySubtext}>
+              News from your subscribed groups will appear here.
+            </Text>
+          </Card>
+        ) : (
+          timeline.map((event: any, idx) => (
           <RNView
             key={event.title + event.date + event.type + (event.group || "")}
             style={styles.eventRow}
@@ -307,7 +223,8 @@ function TabOneScreenInner() {
               <Text style={styles.eventDescription}>{event.description}</Text>
             </Card>
           </RNView>
-        ))}
+        )))
+        )}
       </RNView>
     </ScrollView>
   );
@@ -399,6 +316,20 @@ const styles = StyleSheet.create({
   },
   eventDescription: {
     ...typography.base,
+  },
+  timelineEmpty: {
+    padding: spacing.xl,
+    alignItems: "center",
+  },
+  timelineEmptyText: {
+    ...typography.lg,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  timelineEmptySubtext: {
+    ...typography.sm,
+    color: Colors.textTertiary,
   },
 });
 

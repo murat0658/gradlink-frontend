@@ -23,64 +23,6 @@ function GroupsScreenInner() {
     dispatch(fetchGroups() as any);
   }, [dispatch]);
 
-  // Fallback to sample data if API hasn't loaded yet
-  const displayGroups =
-    groups.length > 0
-      ? groups
-      : [
-          {
-            code: "harvard",
-            university: "Harvard University",
-            description:
-              "A group for Harvard graduates to connect and network.",
-            members: 210,
-            icon: "university",
-            color: "#a51c30",
-            founded: 1636,
-            location: "Cambridge, MA, USA",
-          },
-          {
-            code: "stanford",
-            university: "Stanford University",
-            description:
-              "Stanford alumni sharing opportunities and experiences.",
-            members: 180,
-            icon: "graduation-cap",
-            color: "#8c1515",
-            founded: 1885,
-            location: "Stanford, CA, USA",
-          },
-          {
-            code: "mit",
-            university: "MIT",
-            description: "MIT graduates collaborating on tech and research.",
-            members: 150,
-            icon: "flask",
-            color: "#a2a2a1",
-            founded: 1861,
-            location: "Cambridge, MA, USA",
-          },
-          {
-            code: "oxford",
-            university: "Oxford University",
-            description: "Oxford alumni group for global networking.",
-            members: 120,
-            icon: "book",
-            color: "#002147",
-            founded: 1096,
-            location: "Oxford, England",
-          },
-          {
-            code: "metu",
-            university: "Middle East Technical University",
-            description: "A group for METU graduates to connect and network.",
-            members: 210,
-            icon: "building",
-            color: "#a51c30",
-            founded: 1952,
-            location: "Ankara, Türkiye",
-          },
-        ];
   return (
     <ScrollView
       contentContainerStyle={styles.container}
@@ -94,7 +36,15 @@ function GroupsScreenInner() {
       />
 
       <View style={styles.groupsContainer}>
-        {displayGroups.map((group: any) => (
+        {groups.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No groups yet</Text>
+            <Text style={styles.emptySubtext}>
+              Groups will appear here when loaded from the server.
+            </Text>
+          </View>
+        ) : (
+          groups.map((group: any) => (
           <Link
             key={group.code}
             href={{ pathname: "./groups/[code]", params: { code: group.code } }}
@@ -136,7 +86,8 @@ function GroupsScreenInner() {
               </Card>
             </TouchableOpacity>
           </Link>
-        ))}
+        ))
+        )}
       </View>
     </ScrollView>
   );
@@ -189,6 +140,20 @@ const styles = StyleSheet.create({
   membersText: {
     ...typography.sm,
     color: Colors.textSecondary,
+  },
+  emptyContainer: {
+    paddingVertical: spacing.xxl,
+    alignItems: "center",
+  },
+  emptyText: {
+    ...typography.lg,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    ...typography.sm,
+    color: Colors.textTertiary,
   },
 });
 
