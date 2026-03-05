@@ -103,6 +103,16 @@ function HeaderTitle({ title, icon, color = Colors.tint }: HeaderTitleProps) {
   );
 }
 
+// iOS: use native header title for reliable visibility (safe area, no clipping)
+const iosHeaderTitleOptions = {
+  headerTitleStyle: {
+    fontSize: 18,
+    fontWeight: "700" as const,
+    color: Colors.text,
+  },
+  headerTitleAlign: "center" as const,
+};
+
 const headerTitleStyles = StyleSheet.create({
   bg: {
     flexDirection: "row",
@@ -205,6 +215,8 @@ function TabLayoutInner() {
         // Give header title room on iPhone (safe area / notch)
         ...(Platform.OS === "ios" && {
           headerTitleContainerStyle: { paddingHorizontal: spacing.sm },
+          headerStyle: { backgroundColor: Colors.background },
+          headerShadowVisible: true,
         }),
       }}
     >
@@ -215,9 +227,16 @@ function TabLayoutInner() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="clock-o" color={color} />
           ),
-          headerTitle: () => (
-            <HeaderTitle title="Timeline" icon="clock-o" color={Colors.tint} />
-          ),
+          ...(Platform.OS === "ios"
+            ? {
+                headerTitle: "Timeline",
+                ...iosHeaderTitleOptions,
+              }
+            : {
+                headerTitle: () => (
+                  <HeaderTitle title="Timeline" icon="clock-o" color={Colors.tint} />
+                ),
+              }),
           headerRight: () => (
             <RNView style={{ flexDirection: "row", alignItems: "center" }}>
               <Link href="/notifications" asChild>
@@ -269,13 +288,20 @@ function TabLayoutInner() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="university" color={color} />
           ),
-          headerTitle: () => (
-            <HeaderTitle
-              title="Groups"
-              icon="university"
-              color={Colors.error}
-            />
-          ),
+          ...(Platform.OS === "ios"
+            ? {
+                headerTitle: "Groups",
+                ...iosHeaderTitleOptions,
+              }
+            : {
+                headerTitle: () => (
+                  <HeaderTitle
+                    title="Groups"
+                    icon="university"
+                    color={Colors.error}
+                  />
+                ),
+              }),
         }}
       />
       <Tabs.Screen
@@ -285,13 +311,20 @@ function TabLayoutInner() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="user-circle" color={color} />
           ),
-          headerTitle: () => (
-            <HeaderTitle
-              title="Profile"
-              icon="user-circle"
-              color={Colors.tint}
-            />
-          ),
+          ...(Platform.OS === "ios"
+            ? {
+                headerTitle: "Profile",
+                ...iosHeaderTitleOptions,
+              }
+            : {
+                headerTitle: () => (
+                  <HeaderTitle
+                    title="Profile"
+                    icon="user-circle"
+                    color={Colors.tint}
+                  />
+                ),
+              }),
           headerRight: () => <LogoutButton />,
         }}
       />
