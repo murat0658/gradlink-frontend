@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 import "react-native-reanimated";
 import { Provider, useSelector } from "react-redux";
 import { store } from "./store";
@@ -88,19 +89,22 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Initialize notifications
+  // Initialize notifications and cleanup listeners on unmount (skip on web)
   useEffect(() => {
-    const initializeNotifications = async () => {
+    if (Platform.OS === "web") return undefined;
+
+    const cleanup = NotificationService.setupNotificationListeners();
+    (async () => {
       try {
         await NotificationService.requestPermissions();
-        await NotificationService.setupNotificationListeners();
-        console.log("Notifications initialized successfully");
+        if (__DEV__) console.log("Notifications initialized");
       } catch (error) {
-        console.log("Error initializing notifications:", error);
+        if (__DEV__) console.warn("Notification init error:", error);
       }
+    })();
+    return () => {
+      if (cleanup) cleanup();
     };
-
-    initializeNotifications();
   }, []);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.

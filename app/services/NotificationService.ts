@@ -4,33 +4,60 @@ import { AppEvent } from "../store/types";
 import { store } from "../store";
 import { addNotification } from "../store/slices/notificationsSlice";
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowList: true,
-  }),
-});
+// Configure notification behavior (safe on web/simulator)
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowList: true,
+    }),
+  });
+} catch (e) {
+  // Not supported on web or in some environments
+  if (__DEV__) console.warn("Notification handler not set:", e);
+}
 
 export class NotificationService {
-  static async requestPermissions() {
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+  /** Set up Android notification channel (required before permissions on Android 13+). No-op on iOS. */
+  private static async setupAndroidChannel(): Promise<void> {
+    if (Platform.OS !== "android") return;
+    try {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "Default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#4f46e5",
+      });
+    } catch (e) {
+      if (__DEV__) console.warn("Android notification channel setup failed:", e);
     }
+  }
 
-    if (finalStatus !== "granted") {
-      console.log("Failed to get push token for push notification!");
+  static async requestPermissions(): Promise<boolean> {
+    try {
+      await NotificationService.setupAndroidChannel();
+
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== "granted") {
+        if (__DEV__) console.warn("Notification permission not granted.");
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      if (__DEV__) console.warn("Notification permission error:", error);
       return false;
     }
-
-    return true;
   }
 
   static async scheduleEventNotification(event: AppEvent) {
@@ -79,52 +106,78 @@ export class NotificationService {
 
         console.log(`Scheduled notification for event: ${event.title}`);
       } catch (error) {
-        console.log("Error scheduling notification:", error);
+        if (__DEV__) console.warn("Error scheduling event notification:", error);
       }
     }
   }
 
-  static async cancelEventNotifications(eventId: string) {
-    const scheduledNotifications =
-      await Notifications.getAllScheduledNotificationsAsync();
+  static async cancelEventNotifications(eventId: string): Promise<void> {
+    try {
+      const scheduledNotifications =
+        await Notifications.getAllScheduledNotificationsAsync();
 
-    for (const notification of scheduledNotifications) {
-      if (notification.content.data?.eventId === eventId) {
-        await Notifications.cancelScheduledNotificationAsync(
-          notification.identifier
-        );
+      for (const notification of scheduledNotifications) {
+        if (notification.content.data?.eventId === eventId) {
+          await Notifications.cancelScheduledNotificationAsync(
+            notification.identifier
+          );
+        }
       }
+    } catch (e) {
+      if (__DEV__) console.warn("cancelEventNotifications failed:", e);
     }
   }
 
-  static async cancelAllEventNotifications() {
-    await Notifications.cancelAllScheduledNotificationsAsync();
+  static async cancelAllEventNotifications(): Promise<void> {
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch (e) {
+      if (__DEV__) console.warn("cancelAllEventNotifications failed:", e);
+    }
   }
 
   static async getScheduledNotifications() {
-    return await Notifications.getAllScheduledNotificationsAsync();
+    try {
+      return await Notifications.getAllScheduledNotificationsAsync();
+    } catch (e) {
+      if (__DEV__) console.warn("getScheduledNotifications failed:", e);
+      return [];
+    }
   }
 
-  static async setupNotificationListeners() {
-    // Handle notification received while app is running
-    const notificationListener = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        console.log("Notification received:", notification);
-      }
-    );
+  /**
+   * Set up notification listeners. Returns a cleanup function to remove listeners on unmount.
+   * Safe to call on web/simulator; may no-op or throw – errors are caught.
+   */
+  static setupNotificationListeners(): (() => void) | null {
+    try {
+      const notificationListener = Notifications.addNotificationReceivedListener(
+        (notification) => {
+          if (__DEV__) console.log("Notification received:", notification);
+        }
+      );
 
-    // Handle notification response (when user taps notification)
-    const responseListener =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("Notification response:", response);
-        // Handle navigation to event details if needed
-      });
+      const responseListener =
+        Notifications.addNotificationResponseReceivedListener((response) => {
+          if (__DEV__) console.log("Notification response:", response);
+        });
 
-    return { notificationListener, responseListener };
+      return () => {
+        try {
+          notificationListener.remove();
+          responseListener.remove();
+        } catch (e) {
+          if (__DEV__) console.warn("Error removing notification listeners:", e);
+        }
+      };
+    } catch (error) {
+      if (__DEV__) console.warn("Notification listeners setup failed:", error);
+      return null;
+    }
   }
 
-  // Test function to send immediate notification
-  static async sendTestNotification() {
+  /** Test function to send immediate notification. Returns true if sent, false on error. */
+  static async sendTestNotification(): Promise<boolean> {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -136,7 +189,6 @@ export class NotificationService {
         trigger: null,
       });
 
-      // Also add to Redux store
       const notification = {
         id: `test-${Date.now()}`,
         type: "general" as const,
@@ -148,9 +200,11 @@ export class NotificationService {
 
       store.dispatch(addNotification(notification));
 
-      console.log("Test notification sent successfully");
+      if (__DEV__) console.log("Test notification sent successfully");
+      return true;
     } catch (error) {
-      console.log("Error sending test notification:", error);
+      if (__DEV__) console.warn("Error sending test notification:", error);
+      return false;
     }
   }
 }

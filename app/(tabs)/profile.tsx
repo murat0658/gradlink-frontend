@@ -248,12 +248,13 @@ export default function ProfileScreen() {
   };
 
   const handleTestNotification = async () => {
-    try {
-      await NotificationService.sendTestNotification();
+    const sent = await NotificationService.sendTestNotification();
+    if (sent) {
       alert("Test notification sent! Check your device notifications.");
-    } catch (error) {
-      console.log("Error sending test notification:", error);
-      alert("Failed to send test notification. Check console for details.");
+    } else {
+      alert(
+        "Could not send test notification. Enable notifications in device settings and try again."
+      );
     }
   };
 
