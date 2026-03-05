@@ -32,6 +32,12 @@ export const validateUrl = (url: string): boolean => {
   }
 };
 
+// UUID validation (backend expects UUID for event ids)
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const isUuid = (id: string): boolean =>
+  typeof id === "string" && UUID_REGEX.test(id);
+
 // Date validation
 export const validateDate = (date: string): boolean => {
   const parsedDate = new Date(date);

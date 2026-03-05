@@ -50,6 +50,7 @@ import {
   unenrollFromEventAsync,
 } from "../../../store";
 import { AppEvent } from "../../../store/types";
+import { isUuid } from "../../../utils/validation";
 
 const groups = [
   {
@@ -898,24 +899,28 @@ export default function GroupInfoScreen() {
   };
 
   const handleEnroll = async (eventId: string) => {
+    dispatch(enrollInEvent(eventId));
+    dispatch(enroll(eventId));
+
+    if (!isUuid(eventId)) {
+      Toast.show({
+        type: "info",
+        text1: "Sample event",
+        text2: "Enrolled locally. Real events use server enrollment.",
+      });
+      return;
+    }
+
     try {
-      // Optimistically update the UI
-      dispatch(enrollInEvent(eventId));
-      dispatch(enroll(eventId));
-
-      // Make the API call
       await dispatch(enrollInEventAsync(eventId) as any);
-
       Toast.show({
         type: "success",
         text1: "Enrolled!",
         text2: "You have successfully enrolled in this event.",
       });
     } catch (error: any) {
-      // Revert the optimistic update on error
       dispatch(unenrollFromEvent(eventId));
       dispatch(unenroll(eventId));
-
       Toast.show({
         type: "error",
         text1: "Enrollment Failed",
@@ -925,24 +930,28 @@ export default function GroupInfoScreen() {
   };
 
   const handleUnenroll = async (eventId: string) => {
+    dispatch(unenrollFromEvent(eventId));
+    dispatch(unenroll(eventId));
+
+    if (!isUuid(eventId)) {
+      Toast.show({
+        type: "info",
+        text1: "Sample event",
+        text2: "Unenrolled locally.",
+      });
+      return;
+    }
+
     try {
-      // Optimistically update the UI
-      dispatch(unenrollFromEvent(eventId));
-      dispatch(unenroll(eventId));
-
-      // Make the API call
       await dispatch(unenrollFromEventAsync(eventId) as any);
-
       Toast.show({
         type: "info",
         text1: "Unenrolled",
         text2: "You have unenrolled from this event.",
       });
     } catch (error: any) {
-      // Revert the optimistic update on error
       dispatch(enrollInEvent(eventId));
       dispatch(enroll(eventId));
-
       Toast.show({
         type: "error",
         text1: "Unenrollment Failed",
