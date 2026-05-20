@@ -1,19 +1,30 @@
 import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
 import { Platform } from "react-native";
 import { AppEvent } from "../store/types";
 import { store } from "../store";
 import { addNotification } from "../store/slices/notificationsSlice";
 
+function notificationsSupported(): boolean {
+  if (Platform.OS === "web") return false;
+  // On iOS simulator, expo-notifications APIs can be flaky depending on runtime.
+  // We prefer a no-crash experience and degrade gracefully.
+  if (Platform.OS === "ios" && !Device.isDevice) return false;
+  return true;
+}
+
 // Configure notification behavior (safe on web/simulator)
 try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowList: true,
-    }),
-  });
+  if (notificationsSupported()) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowList: true,
+      }),
+    });
+  }
 } catch (e) {
   // Not supported on web or in some environments
   if (__DEV__) console.warn("Notification handler not set:", e);
@@ -37,6 +48,7 @@ export class NotificationService {
 
   static async requestPermissions(): Promise<boolean> {
     try {
+      if (!notificationsSupported()) return false;
       await NotificationService.setupAndroidChannel();
 
       const { status: existingStatus } =
@@ -61,6 +73,7 @@ export class NotificationService {
   }
 
   static async scheduleEventNotification(event: AppEvent) {
+    if (!notificationsSupported()) return;
     const eventTime = new Date(event.startTime);
     const now = new Date();
     const timeUntilEvent = eventTime.getTime() - now.getTime();
@@ -71,6 +84,8 @@ export class NotificationService {
 
       // Show immediate notification for events within 24 hours
       try {
+        const granted = await NotificationService.requestPermissions();
+        if (!granted) return;
         await Notifications.scheduleNotificationAsync({
           content: {
             title: "Event Scheduled",
@@ -151,6 +166,7 @@ export class NotificationService {
    */
   static setupNotificationListeners(): (() => void) | null {
     try {
+      if (!notificationsSupported()) return null;
       const notificationListener = Notifications.addNotificationReceivedListener(
         (notification) => {
           if (__DEV__) console.log("Notification received:", notification);
@@ -179,6 +195,9 @@ export class NotificationService {
   /** Test function to send immediate notification. Returns true if sent, false on error. */
   static async sendTestNotification(): Promise<boolean> {
     try {
+      if (!notificationsSupported()) return false;
+      const granted = await NotificationService.requestPermissions();
+      if (!granted) return false;
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "Test Notification",

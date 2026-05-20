@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import { useSelector, useDispatch } from "react-redux";
@@ -112,7 +113,7 @@ export default function NotificationsModal() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -206,7 +207,7 @@ export default function NotificationsModal() {
           </RNView>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
