@@ -35,6 +35,7 @@ import {
   selectSubscriptions,
   selectSubscribedGroupCodes,
   selectGroups,
+  selectToken,
   joinGroup,
   leaveGroup,
   selectJoinedGroups,
@@ -63,14 +64,15 @@ type TopicPost = {
 export default function GroupInfoScreen() {
   const { code } = useLocalSearchParams();
   const dispatch = useDispatch();
+  const token = useSelector(selectToken);
   const groupsFromStore = useSelector(selectGroups);
   const group = groupsFromStore.find((g: any) => g.code === code);
 
   useEffect(() => {
-    if (groupsFromStore.length === 0) {
+    if (token && groupsFromStore.length === 0) {
       dispatch(fetchGroups() as any);
     }
-  }, [dispatch, groupsFromStore.length]);
+  }, [dispatch, token, groupsFromStore.length]);
 
   const subscribedGroupCodes = useSelector((state: RootState) =>
     selectSubscribedGroupCodes(state)
@@ -86,7 +88,9 @@ export default function GroupInfoScreen() {
   const enrollments = useSelector(selectEnrollments);
   const router = useRouter();
   const [showUnsubModal, setShowUnsubModal] = React.useState(false);
-  const [activeTab, setActiveTab] = useState<"news" | "events" | "topics">(
+  const [activeTab, setActiveTab] = useState<
+    "news" | "events" | "topics" | "jobs" | "members"
+  >(
     "news"
   );
   const [newsContent, setNewsContent] = useState("");
@@ -96,6 +100,46 @@ export default function GroupInfoScreen() {
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
   const [showPastEvents, setShowPastEvents] = useState(false);
+  const [jobs] = useState<
+    { id: string; title: string; company: string; location: string; type: string }[]
+  >([
+    {
+      id: "gjob-1",
+      title: "Alumni Referral: Frontend Engineer",
+      company: group.university,
+      location: "Remote",
+      type: "Full-time",
+    },
+    {
+      id: "gjob-2",
+      title: "Research Assistant (Part-time)",
+      company: group.university,
+      location: "Campus",
+      type: "Part-time",
+    },
+  ]);
+  const [members, setMembers] = useState<{ id: string; name: string; role?: string }[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+
+  const loadMembers = async () => {
+    try {
+      setMembersLoading(true);
+      const res = await apiService.getGroupMembers(code as string);
+      const list = Array.isArray(res) ? res : [];
+      const mapped = list
+        .map((m: any) => ({
+          id: m.id || m.user?.id || m.userId || Math.random().toString(36).slice(2),
+          name: m.user?.name || m.name || m.userName || "Unknown",
+          role: m.role,
+        }))
+        .filter((x: any) => typeof x.name === "string" && x.name.trim().length > 0);
+      setMembers(mapped);
+    } catch (e) {
+      setMembers([]);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
 
   if (!group) {
     return (
@@ -720,6 +764,35 @@ export default function GroupInfoScreen() {
             Topics
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "jobs" && styles.activeTab]}
+          onPress={() => setActiveTab("jobs")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "jobs" && styles.activeTabText,
+            ]}
+          >
+            Jobs
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "members" && styles.activeTab]}
+          onPress={() => {
+            setActiveTab("members");
+            loadMembers();
+          }}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "members" && styles.activeTabText,
+            ]}
+          >
+            Members
+          </Text>
+        </TouchableOpacity>
       </RNView>
       {/* Tab Content */}
       {activeTab === "news" && subscribed && (
@@ -952,7 +1025,12 @@ export default function GroupInfoScreen() {
               const isEnrolled = isEnrolledInEvent(event.id);
 
               return (
-                <View key={event.id} style={styles.eventItem}>
+                <TouchableOpacity
+                  key={event.id}
+                  style={styles.eventItem}
+                  activeOpacity={0.92}
+                  onPress={() => router.push(`/event/${event.id}`)}
+                >
                   <View style={styles.eventHeader}>
                     <Text style={styles.eventTitle}>{event.title}</Text>
                     {isPast && (
@@ -1031,7 +1109,7 @@ export default function GroupInfoScreen() {
                       </Text>
                     </TouchableOpacity>
                   )}
-                </View>
+                </TouchableOpacity>
               );
             })
           )}
@@ -1059,6 +1137,52 @@ export default function GroupInfoScreen() {
               <Text style={styles.newsContent}>{topic.posts} posts</Text>
             </TouchableOpacity>
           ))}
+        </View>
+      )}
+      {activeTab === "jobs" && (
+        <View style={styles.newsSection}>
+          <Text style={styles.newsHeader}>Job Opportunities</Text>
+          <View style={styles.newsHeaderAccent} />
+          <Text style={styles.newsSubtitle}>
+            Jobs shared inside this university group.
+          </Text>
+          {jobs.length === 0 ? (
+            <Text style={{ color: "#888", marginTop: 12 }}>
+              No job postings yet.
+            </Text>
+          ) : (
+            jobs.map((job) => (
+              <View key={job.id} style={styles.topicItem}>
+                <Text style={styles.newsTitle}>{job.title}</Text>
+                <Text style={styles.newsContent}>
+                  {job.company} • {job.location} • {job.type}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+      )}
+      {activeTab === "members" && (
+        <View style={styles.newsSection}>
+          <Text style={styles.newsHeader}>Members</Text>
+          <View style={styles.newsHeaderAccent} />
+          <Text style={styles.newsSubtitle}>
+            Members of this group (shown as full name).
+          </Text>
+          {membersLoading ? (
+            <Text style={{ color: "#888", marginTop: 12 }}>Loading members…</Text>
+          ) : members.length === 0 ? (
+            <Text style={{ color: "#888", marginTop: 12 }}>
+              No members to show.
+            </Text>
+          ) : (
+            members.map((m) => (
+              <View key={m.id} style={styles.topicItem}>
+                <Text style={styles.newsTitle}>{m.name}</Text>
+                {!!m.role && <Text style={styles.newsContent}>{m.role}</Text>}
+              </View>
+            ))
+          )}
         </View>
       )}
 

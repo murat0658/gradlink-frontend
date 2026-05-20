@@ -108,6 +108,12 @@ export default function ProfileScreen() {
     university: user.university || "",
     major: user.major || "",
     graduationYear: user.graduationYear || null,
+    // Extended (frontend-first) profile fields
+    highSchool: (user as any).highSchool || "",
+    masters: (user as any).masters || "",
+    extraEducation: ((user as any).extraEducation as string[]) || [],
+    jobTitle: (user as any).jobTitle || "",
+    company: (user as any).company || "",
   });
   const [touched, setTouched] = useState<{ email?: boolean; phone?: boolean }>(
     {}
@@ -115,6 +121,11 @@ export default function ProfileScreen() {
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [showPastEnrolledEvents, setShowPastEnrolledEvents] = useState(false);
+  const [educationModalVisible, setEducationModalVisible] = useState(false);
+  const [educationModalType, setEducationModalType] = useState<
+    "highSchool" | "university" | "masters"
+  >("university");
+  const [newEducationName, setNewEducationName] = useState("");
   const dispatch = useDispatch();
   const router = useRouter();
   const joinedGroups = useSelector(selectJoinedGroups);
@@ -181,6 +192,11 @@ export default function ProfileScreen() {
         university: userProfile.university || "",
         major: userProfile.major || "",
         graduationYear: userProfile.graduationYear || null,
+        highSchool: (userProfile as any).highSchool || "",
+        masters: (userProfile as any).masters || "",
+        extraEducation: ((userProfile as any).extraEducation as string[]) || [],
+        jobTitle: (userProfile as any).jobTitle || "",
+        company: (userProfile as any).company || "",
       });
     }
   }, [userProfile]);
@@ -203,6 +219,7 @@ export default function ProfileScreen() {
           university: form.university,
           major: form.major,
           graduationYear: form.graduationYear || undefined,
+          // Note: extended fields are kept frontend-first; only send if backend supports them.
         }) as any
       );
 
@@ -479,19 +496,46 @@ export default function ProfileScreen() {
               <RNView style={styles.inputGroup}>
                 <RNView style={styles.inputWithIcon}>
                   <FontAwesome
+                    name="building"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <TouchableOpacity
+                    style={[styles.inputWithIconField, styles.dropdownLike]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setEducationModalType("highSchool");
+                      setEducationModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.dropdownText}>
+                      {form.highSchool || "High School (optional)"}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={12} color={Colors.tint} />
+                  </TouchableOpacity>
+                </RNView>
+
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
                     name="graduation-cap"
                     size={16}
                     color={Colors.tint}
                     style={styles.inputIcon}
                   />
-                  <Input
-                    value={form.university}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, university: text }))
-                    }
-                    placeholder="University Name"
-                    style={styles.inputWithIconField}
-                  />
+                  <TouchableOpacity
+                    style={[styles.inputWithIconField, styles.dropdownLike]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setEducationModalType("university");
+                      setEducationModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.dropdownText}>
+                      {form.university || "University (select)"}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={12} color={Colors.tint} />
+                  </TouchableOpacity>
                 </RNView>
 
                 <RNView style={styles.inputWithIcon}>
@@ -513,6 +557,28 @@ export default function ProfileScreen() {
 
                 <RNView style={styles.inputWithIcon}>
                   <FontAwesome
+                    name="graduation-cap"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <TouchableOpacity
+                    style={[styles.inputWithIconField, styles.dropdownLike]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setEducationModalType("masters");
+                      setEducationModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.dropdownText}>
+                      {form.masters || "Master's / Graduate School (optional)"}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={12} color={Colors.tint} />
+                  </TouchableOpacity>
+                </RNView>
+
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
                     name="calendar"
                     size={16}
                     color={Colors.tint}
@@ -530,6 +596,77 @@ export default function ProfileScreen() {
                     }
                     placeholder="Graduation Year"
                     keyboardType="numeric"
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+
+                <RNView style={styles.extraEducationBox}>
+                  <Text style={styles.extraEducationTitle}>
+                    Additional institutions (optional)
+                  </Text>
+                  {form.extraEducation.length === 0 ? (
+                    <Text style={styles.extraEducationEmpty}>None added yet.</Text>
+                  ) : (
+                    form.extraEducation.map((name) => (
+                      <RNView key={name} style={styles.extraEducationRow}>
+                        <Text style={styles.extraEducationName}>{name}</Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setForm((f) => ({
+                              ...f,
+                              extraEducation: f.extraEducation.filter((x) => x !== name),
+                            }))
+                          }
+                        >
+                          <FontAwesome name="times" size={16} color={Colors.error} />
+                        </TouchableOpacity>
+                      </RNView>
+                    ))
+                  )}
+                  <TouchableOpacity
+                    style={styles.addExtraEducationBtn}
+                    onPress={() => {
+                      setNewEducationName("");
+                      setEducationModalType("university");
+                      setEducationModalVisible(true);
+                    }}
+                  >
+                    <FontAwesome name="plus" size={14} color="#fff" />
+                    <Text style={styles.addExtraEducationText}>Add institution</Text>
+                  </TouchableOpacity>
+                </RNView>
+              </RNView>
+            </RNView>
+
+            {/* Work (optional) */}
+            <RNView style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Work (Optional)</Text>
+              <RNView style={styles.inputGroup}>
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="id-badge"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.jobTitle}
+                    onChangeText={(text) => setForm((f) => ({ ...f, jobTitle: text }))}
+                    placeholder="Job title (optional)"
+                    style={styles.inputWithIconField}
+                  />
+                </RNView>
+                <RNView style={styles.inputWithIcon}>
+                  <FontAwesome
+                    name="briefcase"
+                    size={16}
+                    color={Colors.tint}
+                    style={styles.inputIcon}
+                  />
+                  <Input
+                    value={form.company}
+                    onChangeText={(text) => setForm((f) => ({ ...f, company: text }))}
+                    placeholder="Company (optional)"
                     style={styles.inputWithIconField}
                   />
                 </RNView>
@@ -630,6 +767,53 @@ export default function ProfileScreen() {
                 </Card>
               </RNView>
             </Modal>
+
+            {/* Education dropdown modal */}
+            <Modal
+              visible={educationModalVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setEducationModalVisible(false)}
+            >
+              <RNView style={styles.modalOverlay}>
+                <Card style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Add / Select Institution</Text>
+                  <Input
+                    value={newEducationName}
+                    onChangeText={setNewEducationName}
+                    placeholder="Type institution name…"
+                  />
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onPress={() => {
+                      const v = newEducationName.trim();
+                      if (!v) return;
+                      setForm((f) => {
+                        if (educationModalType === "highSchool") return { ...f, highSchool: v };
+                        if (educationModalType === "masters") return { ...f, masters: v };
+                        // university: if already set, treat as extra; otherwise set main university
+                        if (!f.university) return { ...f, university: v };
+                        if (f.extraEducation.includes(v)) return f;
+                        return { ...f, extraEducation: [...f.extraEducation, v] };
+                      });
+                      setEducationModalVisible(false);
+                      setNewEducationName("");
+                    }}
+                    style={styles.closeModalButton}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="md"
+                    onPress={() => setEducationModalVisible(false)}
+                  >
+                    Cancel
+                  </Button>
+                </Card>
+              </RNView>
+            </Modal>
           </>
         ) : (
           <>
@@ -701,6 +885,16 @@ export default function ProfileScreen() {
                     {user.university && (
                       <Text style={styles.infoCardText}>{user.university}</Text>
                     )}
+                    {(user as any).highSchool && (
+                      <Text style={[styles.infoCardText, styles.infoCardSubtext]}>
+                        High School: {(user as any).highSchool}
+                      </Text>
+                    )}
+                    {(user as any).masters && (
+                      <Text style={[styles.infoCardText, styles.infoCardSubtext]}>
+                        Masters: {(user as any).masters}
+                      </Text>
+                    )}
                     {user.major && (
                       <Text
                         style={[styles.infoCardText, styles.infoCardSubtext]}
@@ -717,6 +911,30 @@ export default function ProfileScreen() {
                     )}
                   </Card>
                 )}
+              </RNView>
+            )}
+
+            {!!((user as any).jobTitle || (user as any).company) && (
+              <RNView style={styles.profileInfoSection}>
+                <Card style={styles.infoCard}>
+                  <RNView style={styles.infoCardHeader}>
+                    <FontAwesome
+                      name="briefcase"
+                      size={16}
+                      color={Colors.tint}
+                      style={{ marginRight: spacing.xs }}
+                    />
+                    <Text style={styles.infoCardTitle}>Work</Text>
+                  </RNView>
+                  {(user as any).jobTitle && (
+                    <Text style={styles.infoCardText}>{(user as any).jobTitle}</Text>
+                  )}
+                  {(user as any).company && (
+                    <Text style={[styles.infoCardText, styles.infoCardSubtext]}>
+                      {(user as any).company}
+                    </Text>
+                  )}
+                </Card>
               </RNView>
             )}
 
@@ -773,7 +991,12 @@ export default function ProfileScreen() {
             const isPast = new Date(event.endTime) < new Date();
 
             return (
-              <Card key={event.id} style={styles.enrolledEventItem}>
+              <TouchableOpacity
+                key={event.id}
+                activeOpacity={0.92}
+                onPress={() => router.push(`/event/${event.id}`)}
+              >
+                <Card style={styles.enrolledEventItem}>
                 <RNView style={styles.enrolledEventHeader}>
                   <Text style={styles.enrolledEventTitle}>{event.title}</Text>
                   {isPast && (
@@ -831,7 +1054,8 @@ export default function ProfileScreen() {
                     Unenroll
                   </Button>
                 )}
-              </Card>
+                </Card>
+              </TouchableOpacity>
             );
           })}
         </RNView>
@@ -1145,6 +1369,18 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     ...shadows.sm,
   },
+  dropdownLike: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dropdownText: {
+    ...typography.base,
+    fontSize: 16,
+    color: Colors.text,
+    flexShrink: 1,
+    paddingRight: spacing.sm,
+  },
   phoneInputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -1186,6 +1422,51 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: spacing.lg,
     gap: spacing.md,
+  },
+  extraEducationBox: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  extraEducationTitle: {
+    ...typography.sm,
+    fontWeight: "800",
+    color: Colors.text,
+    marginBottom: spacing.sm,
+  },
+  extraEducationEmpty: {
+    ...typography.sm,
+    color: Colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  extraEducationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.xs,
+  },
+  extraEducationName: {
+    ...typography.base,
+    color: Colors.text,
+    flexShrink: 1,
+    paddingRight: spacing.sm,
+  },
+  addExtraEducationBtn: {
+    marginTop: spacing.sm,
+    backgroundColor: Colors.tint,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    alignSelf: "flex-start",
+  },
+  addExtraEducationText: {
+    color: "#fff",
+    fontWeight: "800",
   },
   infoCard: {
     padding: spacing.lg,
