@@ -1,5 +1,12 @@
 import React from "react";
-import { StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Pressable,
+  View as RNView,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -65,115 +72,107 @@ export default function TabTwoScreen() {
     }, 1000);
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {(showModal || (!!joinGroupCode && fromGroup)) && (
-        <View style={styles.modalOverlay}>
-          <LinearGradient
-            colors={["#a18fff", "#6dd5fa", "#f9fafb"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.modalGradient}
+  const PlanCard = ({ plan }: { plan: (typeof plans)[number] }) => {
+    return (
+      <Pressable onPress={() => handlePlanSelect(plan.name)}>
+        {({ pressed }) => (
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: plan.color },
+              pressed && styles.cardPressed,
+            ]}
           >
-            <View style={styles.modalContent}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => {
-                  setShowModal(false);
-                  router.back();
-                }}
-              >
-                <FontAwesome name="close" size={22} color="#4f46e5" />
-              </TouchableOpacity>
-              <ScrollView
-                contentContainerStyle={styles.plansContainer}
-                style={{ flex: 1, width: "100%" }}
-              >
-                {plans.map((plan) => {
-                  const [pressed, setPressed] = useState(false);
-                  return (
-                    <TouchableOpacity
-                      key={plan.name}
-                      style={[
-                        styles.card,
-                        { backgroundColor: plan.color },
-                        pressed && styles.cardPressed,
-                      ]}
-                      activeOpacity={0.92}
-                      onPress={() => handlePlanSelect(plan.name)}
-                      onPressIn={() => setPressed(true)}
-                      onPressOut={() => setPressed(false)}
-                    >
-                      <View style={styles.iconCircle}>
-                        <FontAwesome
-                          name={plan.icon}
-                          size={36}
-                          color="#4f46e5"
-                        />
-                      </View>
-                      <Text style={styles.planName}>{plan.name}</Text>
-                      <Text style={styles.price}>{plan.price}</Text>
-                      <TouchableOpacity
-                        style={styles.button}
-                        onPress={() => handlePlanSelect(plan.name)}
-                      >
-                        <Text style={styles.buttonText}>
-                          Join with {plan.name}
-                        </Text>
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          </LinearGradient>
-        </View>
-      )}
-      {!showModal && (
-        <>
-          <View style={styles.headerArea}>
-            <Text style={styles.header}>Choose Your Plan</Text>
-            <View style={styles.headerAccent} />
-            <Text style={styles.headerSubtitle}>
-              Select the best plan for your needs and unlock more features.
-            </Text>
-          </View>
-          <View style={styles.plansContainer}>
-            {plans.map((plan) => (
-              <View
-                key={plan.name}
-                style={[styles.card, { backgroundColor: plan.color }]}
-              >
-                <View style={styles.iconCircle}>
-                  <FontAwesome name={plan.icon} size={36} color="#4f46e5" />
-                </View>
+            <View style={styles.planTopRow}>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.planName}>{plan.name}</Text>
-                <Text style={styles.price}>{plan.price}</Text>
-                <View style={styles.featuresArea}>
-                  <Text style={styles.featuresTitle}>Features</Text>
-                  <View style={styles.featuresList}>
-                    {plan.features.map((feature) => (
-                      <View key={feature} style={styles.featureRow}>
-                        <FontAwesome
-                          name="check-circle"
-                          size={18}
-                          color="#22c55e"
-                          style={{ marginRight: 8 }}
-                        />
-                        <Text style={styles.feature}>{feature}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-                <TouchableOpacity style={styles.button}>
-                  <Text style={styles.buttonText}>Subscribe</Text>
-                </TouchableOpacity>
               </View>
-            ))}
+              <View style={styles.featuresCompact}>
+                {plan.features.slice(0, 3).map((feature) => (
+                  <View key={feature} style={styles.featureCompactRow}>
+                    <FontAwesome
+                      name="check-circle"
+                      size={14}
+                      color="#22c55e"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={styles.featureCompactText}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.planBottomRow}>
+              <Text style={styles.priceCentered}>{plan.price}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => handlePlanSelect(plan.name)}
+            >
+              <Text style={styles.buttonText}>
+                {joinGroupCode ? `Join with ${plan.name}` : "Subscribe"}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </>
-      )}
-    </ScrollView>
+        )}
+      </Pressable>
+    );
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        {(showModal || (!!joinGroupCode && fromGroup)) && (
+          <View style={styles.modalOverlay}>
+            <LinearGradient
+              colors={["#a18fff", "#6dd5fa", "#f9fafb"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.modalGradient}
+            >
+              <View style={styles.modalContent}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => {
+                    setShowModal(false);
+                    router.back();
+                  }}
+                >
+                  <FontAwesome name="close" size={22} color="#4f46e5" />
+                </TouchableOpacity>
+                <ScrollView
+                  contentContainerStyle={styles.plansContainer}
+                  style={{ flex: 1, width: "100%" }}
+                >
+                  {plans.map((plan) => (
+                    <PlanCard key={plan.name} plan={plan} />
+                  ))}
+                </ScrollView>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+        {!showModal && (
+          <>
+            <View style={styles.headerArea}>
+              <Text style={styles.header}>Choose Your Plan</Text>
+              <View style={styles.headerAccent} />
+              <Text style={styles.headerSubtitle}>
+                Select the best plan for your needs and unlock more features.
+              </Text>
+            </View>
+            <View style={styles.plansContainer}>
+              {plans.map((plan) => (
+                <PlanCard key={plan.name} plan={plan} />
+              ))}
+            </View>
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -225,7 +224,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 20,
     padding: 28,
-    alignItems: "center",
+    alignItems: "stretch",
     shadowColor: "#4f46e5",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.13,
@@ -255,11 +254,40 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: "#22223b",
   },
-  price: {
+  planTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  featuresCompact: {
+    flex: 1,
+  },
+  featureCompactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  featureCompactText: {
+    fontSize: 14,
+    color: "#22223b",
+    flexShrink: 1,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(34, 34, 59, 0.12)",
+    marginTop: 14,
+    marginBottom: 14,
+  },
+  planBottomRow: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+  },
+  priceCentered: {
     fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 16,
+    fontWeight: "800",
     color: "#4f46e5",
+    textAlign: "center",
   },
   featuresArea: {
     backgroundColor: "#fff",
