@@ -3,6 +3,7 @@ import {
   ScrollView,
   View as RNView,
   TouchableOpacity,
+  Switch,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
@@ -15,6 +16,7 @@ import {
   selectGroups,
   selectSubscriptions,
   selectSubscribedGroupCodes,
+  selectJoinedGroups,
   selectEvents,
   selectEnrollments,
   selectNotifications,
@@ -35,6 +37,7 @@ import Colors, {
   typography,
   shadows,
 } from "@/constants/Colors";
+import { useRouter } from "expo-router";
 
 type News = {
   title: string;
@@ -55,15 +58,18 @@ type Group = {
 };
 
 function TabOneScreenInner() {
+  const router = useRouter();
   const token = useSelector(selectToken);
   const subscriptions = useSelector((state: RootState) =>
     selectSubscriptions(state)
   );
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
+  const joinedGroups = useSelector(selectJoinedGroups);
   const notifications = useSelector(selectNotifications);
   const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
+  const [showPastEvents, setShowPastEvents] = useState(false);
 
   // Fetch data from API when component mounts (only when authenticated)
   useEffect(() => {
@@ -78,7 +84,7 @@ function TabOneScreenInner() {
   useEffect(() => {
     const checkUpcomingEvents = () => {
       const enrolledEvents = events.filter((event: any) =>
-        enrollments.includes(event.id)
+        enrollments.some((e: any) => e?.eventId === event.id)
       );
 
       enrolledEvents.forEach((event: any) => {
@@ -114,10 +120,10 @@ function TabOneScreenInner() {
   const groupsFromStore = useSelector(selectGroups);
 
   useEffect(() => {
-    if (groupsFromStore.length === 0) {
+    if (token && groupsFromStore.length === 0) {
       dispatch(fetchGroups() as any);
     }
-  }, [dispatch, groupsFromStore.length]);
+  }, [dispatch, token, groupsFromStore.length]);
 
   const subscribedGroups = groupsFromStore.filter((g: Group) =>
     subscribedGroupCodes.includes(g.code)
@@ -133,8 +139,42 @@ function TabOneScreenInner() {
       type: "news",
     }))
   );
-  const timeline = [...subscribedGroupNews].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  const joinedGroupActivity = joinedGroups.map((jg: any) => {
+    const g = groupsFromStore.find((x: any) => x.code === jg.groupCode);
+    return {
+      type: "joined_group" as const,
+      title: g?.university ? `Joined ${g.university}` : `Joined ${jg.groupCode}`,
+      date: jg.joinedAt || new Date().toISOString(),
+      description: "You became a member of this group.",
+      icon: "users" as const,
+      color: Colors.tint,
+      groupCode: jg.groupCode,
+    };
+  });
+
+  const enrolledEventActivity = events
+    .filter((event: any) => enrollments.some((e: any) => e?.eventId === event.id))
+    .filter((event: any) => {
+      if (showPastEvents) return true;
+      if (!event.endTime) return true;
+      const end = new Date(event.endTime);
+      if (isNaN(end.getTime())) return true;
+      return end >= new Date();
+    })
+    .map((event: any) => ({
+      type: "enrolled_event" as const,
+      title: `Enrolled: ${event.title}`,
+      date: event.startTime || event.createdAt || new Date().toISOString(),
+      description: event.groupName
+        ? `Event by ${event.groupName}`
+        : "You enrolled in this event.",
+      icon: "calendar" as const,
+      color: Colors.error,
+      eventId: event.id,
+    }));
+
+  const timeline = [...subscribedGroupNews, ...joinedGroupActivity, ...enrolledEventActivity].sort(
+    (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   const handleNotificationPress = (notificationId: string) => {
@@ -182,6 +222,15 @@ function TabOneScreenInner() {
       />
 
       <RNView style={styles.timelineContainer}>
+        <RNView style={styles.toggleRow}>
+          <Text style={styles.toggleLabel}>Show past events</Text>
+          <Switch
+            value={showPastEvents}
+            onValueChange={setShowPastEvents}
+            trackColor={{ false: Colors.border, true: Colors.tint }}
+            thumbColor="#fff"
+          />
+        </RNView>
         {timeline.length === 0 ? (
           <Card style={styles.timelineEmpty}>
             <Text style={styles.timelineEmptyText}>No updates yet</Text>
@@ -190,40 +239,50 @@ function TabOneScreenInner() {
             </Text>
           </Card>
         ) : (
-          timeline.map((event: any, idx) => (
-          <RNView
-            key={event.title + event.date + event.type + (event.group || "")}
-            style={styles.eventRow}
-          >
-            <RNView style={styles.iconColumn}>
+          <>
+            {timeline.map((event: any, idx) => (
               <RNView
-                style={[styles.iconCircle, { backgroundColor: event.color }]}
+                key={event.title + event.date + event.type + (event.group || "")}
+                style={styles.eventRow}
               >
-                <FontAwesome name={event.icon as any} size={22} color="#fff" />
+                <RNView style={styles.iconColumn}>
+                  <RNView
+                    style={[styles.iconCircle, { backgroundColor: event.color }]}
+                  >
+                    <FontAwesome name={event.icon as any} size={22} color="#fff" />
+                  </RNView>
+                  {idx < timeline.length - 1 && (
+                    <RNView
+                      style={[
+                        styles.verticalLine,
+                        { backgroundColor: Colors.border },
+                      ]}
+                    />
+                  )}
+                </RNView>
+                <TouchableOpacity
+                  activeOpacity={event.eventId ? 0.92 : 1}
+                  onPress={() => {
+                    if (event.eventId) router.push(`/event/${event.eventId}`);
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  <Card style={styles.eventContent}>
+                    <Text style={styles.eventTitle}>{event.title}</Text>
+                    <Text style={[styles.eventDate, { color: Colors.textSecondary }]}>
+                      {new Date(event.date).toLocaleString()}
+                    </Text>
+                    {"group" in event && event.group && (
+                      <Badge variant="info" size="sm" style={styles.groupBadge}>
+                        {event.group}
+                      </Badge>
+                    )}
+                    <Text style={styles.eventDescription}>{event.description}</Text>
+                  </Card>
+                </TouchableOpacity>
               </RNView>
-              {idx < timeline.length - 1 && (
-                <RNView
-                  style={[
-                    styles.verticalLine,
-                    { backgroundColor: Colors.border },
-                  ]}
-                />
-              )}
-            </RNView>
-            <Card style={styles.eventContent}>
-              <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text style={[styles.eventDate, { color: Colors.textSecondary }]}>
-                {event.date}
-              </Text>
-              {"group" in event && event.group && (
-                <Badge variant="info" size="sm" style={styles.groupBadge}>
-                  {event.group}
-                </Badge>
-              )}
-              <Text style={styles.eventDescription}>{event.description}</Text>
-            </Card>
-          </RNView>
-        )))
+            ))}
+          </>
         )}
       </RNView>
     </ScrollView>
@@ -269,6 +328,17 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "column",
     gap: spacing.xl,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.xs,
+  },
+  toggleLabel: {
+    ...typography.sm,
+    color: Colors.text,
+    fontWeight: "600",
   },
   eventRow: {
     flexDirection: "row",
