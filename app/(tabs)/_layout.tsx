@@ -305,6 +305,25 @@ function TabLayoutInner() {
         }}
       />
       <Tabs.Screen
+        name="jobs"
+        options={{
+          title: "Jobs",
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="briefcase" color={color} />
+          ),
+          ...(Platform.OS === "ios"
+            ? {
+                headerTitle: "Jobs",
+                ...iosHeaderTitleOptions,
+              }
+            : {
+                headerTitle: () => (
+                  <HeaderTitle title="Jobs" icon="briefcase" color={Colors.tint} />
+                ),
+              }),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
