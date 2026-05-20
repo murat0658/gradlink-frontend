@@ -5,7 +5,7 @@ export interface JoinedGroup {
   groupCode: string;
   groupName: string;
   joinedAt: string;
-  role: "MEMBER" | "MODERATOR" | "ADMIN";
+  role: "USER" | "GROUP_ADMIN" | "FULL_ADMIN";
 }
 
 export interface JoinedGroupsState {
@@ -40,7 +40,7 @@ const joinedGroupsSlice = createSlice({
           groupCode: action.payload,
           groupName: action.payload,
           joinedAt: new Date().toISOString(),
-          role: "MEMBER",
+          role: "USER",
         });
       }
     },

@@ -46,8 +46,8 @@ describe("joinedGroupsSlice", () => {
 
   describe("leaveGroup", () => {
     it("should remove a joined group by groupCode", () => {
-      const joinedGroup1 = { id: "1", groupCode: "group-1", groupName: "Group 1", joinedAt: "2023-01-01T00:00:00Z", role: "MEMBER" as const };
-      const joinedGroup2 = { id: "2", groupCode: "group-2", groupName: "Group 2", joinedAt: "2023-01-01T00:00:00Z", role: "MEMBER" as const };
+      const joinedGroup1 = { id: "1", groupCode: "group-1", groupName: "Group 1", joinedAt: "2023-01-01T00:00:00Z", role: "USER" as const };
+      const joinedGroup2 = { id: "2", groupCode: "group-2", groupName: "Group 2", joinedAt: "2023-01-01T00:00:00Z", role: "USER" as const };
 
       const stateWithJoinedGroups = {
         ...initialState,
@@ -62,7 +62,7 @@ describe("joinedGroupsSlice", () => {
     });
 
     it("should handle removing non-existent joined group", () => {
-      const joinedGroup = { id: "1", groupCode: "group-1", groupName: "Group 1", joinedAt: "2023-01-01T00:00:00Z", role: "MEMBER" as const };
+      const joinedGroup = { id: "1", groupCode: "group-1", groupName: "Group 1", joinedAt: "2023-01-01T00:00:00Z", role: "USER" as const };
       const stateWithJoinedGroup = {
         ...initialState,
         items: [joinedGroup],
