@@ -12,16 +12,19 @@ import Colors, {
 import { useEffect } from "react";
 import { useSelector, useDispatch, Provider } from "react-redux";
 import { fetchGroups } from "@/app/store/thunks";
-import { selectGroups } from "@/app/store/selectors";
+import { selectGroups, selectToken } from "@/app/store/selectors";
 import { store } from "@/app/store";
 
 function GroupsScreenInner() {
   const dispatch = useDispatch();
+  const token = useSelector(selectToken);
   const groups = useSelector(selectGroups);
 
   useEffect(() => {
-    dispatch(fetchGroups() as any);
-  }, [dispatch]);
+    if (token) {
+      dispatch(fetchGroups() as any);
+    }
+  }, [dispatch, token]);
 
   return (
     <ScrollView

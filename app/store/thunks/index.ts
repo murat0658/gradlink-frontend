@@ -111,12 +111,21 @@ export const unenrollFromEventAsync = createAsyncThunk(
 // Groups thunks
 export const fetchGroups = createAsyncThunk(
   "groups/fetchGroups",
-  async (params?: { page?: number; size?: number; search?: string }) => {
+  async (
+    params?: { page?: number; size?: number; search?: string },
+    { rejectWithValue }
+  ) => {
     try {
       const response = await apiService.getGroups(params);
       return response;
     } catch (error: any) {
-      throw error;
+      const errorMessage =
+        error?.message || "Failed to fetch groups";
+      if (errorMessage.includes("Access denied")) {
+        if (__DEV__) console.warn("⚠️ Groups skipped: not authenticated");
+        return [];
+      }
+      return rejectWithValue(errorMessage);
     }
   }
 );
