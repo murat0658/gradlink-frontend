@@ -23,10 +23,13 @@
               "NSExceptionAllowsInsecureHTTPLoads": true
             }
           }
-        }
-      }
+        },
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.muratkara.gradlink"
     },
     "android": {
+      "package": "com.muratkara.gradlink",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -45,6 +48,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "43ad5200-1076-4fd2-a417-e13c03fc177c"
+      }
     }
   }
 }
