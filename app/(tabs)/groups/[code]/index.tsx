@@ -324,50 +324,12 @@ export default function GroupInfoScreen() {
     );
   };
 
-  // Create group in backend if it doesn't exist
-  const createGroupIfNotExists = async () => {
-    if (!group) return;
-
-    try {
-      console.log("🔄 Checking if group exists in backend:", code);
-      // Try to get the group from API
-      await apiService.getGroup(code as string);
-      console.log("✅ Group exists in backend");
-    } catch (error: any) {
-      if (
-        error.message?.includes("404") ||
-        error.message?.includes("not found")
-      ) {
-        console.log("⚠️ Group not found in backend, creating it...");
-        try {
-          await apiService.createGroup({
-            code: group.code,
-            university: group.university,
-            description: group.description,
-            location: group.location,
-            founded: group.founded,
-            color: group.color,
-            icon: group.icon,
-          });
-          console.log("✅ Group created successfully in backend");
-        } catch (createError) {
-          console.error("❌ Failed to create group in backend:", createError);
-        }
-      }
-    }
-  };
-
   // Load news when component mounts and when subscription changes
   useEffect(() => {
     if (subscribed) {
       loadNews();
     }
   }, [subscribed, code]);
-
-  // Create group in backend when component mounts
-  useEffect(() => {
-    createGroupIfNotExists();
-  }, [code, group]);
 
   // Debug subscription state changes
   useEffect(() => {
