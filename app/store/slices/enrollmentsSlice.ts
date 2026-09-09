@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { fetchEnrollments } from "../thunks";
 
 export interface Enrollment {
   id: string;
@@ -56,6 +57,32 @@ const enrollmentsSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchEnrollments.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchEnrollments.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.items = (action.payload || []).map((item: any) => ({
+          id: String(item.id),
+          eventId: String(item.eventId ?? item.event?.id ?? ""),
+          eventTitle: item.eventTitle ?? item.event?.title ?? "",
+          userId: String(item.userId ?? item.user?.id ?? ""),
+          enrolledAt: item.enrolledAt ?? new Date().toISOString(),
+          status: item.status ?? "ENROLLED",
+        }));
+      })
+      .addCase(fetchEnrollments.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (typeof action.payload === "string" && action.payload) ||
+          action.error.message ||
+          "Failed to fetch enrollments";
+      });
   },
 });
 

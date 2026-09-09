@@ -95,19 +95,19 @@ export const ApiProvider = ({ children }: ApiProviderProps) => {
     // Don't try to refresh if we don't have a token or aren't authenticated
     if (!token || !isAuthenticated) {
       console.log("🚫 No token or not authenticated, skipping token refresh");
-      return;
+      return false;
     }
 
     // Try to refresh token
     const refreshed = await refreshToken();
     if (!refreshed) {
       console.log("🚪 Token refresh failed, logging out user");
-      // If refresh fails, redirect to login
       dispatch(logout());
       apiService.setToken(null);
     } else {
       console.log("✅ Token refresh successful, user remains authenticated");
     }
+    return refreshed;
   }, [dispatch, refreshToken, token, isAuthenticated]);
 
   // Set up authentication error handler

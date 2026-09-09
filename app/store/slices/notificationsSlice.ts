@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Notification } from "../types";
+import { fetchNotifications } from "../thunks";
+import { unwrapPageContent } from "../../utils/status";
 
 export interface NotificationsState {
   items: Notification[];
@@ -44,6 +46,35 @@ const notificationsSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchNotifications.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchNotifications.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.items = unwrapPageContent<any>(action.payload).map((n) => ({
+          id: String(n.id),
+          title: n.title ?? "",
+          message: n.message ?? n.body ?? "",
+          type: n.type ?? "general",
+          isRead: Boolean(n.isRead ?? n.read),
+          timestamp: n.timestamp ?? n.createdAt ?? new Date().toISOString(),
+          eventId: n.eventId,
+          groupCode: n.groupCode,
+          topicTitle: n.topicTitle,
+        }));
+      })
+      .addCase(fetchNotifications.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (typeof action.payload === "string" && action.payload) ||
+          action.error.message ||
+          "Failed to fetch notifications";
+      });
   },
 });
 

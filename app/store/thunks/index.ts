@@ -1,5 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { apiService } from "../../services/ApiService";
+import { API_BASE_URL } from "../../config/api";
 import {
   setEvents,
   setGroups,
@@ -374,14 +375,12 @@ export const unsubscribeFromGroupAsync = createAsyncThunk(
 // Joined groups thunks
 export const fetchJoinedGroups = createAsyncThunk(
   "joinedGroups/fetchJoinedGroups",
-  async () => {
+  async (_, { rejectWithValue }) => {
     try {
-      // This would be implemented when the backend provides this endpoint
-      // For now, we'll use a placeholder
-      const response: any[] = [];
-      return response;
+      const response = await apiService.getMyGroups();
+      return Array.isArray(response) ? response : response?.content ?? [];
     } catch (error: any) {
-      throw error;
+      return rejectWithValue(error.message || "Failed to fetch joined groups");
     }
   }
 );
@@ -389,14 +388,12 @@ export const fetchJoinedGroups = createAsyncThunk(
 // Enrollments thunks
 export const fetchEnrollments = createAsyncThunk(
   "enrollments/fetchEnrollments",
-  async () => {
+  async (_, { rejectWithValue }) => {
     try {
-      // This would be implemented when the backend provides this endpoint
-      // For now, we'll use a placeholder
-      const response: any[] = [];
-      return response;
+      const response = await apiService.getMyEnrollments();
+      return Array.isArray(response) ? response : response?.content ?? [];
     } catch (error: any) {
-      throw error;
+      return rejectWithValue(error.message || "Failed to fetch enrollments");
     }
   }
 );
@@ -459,7 +456,14 @@ export const uploadAvatar = createAsyncThunk(
       dispatch(setLoading(true));
       dispatch(setError(null));
       const response = await apiService.uploadFile(file, "avatar");
-      // Update profile with new avatar URL
+      if (response?.url) {
+        const avatarUrl = response.url.startsWith("http")
+          ? response.url
+          : `${API_BASE_URL}${response.url}`;
+        const updated = await apiService.updateUser({ avatarUrl });
+        dispatch(setProfile(updated));
+        return response;
+      }
       const currentProfile = await apiService.getCurrentUser();
       dispatch(setProfile(currentProfile));
       return response;

@@ -29,6 +29,7 @@ describe("ApiService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     apiService.setToken(null);
+    apiService.setAuthErrorHandler(undefined);
   });
 
   describe("Token Management", () => {
@@ -972,6 +973,22 @@ describe("ApiService", () => {
       await expect(apiService.getCurrentUser()).rejects.toThrow(
         "Authentication required. Please log in again."
       );
+    });
+
+    it("should retry the original request after a successful refresh", async () => {
+      apiService.setToken("old-token");
+      apiService.setAuthErrorHandler(async () => {
+        apiService.setToken("new-token");
+        return true;
+      });
+      mockFetch({ message: "Unauthorized" }, false, 401);
+      const mockUser = createMockUser();
+      mockFetch(mockUser);
+
+      const result = await apiService.getCurrentUser();
+
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(result).toEqual(mockUser);
     });
 
     it("should handle HTTP 403 errors", async () => {

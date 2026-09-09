@@ -1,5 +1,9 @@
-// API Configuration – remote backend
-export const API_BASE_URL = "https://vmi3096881.contaboserver.net";
+// API Configuration
+const REMOTE_API_BASE_URL = "https://vmi3096881.contaboserver.net";
+
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  (__DEV__ ? "http://localhost:8080" : REMOTE_API_BASE_URL);
 
 // API Endpoints
 export const API_ENDPOINTS = {

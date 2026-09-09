@@ -95,7 +95,13 @@ export default function TabTwoScreen() {
     }
 
     if (billing?.premium) {
-      finish();
+      setBusy(true);
+      try {
+        await maybeJoinGroup();
+        finish();
+      } finally {
+        setBusy(false);
+      }
       return;
     }
 

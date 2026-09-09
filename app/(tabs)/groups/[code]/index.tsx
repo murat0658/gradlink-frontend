@@ -54,6 +54,8 @@ import {
   unenrollFromEventAsync,
   fetchGroups,
   selectUserProfile,
+  fetchJoinedGroups,
+  fetchEnrollments,
 } from "../../../store";
 import { AppEvent } from "../../../store/types";
 import { isUuid } from "../../../utils/validation";
@@ -78,6 +80,13 @@ export default function GroupInfoScreen() {
       dispatch(fetchGroups() as any);
     }
   }, [dispatch, token, groupsFromStore.length]);
+
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchJoinedGroups() as any);
+      dispatch(fetchEnrollments() as any);
+    }
+  }, [dispatch, token]);
 
   const subscribedGroupCodes = useSelector((state: RootState) =>
     selectSubscribedGroupCodes(state)
@@ -642,8 +651,9 @@ export default function GroupInfoScreen() {
     if (isNaN(endDate.getTime())) return false;
     return endDate < new Date();
   };
-  const isEnrolledInEvent = (eventId: string) =>
-    enrollments.some((enrollment: any) => enrollment.eventId === eventId);
+  const isEnrolledInEvent = (event: any) =>
+    Boolean(event?.isEnrolled || event?.enrolled) ||
+    enrollments.some((enrollment: any) => enrollment.eventId === event.id);
 
   return (
     <ScrollView
@@ -1066,7 +1076,7 @@ export default function GroupInfoScreen() {
             eventsToShow.map((event: any) => {
               const dateTime = formatDateTime(event.startTime);
               const isPast = isEventPast(event);
-              const isEnrolled = isEnrolledInEvent(event.id);
+              const isEnrolled = isEnrolledInEvent(event);
               const trulyFull = isEventFull(event);
               const premiumSeatsOnly = isPrioritySeatsOnly(event);
               const canEnroll = canEnrollInEvent(event, {

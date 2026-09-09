@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../config/api";
 class ApiService {
   private baseUrl: string;
   private token: string | null = null;
-  private onAuthError?: () => void;
+  private onAuthError?: () => Promise<boolean> | boolean | void;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -22,7 +22,7 @@ class ApiService {
     console.log("Token set successfully");
   }
 
-  setAuthErrorHandler(handler: () => void) {
+  setAuthErrorHandler(handler?: () => Promise<boolean> | boolean | void) {
     this.onAuthError = handler;
   }
 
@@ -60,7 +60,7 @@ class ApiService {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await this.request<T>(endpoint, options, requireAuth);
+        return await this.request<T>(endpoint, options, requireAuth, false);
       } catch (error) {
         lastError = error as Error;
 
@@ -95,7 +95,8 @@ class ApiService {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    requireAuth: boolean = true
+    requireAuth: boolean = true,
+    authRetried: boolean = false
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
@@ -143,14 +144,17 @@ class ApiService {
           console.warn("Failed to parse error response as JSON:", parseError);
         }
 
-        // Handle authentication errors, but never from refresh itself — that
-        // would re-enter this handler and log the user out on a failed refresh.
+        // Expired access tokens: refresh once, then retry the original request.
         if (
           response.status === 401 &&
           this.onAuthError &&
-          endpoint !== "/api/auth/refresh"
+          endpoint !== "/api/auth/refresh" &&
+          !authRetried
         ) {
-          this.onAuthError();
+          const refreshed = await this.onAuthError();
+          if (refreshed) {
+            return this.request<T>(endpoint, options, requireAuth, true);
+          }
         }
 
         // Create a more detailed error message
@@ -323,6 +327,14 @@ class ApiService {
 
   async getCurrentUser() {
     return this.request<any>("/api/users/me");
+  }
+
+  async getMyGroups() {
+    return this.request<any>("/api/users/me/groups");
+  }
+
+  async getMyEnrollments() {
+    return this.request<any>("/api/users/me/enrollments");
   }
 
   async updateUser(userData: Partial<any>) {

@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { fetchJoinedGroups } from "../thunks";
 
 export interface JoinedGroup {
   id: string;
@@ -56,6 +57,31 @@ const joinedGroupsSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchJoinedGroups.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchJoinedGroups.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.items = (action.payload || []).map((item: any) => ({
+          id: String(item.id),
+          groupCode: item.groupCode ?? item.group?.code ?? "",
+          groupName: item.groupName ?? item.group?.university ?? item.groupCode ?? "",
+          joinedAt: item.joinedAt ?? new Date().toISOString(),
+          role: item.role ?? "USER",
+        }));
+      })
+      .addCase(fetchJoinedGroups.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (typeof action.payload === "string" && action.payload) ||
+          action.error.message ||
+          "Failed to fetch joined groups";
+      });
   },
 });
 

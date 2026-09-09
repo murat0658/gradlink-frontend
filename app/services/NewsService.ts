@@ -30,10 +30,21 @@ export interface CreateNewsRequest {
 class NewsService {
   async createNews(newsData: CreateNewsRequest): Promise<NewsItem> {
     console.log("📰 NewsService.createNews() called with data:", newsData);
-    return apiService.makeRequest<NewsItem>(API_ENDPOINTS.NEWS.CREATE, {
+    const payload = {
+      ...newsData,
+      title: newsData.title?.trim() || "Update",
+    };
+    const res = await apiService.makeRequest<any>(API_ENDPOINTS.NEWS.CREATE, {
       method: "POST",
-      body: JSON.stringify(newsData),
+      body: JSON.stringify(payload),
     });
+    const news = res?.news ?? res;
+    return {
+      ...news,
+      title: news.title ?? payload.title,
+      author: news.author ?? news.createdByName ?? "Unknown",
+      createdAt: news.createdAt ?? new Date().toISOString(),
+    };
   }
 
   async getNewsByGroup(groupId: string | number): Promise<NewsItem[]> {

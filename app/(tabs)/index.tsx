@@ -29,6 +29,8 @@ import {
   fetchNotifications,
   fetchSubscriptions,
   fetchGroups,
+  fetchJoinedGroups,
+  fetchEnrollments,
 } from "../store";
 import { Card, Badge, Header } from "@/components/UI";
 import Colors, {
@@ -77,6 +79,8 @@ function TabOneScreenInner() {
       dispatch(fetchEvents({}) as any);
       dispatch(fetchNotifications({}) as any);
       dispatch(fetchSubscriptions() as any);
+      dispatch(fetchJoinedGroups() as any);
+      dispatch(fetchEnrollments() as any);
     }
   }, [dispatch, token]);
 

@@ -77,7 +77,12 @@ const subscriptionsSlice = createSlice({
 
         // Merge API subscriptions with local subscriptions
         // Keep local subscriptions that aren't in the API response
-        const apiSubscriptions = action.payload || [];
+        const apiSubscriptions = (action.payload || []).map((item: any) => ({
+          id: String(item.id ?? `sub-${item.code ?? item.groupCode}`),
+          groupCode: item.groupCode ?? item.code,
+          groupName: item.groupName ?? item.university ?? item.code ?? item.groupCode,
+          subscribedAt: item.subscribedAt ?? item.createdAt ?? new Date().toISOString(),
+        }));
         const localSubscriptions = state.items.filter(
           (local) =>
             !apiSubscriptions.some((api) => api.groupCode === local.groupCode)

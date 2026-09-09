@@ -36,6 +36,8 @@ import {
   fetchUserProfile,
   updateUserProfile,
   uploadAvatar,
+  fetchJoinedGroups,
+  fetchEnrollments,
 } from "../store";
 import { AppEvent } from "../store/types";
 import { useRouter } from "expo-router";
@@ -163,8 +165,10 @@ export default function ProfileScreen() {
   const groupsFromStore = useSelector(selectGroups);
 
   // Get enrolled events
-  const enrolledEvents = events.filter((event: any) =>
-    enrollments.some((enrollment: any) => enrollment.eventId === event.id)
+  const enrolledEvents = events.filter(
+    (event: any) =>
+      Boolean(event?.isEnrolled || event?.enrolled) ||
+      enrollments.some((enrollment: any) => enrollment.eventId === event.id)
   );
   const upcomingEnrolledEvents = enrolledEvents.filter(
     (event: any) => !event.endTime || new Date(event.endTime) >= new Date()
@@ -200,6 +204,8 @@ export default function ProfileScreen() {
       dispatch(fetchEvents({}) as any);
       dispatch(fetchNotifications({}) as any);
       dispatch(fetchSubscriptions() as any);
+      dispatch(fetchJoinedGroups() as any);
+      dispatch(fetchEnrollments() as any);
       if (!userProfile) {
         dispatch(fetchUserProfile() as any);
       }

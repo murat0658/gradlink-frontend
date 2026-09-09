@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AppEvent } from "../types";
+import { fetchEvents } from "../thunks";
+import { unwrapPageContent } from "../../utils/status";
 
 export interface EventsState {
   items: AppEvent[];
@@ -55,6 +57,25 @@ const eventsSlice = createSlice({
       state.error = action.payload;
       state.loading = false;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchEvents.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchEvents.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.items = unwrapPageContent<AppEvent>(action.payload);
+      })
+      .addCase(fetchEvents.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (typeof action.payload === "string" && action.payload) ||
+          action.error.message ||
+          "Failed to fetch events";
+      });
   },
 });
 
