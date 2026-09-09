@@ -14,6 +14,7 @@ import { useDispatch } from "react-redux";
 import { joinGroup, joinGroupAsync } from "./store";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import Colors from "@/constants/Colors";
 
 const plans: {
   name: string;
@@ -93,7 +94,7 @@ export default function TabTwoScreen() {
                     <FontAwesome
                       name="check-circle"
                       size={14}
-                      color="#22c55e"
+                      color={Colors.success}
                       style={{ marginRight: 8 }}
                     />
                     <Text style={styles.featureCompactText}>{feature}</Text>

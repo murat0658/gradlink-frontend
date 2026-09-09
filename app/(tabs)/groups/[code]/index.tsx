@@ -39,7 +39,8 @@ import {
   joinGroup,
   leaveGroup,
   leaveGroupAsync,
-  selectJoinedGroups,
+  joinGroupAsync,
+  selectJoinedGroupCodes,
   enrollInEvent,
   unenrollFromEvent,
   enroll,
@@ -54,6 +55,7 @@ import {
 } from "../../../store";
 import { AppEvent } from "../../../store/types";
 import { isUuid } from "../../../utils/validation";
+import Colors from "@/constants/Colors";
 
 // Add a type for topic posts
 type TopicPost = {
@@ -80,15 +82,16 @@ export default function GroupInfoScreen() {
   );
   const subscribed = subscribedGroupCodes.includes(code as string);
 
-  const joinedGroups = useSelector((state: RootState) =>
-    selectJoinedGroups(state)
+  const joinedGroupCodes = useSelector((state: RootState) =>
+    selectJoinedGroupCodes(state)
   );
-  const joined = joinedGroups.includes(code as string);
+  const joined = joinedGroupCodes.includes(code as string);
 
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
   const router = useRouter();
   const [showUnsubModal, setShowUnsubModal] = React.useState(false);
+  const [showLeaveModal, setShowLeaveModal] = React.useState(false);
   const [activeTab, setActiveTab] = useState<
     "news" | "events" | "topics" | "jobs" | "members"
   >(
@@ -624,22 +627,7 @@ export default function GroupInfoScreen() {
           {joined ? (
             <TouchableOpacity
               style={styles.leaveButton}
-              onPress={async () => {
-                try {
-                  await dispatch(leaveGroupAsync(code as string) as any).unwrap();
-                  dispatch(leaveGroup(code as string));
-                  Toast.show({
-                    type: "success",
-                    text1: "Left group",
-                  });
-                } catch (error: any) {
-                  Toast.show({
-                    type: "error",
-                    text1: "Failed to leave group",
-                    text2: error?.message || "Please try again.",
-                  });
-                }
-              }}
+              onPress={() => setShowLeaveModal(true)}
               activeOpacity={0.85}
             >
               <FontAwesome
@@ -675,12 +663,24 @@ export default function GroupInfoScreen() {
               {subscribed && (
                 <TouchableOpacity
                   style={styles.joinButton}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/subscriptions",
-                      params: { joinGroup: code, fromGroup: "1" },
-                    })
-                  }
+                  onPress={async () => {
+                    try {
+                      await dispatch(
+                        joinGroupAsync(code as string) as any
+                      ).unwrap();
+                      dispatch(joinGroup(code as string));
+                      Toast.show({
+                        type: "success",
+                        text1: "Joined group",
+                      });
+                    } catch (error: any) {
+                      Toast.show({
+                        type: "error",
+                        text1: "Failed to join group",
+                        text2: error?.message || "Please try again.",
+                      });
+                    }
+                  }}
                   activeOpacity={0.85}
                 >
                   <FontAwesome
@@ -1151,7 +1151,7 @@ export default function GroupInfoScreen() {
           <Text style={styles.newsHeader}>Job Opportunities</Text>
           <View style={styles.newsHeaderAccent} />
           <Text style={styles.newsSubtitle}>
-            Jobs shared inside this university group.
+            Sample listings — job postings are coming soon.
           </Text>
           {jobs.length === 0 ? (
             <Text style={{ color: "#888", marginTop: 12 }}>
@@ -1220,6 +1220,57 @@ export default function GroupInfoScreen() {
                 <TouchableOpacity
                   style={[styles.modalButton, styles.modalCancelButton]}
                   onPress={() => setShowUnsubModal(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+      {joined && (
+        <Modal
+          visible={showLeaveModal}
+          transparent
+          animationType="none"
+          onRequestClose={() => setShowLeaveModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                Leave {group.university}?
+              </Text>
+              <Text style={styles.modalDesc}>
+                Are you sure you want to leave this group?
+              </Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={async () => {
+                    setShowLeaveModal(false);
+                    try {
+                      await dispatch(
+                        leaveGroupAsync(code as string) as any
+                      ).unwrap();
+                      dispatch(leaveGroup(code as string));
+                      Toast.show({
+                        type: "success",
+                        text1: "Left group",
+                      });
+                    } catch (error: any) {
+                      Toast.show({
+                        type: "error",
+                        text1: "Failed to leave group",
+                        text2: error?.message || "Please try again.",
+                      });
+                    }
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => setShowLeaveModal(false)}
                 >
                   <Text style={styles.modalCancelButtonText}>No</Text>
                 </TouchableOpacity>
@@ -1608,11 +1659,11 @@ const styles = StyleSheet.create({
   joinButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#22c55e",
+    backgroundColor: Colors.success,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    shadowColor: "#22c55e",
+    shadowColor: Colors.success,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
@@ -1902,7 +1953,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   enrolledButton: {
-    backgroundColor: "#22c55e",
+    backgroundColor: Colors.success,
   },
   enrollButtonText: {
     color: "#fff",

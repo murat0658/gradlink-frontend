@@ -262,21 +262,6 @@ function TabLayoutInner() {
                   )}
                 </Pressable>
               </Link>
-              <Link href="/modal" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="info-circle"
-                      size={25}
-                      color={Colors.text}
-                      style={{
-                        marginRight: spacing.md,
-                        opacity: pressed ? 0.5 : 1,
-                      }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
             </RNView>
           ),
         }}

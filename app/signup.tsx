@@ -16,6 +16,7 @@ import { setAuthenticated } from "./store";
 import { apiService } from "./services/ApiService";
 import { useRouter, Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Colors from "@/constants/Colors";
 
 const COUNTRY_CODES = [
   { code: "+1", name: "United States/Canada" },
@@ -94,7 +95,7 @@ export default function SignupScreen() {
         <FontAwesome
           name="user-plus"
           size={48}
-          color="#22c55e"
+          color={Colors.success}
           style={{ marginBottom: 16 }}
         />
         <Text style={styles.title}>Create Account</Text>
@@ -115,7 +116,7 @@ export default function SignupScreen() {
             <FontAwesome
               name="chevron-down"
               size={14}
-              color="#22c55e"
+              color={Colors.success}
               style={{ marginLeft: 4 }}
             />
           </TouchableOpacity>
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
   },
   countryCodeText: {
     fontSize: 15,
-    color: "#22c55e",
+    color: Colors.success,
     fontWeight: "bold",
   },
   countryNameText: {
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   closeModalButton: {
-    backgroundColor: "#22c55e",
+    backgroundColor: Colors.success,
     borderRadius: 8,
     paddingHorizontal: 24,
     paddingVertical: 10,
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f3f4f6",
   },
   button: {
-    backgroundColor: "#22c55e",
+    backgroundColor: Colors.success,
     borderRadius: 8,
     paddingHorizontal: 28,
     paddingVertical: 12,

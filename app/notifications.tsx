@@ -21,6 +21,7 @@ import {
   markNotificationAsReadAsync,
 } from "./store";
 import { useRouter } from "expo-router";
+import Colors from "@/constants/Colors";
 
 export default function NotificationsModal() {
   const token = useSelector(selectToken);
@@ -106,7 +107,7 @@ export default function NotificationsModal() {
       case "event":
         return "#4f46e5";
       case "general":
-        return "#22c55e";
+        return Colors.success;
       default:
         return "#6b7280";
     }

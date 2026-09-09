@@ -13,6 +13,7 @@ import { setAuthenticated, setToken } from "./store";
 import { apiService } from "./services/ApiService";
 import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Colors from "@/constants/Colors";
 
 export default function AuthScreen() {
   const [email, setEmail] = useState("");
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   success: {
-    color: "#22c55e",
+    color: Colors.success,
     fontSize: 15,
     marginBottom: 8,
     alignSelf: "flex-start",

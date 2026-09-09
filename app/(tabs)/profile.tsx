@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
   Switch,
+  Alert,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
@@ -46,6 +47,7 @@ import Colors, {
   typography,
   shadows,
 } from "@/constants/Colors";
+import Toast from "react-native-toast-message";
 
 // Default user data for fallback
 const defaultUser = {
@@ -133,7 +135,7 @@ export default function ProfileScreen() {
 
   // Get enrolled events
   const enrolledEvents = events.filter((event: any) =>
-    enrollments.includes(event.id)
+    enrollments.some((enrollment: any) => enrollment.eventId === event.id)
   );
   const upcomingEnrolledEvents = enrolledEvents.filter(
     (event: any) => !event.endTime || new Date(event.endTime) >= new Date()
@@ -204,7 +206,11 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     if (!canSave) return;
     if (!userId) {
-      alert("User ID not found. Cannot update profile.");
+      Toast.show({
+        type: "error",
+        text1: "User ID not found",
+        text2: "Cannot update profile.",
+      });
       return;
     }
     try {
@@ -225,11 +231,16 @@ export default function ProfileScreen() {
 
       setEditMode(false);
       setTouched({});
-      alert("Profile updated successfully!");
+      Toast.show({
+        type: "success",
+        text1: "Profile updated",
+      });
     } catch (err: any) {
-      alert(
-        err.message || "Could not connect to server. Please try again later."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Could not update profile",
+        text2: err.message || "Please try again later.",
+      });
     }
   };
 
@@ -250,7 +261,11 @@ export default function ProfileScreen() {
           await dispatch(uploadAvatar(asset.file) as any);
         } catch (err: any) {
           console.error("Failed to upload avatar:", err);
-          alert("Failed to upload avatar. Please try again.");
+          Toast.show({
+            type: "error",
+            text1: "Failed to upload avatar",
+            text2: "Please try again.",
+          });
         }
       }
     }
@@ -271,19 +286,37 @@ export default function ProfileScreen() {
   };
 
   const handleUnenroll = (eventId: string, eventTitle: string) => {
-    dispatch(unenrollFromEvent(eventId));
-    dispatch(unenroll(eventId));
-    alert(`You have unenrolled from "${eventTitle}"`);
+    Alert.alert("Unenroll", `Unenroll from "${eventTitle}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Unenroll",
+        style: "destructive",
+        onPress: () => {
+          dispatch(unenrollFromEvent(eventId));
+          dispatch(unenroll(eventId));
+          Toast.show({
+            type: "success",
+            text1: "Unenrolled",
+            text2: eventTitle,
+          });
+        },
+      },
+    ]);
   };
 
   const handleTestNotification = async () => {
     const sent = await NotificationService.sendTestNotification();
     if (sent) {
-      alert("Test notification sent! Check your device notifications.");
+      Toast.show({
+        type: "success",
+        text1: "Test notification sent",
+      });
     } else {
-      alert(
-        "Could not send test notification. Enable notifications in device settings and try again."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Could not send test notification",
+        text2: "Enable notifications in device settings and try again.",
+      });
     }
   };
 
@@ -319,12 +352,15 @@ export default function ProfileScreen() {
         {/* Joined Badges */}
         {joinedGroups.length > 0 && (
           <RNView style={styles.badgeRow}>
-            {joinedGroups.map((code: any) => {
-              const group = groupsFromStore.find((g: any) => g.code === code);
+            {joinedGroups.map((membership: any) => {
+              const groupCode = membership?.groupCode ?? membership;
+              const group = groupsFromStore.find(
+                (g: any) => g.code === groupCode
+              );
               if (!group) return null;
               return (
                 <Badge
-                  key={code}
+                  key={groupCode}
                   variant="primary"
                   size="md"
                   style={styles.joinedBadge}

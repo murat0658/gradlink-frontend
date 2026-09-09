@@ -41,12 +41,15 @@ export default function JobsScreen() {
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <Header
         title="Jobs"
-        subtitle="Opportunities shared by your community."
+        subtitle="Sample listings — real job postings are coming soon."
         icon="💼"
         color={Colors.tint}
       />
 
       <RNView style={styles.list}>
+        <Badge variant="warning" size="sm" style={{ alignSelf: "flex-start" }}>
+          Sample data
+        </Badge>
         {mockJobs.map((job) => (
           <TouchableOpacity key={job.id} activeOpacity={0.92}>
             <Card style={styles.card}>
