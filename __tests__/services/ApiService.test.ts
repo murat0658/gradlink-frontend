@@ -747,6 +747,26 @@ describe("ApiService", () => {
       });
     });
 
+    describe("requestTopicPin", () => {
+      it("should request a topic pin", async () => {
+        mockFetch({ message: "Pin requested" });
+
+        const result = await apiService.requestTopicPin("harvard", "Networking");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/groups/harvard/topics/Networking/pin-request",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual({ message: "Pin requested" });
+      });
+    });
+
     describe("addReply", () => {
       it("should add reply to topic", async () => {
         const mockReply = { id: "1", content: "Reply content" };
@@ -879,6 +899,18 @@ describe("ApiService", () => {
 
       await expect(apiService.getCurrentUser()).rejects.toThrow(
         "Access denied. You don't have permission for this action."
+      );
+    });
+
+    it("should keep backend 403 error details", async () => {
+      mockFetch(
+        { error: "Remaining seats are reserved for Premium members" },
+        false,
+        403
+      );
+
+      await expect(apiService.enrollInEvent("event-1")).rejects.toThrow(
+        "Remaining seats are reserved for Premium members"
       );
     });
 

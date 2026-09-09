@@ -10,13 +10,17 @@ import {
 import { Text, View } from "@/components/Themed";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSelector, useDispatch } from "react-redux";
+import Toast from "react-native-toast-message";
 import {
   setTopicAnswers,
   updateTopicAnswers,
   selectTopicAnswers,
+  selectUserProfile,
   RootState,
   ThreadAnswer,
 } from "@/app/store";
+import { apiService } from "../../../services/ApiService";
+import { isPremiumUser } from "../../../utils/status";
 
 // Helper: get initials from name
 function getInitials(name: string) {
@@ -49,10 +53,17 @@ export default function TopicThreadScreen() {
   const { code, topicTitle } = useLocalSearchParams();
   const router = useRouter();
   const dispatch = useDispatch();
-  const topicKey = `${code}:${topicTitle}`;
+  const groupCode = Array.isArray(code) ? code[0] : code;
+  const title = Array.isArray(topicTitle) ? topicTitle[0] : topicTitle;
+  const topicKey = `${groupCode}:${title}`;
   const storedMainPost = useSelector((state: RootState) =>
     selectTopicAnswers(state, topicKey)
   );
+  const profile = useSelector(selectUserProfile);
+  const premium = isPremiumUser(profile);
+  const [pinned, setPinned] = useState(false);
+  const [pinRequested, setPinRequested] = useState(false);
+  const [pinBusy, setPinBusy] = useState(false);
   // Main discussion post
   const [mainPost, setMainPost] = useState<ThreadAnswer>(
     storedMainPost?.[0] || {
@@ -70,6 +81,46 @@ export default function TopicThreadScreen() {
   const [replyContent, setReplyContent] = useState("");
   // Track upvotes (local only)
   const [upvotedIds, setUpvotedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!groupCode || !title) return;
+    apiService
+      .getTopic(groupCode, title)
+      .then((topic: any) => {
+        setPinned(Boolean(topic?.pinned ?? topic?.isPinned));
+        setPinRequested(Boolean(topic?.pinRequested));
+        if (topic?.content) {
+          setMainPost((prev) => ({
+            ...prev,
+            content: topic.content,
+            author: topic.authorId?.name || topic.author?.name || prev.author,
+          }));
+        }
+      })
+      .catch(() => {});
+  }, [groupCode, title]);
+
+  const handlePinRequest = async () => {
+    if (!groupCode || !title) return;
+    setPinBusy(true);
+    try {
+      await apiService.requestTopicPin(groupCode, title);
+      setPinRequested(true);
+      Toast.show({
+        type: "success",
+        text1: "Pin requested",
+        text2: "A group admin can pin this topic for everyone.",
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not request pin",
+        text2: error?.message || "Please try again.",
+      });
+    } finally {
+      setPinBusy(false);
+    }
+  };
 
   // Sync local state to Redux on change
   useEffect(() => {
@@ -267,8 +318,23 @@ export default function TopicThreadScreen() {
           <FontAwesome name="arrow-left" size={22} color={ACCENT} />
         </TouchableOpacity>
         <Text style={styles.topicTitle} numberOfLines={1}>
-          {topicTitle}
+          {title}
         </Text>
+        {pinned ? (
+          <Text style={styles.pinStatus}>Pinned</Text>
+        ) : pinRequested ? (
+          <Text style={styles.pinStatus}>Pin requested</Text>
+        ) : premium ? (
+          <TouchableOpacity
+            onPress={handlePinRequest}
+            disabled={pinBusy}
+            style={styles.pinButton}
+          >
+            <Text style={styles.pinButtonText}>
+              {pinBusy ? "Requesting…" : "Request pin"}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       <ScrollView
         style={styles.threadList}
@@ -417,6 +483,24 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: ACCENT,
     flex: 1,
+  },
+  pinButton: {
+    backgroundColor: "#f59e0b",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginLeft: 8,
+  },
+  pinButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+  pinStatus: {
+    color: "#f59e0b",
+    fontWeight: "700",
+    fontSize: 12,
+    marginLeft: 8,
   },
   threadList: {
     flex: 1,

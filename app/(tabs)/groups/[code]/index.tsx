@@ -28,6 +28,8 @@ import { apiService } from "../../../services/ApiService";
 
 // Local components
 import { Text, View } from "@/components/Themed";
+import { StatusBadges } from "@/components/StatusBadges";
+import { isPremiumUser, unwrapPageContent, canEnrollInEvent, isEventAtCapacity, isPrioritySeatsOnly } from "../../../utils/status";
 import {
   RootState,
   subscribe,
@@ -52,6 +54,7 @@ import {
   enrollInEventAsync,
   unenrollFromEventAsync,
   fetchGroups,
+  selectUserProfile,
 } from "../../../store";
 import { AppEvent } from "../../../store/types";
 import { isUuid } from "../../../utils/validation";
@@ -89,6 +92,8 @@ export default function GroupInfoScreen() {
 
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
+  const profile = useSelector(selectUserProfile);
+  const premium = isPremiumUser(profile);
   const router = useRouter();
   const [showUnsubModal, setShowUnsubModal] = React.useState(false);
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
@@ -122,19 +127,37 @@ export default function GroupInfoScreen() {
       type: "Part-time",
     },
   ]);
-  const [members, setMembers] = useState<{ id: string; name: string; role?: string }[]>([]);
+  const [members, setMembers] = useState<
+    {
+      id: string;
+      name: string;
+      role?: string;
+      verified?: boolean;
+      premium?: boolean;
+    }[]
+  >([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [topics, setTopics] = useState<
+    { title: string; posts: number; pinned?: boolean; pinRequested?: boolean }[]
+  >([
+    { title: "Networking", posts: 12 },
+    { title: "Job Opportunities", posts: 8 },
+    { title: "Research", posts: 5 },
+  ]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
 
   const loadMembers = async () => {
     try {
       setMembersLoading(true);
       const res = await apiService.getGroupMembers(code as string);
-      const list = Array.isArray(res) ? res : [];
+      const list = unwrapPageContent<any>(res);
       const mapped = list
         .map((m: any) => ({
           id: m.id || m.user?.id || m.userId || Math.random().toString(36).slice(2),
           name: m.user?.name || m.name || m.userName || "Unknown",
           role: m.role,
+          verified: Boolean(m.verified ?? m.isVerified ?? m.user?.verified ?? m.user?.isVerified),
+          premium: Boolean(m.premium ?? m.isPremium ?? m.user?.premium ?? m.user?.isPremium),
         }))
         .filter((x: any) => typeof x.name === "string" && x.name.trim().length > 0);
       setMembers(mapped);
@@ -142,6 +165,27 @@ export default function GroupInfoScreen() {
       setMembers([]);
     } finally {
       setMembersLoading(false);
+    }
+  };
+
+  const loadTopics = async () => {
+    try {
+      setTopicsLoading(true);
+      const res = await apiService.getTopics(code as string);
+      const list = unwrapPageContent<any>(res);
+      if (list.length === 0) return;
+      setTopics(
+        list.map((t: any) => ({
+          title: t.title,
+          posts: t.replyCount ?? t.posts ?? 0,
+          pinned: Boolean(t.pinned ?? t.isPinned),
+          pinRequested: Boolean(t.pinRequested),
+        }))
+      );
+    } catch {
+      // Keep the local sample topics if the API is unavailable.
+    } finally {
+      setTopicsLoading(false);
     }
   };
 
@@ -466,7 +510,7 @@ export default function GroupInfoScreen() {
     }
 
     try {
-      await dispatch(enrollInEventAsync(eventId) as any);
+      await dispatch(enrollInEventAsync(eventId) as any).unwrap();
       Toast.show({
         type: "success",
         text1: "Enrolled!",
@@ -497,7 +541,7 @@ export default function GroupInfoScreen() {
     }
 
     try {
-      await dispatch(unenrollFromEventAsync(eventId) as any);
+      await dispatch(unenrollFromEventAsync(eventId) as any).unwrap();
       Toast.show({
         type: "info",
         text1: "Unenrolled",
@@ -592,8 +636,7 @@ export default function GroupInfoScreen() {
     };
   };
 
-  const isEventFull = (event: AppEvent) =>
-    event.enrolledCount >= event.capacity;
+  const isEventFull = (event: AppEvent) => isEventAtCapacity(event);
   const isEventPast = (event: AppEvent) => {
     if (!event.endTime) return false;
     const endDate = new Date(event.endTime);
@@ -602,13 +645,6 @@ export default function GroupInfoScreen() {
   };
   const isEnrolledInEvent = (eventId: string) =>
     enrollments.some((enrollment: any) => enrollment.eventId === eventId);
-
-  // Placeholder data for topics
-  const topics = [
-    { title: "Networking", posts: 12 },
-    { title: "Job Opportunities", posts: 8 },
-    { title: "Research", posts: 5 },
-  ];
 
   return (
     <ScrollView
@@ -760,7 +796,10 @@ export default function GroupInfoScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === "topics" && styles.activeTab]}
-          onPress={() => setActiveTab("topics")}
+          onPress={() => {
+            setActiveTab("topics");
+            loadTopics();
+          }}
         >
           <Text
             style={[
@@ -1028,8 +1067,14 @@ export default function GroupInfoScreen() {
             eventsToShow.map((event: any) => {
               const dateTime = formatDateTime(event.startTime);
               const isPast = isEventPast(event);
-              const isFull = isEventFull(event);
               const isEnrolled = isEnrolledInEvent(event.id);
+              const trulyFull = isEventFull(event);
+              const premiumSeatsOnly = isPrioritySeatsOnly(event);
+              const canEnroll = canEnrollInEvent(event, {
+                premium,
+                enrolled: isEnrolled,
+              });
+              const enrollBlocked = !isEnrolled && !canEnroll;
 
               return (
                 <TouchableOpacity
@@ -1045,7 +1090,7 @@ export default function GroupInfoScreen() {
                         <Text style={styles.eventStatusText}>Past</Text>
                       </View>
                     )}
-                    {isFull && !isPast && (
+                    {trulyFull && !isPast && (
                       <View
                         style={[
                           styles.eventStatusBadge,
@@ -1053,6 +1098,18 @@ export default function GroupInfoScreen() {
                         ]}
                       >
                         <Text style={styles.eventStatusText}>Full</Text>
+                      </View>
+                    )}
+                    {premiumSeatsOnly && !trulyFull && !isPast && (
+                      <View
+                        style={[
+                          styles.eventStatusBadge,
+                          { backgroundColor: Colors.warning },
+                        ]}
+                      >
+                        <Text style={styles.eventStatusText}>
+                          Premium seats
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -1094,16 +1151,16 @@ export default function GroupInfoScreen() {
                       style={[
                         styles.enrollButton,
                         isEnrolled && styles.enrolledButton,
-                        isFull && !isEnrolled && styles.disabledButton,
+                        enrollBlocked && styles.disabledButton,
                       ]}
                       onPress={() => {
                         if (isEnrolled) {
                           handleUnenroll(event.id);
-                        } else if (!isFull) {
+                        } else if (canEnroll) {
                           handleEnroll(event.id);
                         }
                       }}
-                      disabled={isFull && !isEnrolled}
+                      disabled={enrollBlocked}
                       activeOpacity={0.85}
                     >
                       <Text
@@ -1112,7 +1169,13 @@ export default function GroupInfoScreen() {
                           isEnrolled && styles.enrolledButtonText,
                         ]}
                       >
-                        {isEnrolled ? "Enrolled" : isFull ? "Full" : "Enroll"}
+                        {isEnrolled
+                          ? "Enrolled"
+                          : trulyFull
+                          ? "Full"
+                          : canEnroll
+                          ? "Enroll"
+                          : "Premium seats"}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -1127,23 +1190,34 @@ export default function GroupInfoScreen() {
           <Text style={styles.newsHeader}>Discussion Topics</Text>
           <View style={styles.newsHeaderAccent} />
           <Text style={styles.newsSubtitle}>
-            Join the conversation on these topics.
+            Join the conversation on these topics. Premium members can request a pin.
           </Text>
-          {topics.map((topic, idx) => (
+          {topicsLoading ? (
+            <Text style={{ color: "#888", marginTop: 12 }}>Loading topics…</Text>
+          ) : (
+            topics.map((topic) => (
             <TouchableOpacity
               key={topic.title}
               style={styles.topicItem}
               onPress={() => {
                 router.push({
-                  pathname: `./topic/${encodeURIComponent(topic.title)}`,
+                  pathname: "/(tabs)/groups/[code]/[topicTitle]",
+                  params: {
+                    code: String(code),
+                    topicTitle: topic.title,
+                  },
                 });
               }}
               activeOpacity={0.85}
             >
               <Text style={styles.newsTitle}>{topic.title}</Text>
-              <Text style={styles.newsContent}>{topic.posts} posts</Text>
+              <Text style={styles.newsContent}>
+                {topic.posts} posts
+                {topic.pinned ? " · Pinned" : topic.pinRequested ? " · Pin requested" : ""}
+              </Text>
             </TouchableOpacity>
-          ))}
+            ))
+          )}
         </View>
       )}
       {activeTab === "jobs" && (
@@ -1174,7 +1248,7 @@ export default function GroupInfoScreen() {
           <Text style={styles.newsHeader}>Members</Text>
           <View style={styles.newsHeaderAccent} />
           <Text style={styles.newsSubtitle}>
-            Members of this group (shown as full name).
+            Members of this group. Premium members are featured first.
           </Text>
           {membersLoading ? (
             <Text style={{ color: "#888", marginTop: 12 }}>Loading members…</Text>
@@ -1185,8 +1259,14 @@ export default function GroupInfoScreen() {
           ) : (
             members.map((m) => (
               <View key={m.id} style={styles.topicItem}>
-                <Text style={styles.newsTitle}>{m.name}</Text>
-                {!!m.role && <Text style={styles.newsContent}>{m.role}</Text>}
+                <Text style={styles.newsTitle}>
+                  {m.name}
+                  {m.premium ? "  · Featured" : ""}
+                </Text>
+                <StatusBadges premium={m.premium} verified={m.verified} />
+                {!!m.role && m.role !== "USER" && (
+                  <Text style={styles.newsContent}>{m.role}</Text>
+                )}
               </View>
             ))
           )}

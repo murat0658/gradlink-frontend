@@ -173,7 +173,7 @@ class ApiService {
           if (errorData.validationErrors) {
             errorMessage = "Invalid request data. Please check your input.";
           } else {
-            errorMessage = "Bad request. Please try again.";
+            errorMessage = errorData.error || "Bad request. Please try again.";
           }
         } else if (response.status === 404) {
           errorMessage = "Requested resource not found.";
@@ -181,6 +181,7 @@ class ApiService {
           errorMessage = "Authentication required. Please log in again.";
         } else if (response.status === 403) {
           errorMessage =
+            errorData.error ||
             "Access denied. You don't have permission for this action.";
         }
 
@@ -500,7 +501,7 @@ class ApiService {
   }
 
   /**
-   * Backend has no enrollments list endpoint yet; enroll also does not persist.
+   * Backend has no enrollments list endpoint yet.
    * Keep a stable client API that returns [] so UI can call it safely.
    */
   async getEventEnrollments(_eventId: string): Promise<any[]> {
@@ -624,6 +625,30 @@ class ApiService {
     return this.request(`/api/groups/${groupId}/topics/${encodedTitle}`, {
       method: "DELETE",
     });
+  }
+
+  async requestTopicPin(groupId: string | number, topicTitle: string) {
+    const encodedTitle = encodeURIComponent(topicTitle);
+    return this.request<{ message?: string; error?: string }>(
+      `/api/groups/${groupId}/topics/${encodedTitle}/pin-request`,
+      { method: "POST" }
+    );
+  }
+
+  async pinTopic(groupId: string | number, topicTitle: string) {
+    const encodedTitle = encodeURIComponent(topicTitle);
+    return this.request<{ message?: string; error?: string }>(
+      `/api/groups/${groupId}/topics/${encodedTitle}/pin`,
+      { method: "POST" }
+    );
+  }
+
+  async unpinTopic(groupId: string | number, topicTitle: string) {
+    const encodedTitle = encodeURIComponent(topicTitle);
+    return this.request<{ message?: string; error?: string }>(
+      `/api/groups/${groupId}/topics/${encodedTitle}/pin`,
+      { method: "DELETE" }
+    );
   }
 
   async addReply(

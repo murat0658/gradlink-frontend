@@ -13,6 +13,20 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Text, View } from "@/components/Themed";
 import { apiService } from "../services/ApiService";
 import Colors, { spacing, borderRadius, typography, shadows } from "@/constants/Colors";
+import { useSelector, useDispatch } from "react-redux";
+import Toast from "react-native-toast-message";
+import {
+  enroll,
+  unenroll,
+  enrollInEvent,
+  unenrollFromEvent,
+  enrollInEventAsync,
+  unenrollFromEventAsync,
+  selectEnrollments,
+  selectUserProfile,
+} from "../store";
+import { canEnrollInEvent, isEventAtCapacity, isPremiumUser, isPrioritySeatsOnly } from "../utils/status";
+import { isUuid } from "../utils/validation";
 
 type Enrollment = {
   id?: string;
@@ -23,13 +37,18 @@ type Enrollment = {
 
 export default function EventDetailScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const { id } = useLocalSearchParams();
   const eventId = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
+  const enrollments = useSelector(selectEnrollments);
+  const profile = useSelector(selectUserProfile);
+  const premium = isPremiumUser(profile);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [event, setEvent] = useState<any | null>(null);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrollmentsList, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +87,71 @@ export default function EventDetailScreen() {
       })}${end ? ` - ${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}`
     : "";
 
-  const participants = enrollments
+  const isEnrolled =
+    Boolean(event?.enrolled || event?.isEnrolled) ||
+    enrollments.some((item: any) => item.eventId === eventId);
+  const trulyFull = isEventAtCapacity(event || {});
+  const premiumSeatsOnly = isPrioritySeatsOnly(event || {});
+  const canEnroll = canEnrollInEvent(event || {}, { premium, enrolled: isEnrolled });
+
+  const handleEnrollToggle = async () => {
+    if (!eventId) return;
+    setEnrolling(true);
+    try {
+      if (isEnrolled) {
+        dispatch(unenrollFromEvent(eventId));
+        dispatch(unenroll(eventId));
+        if (isUuid(eventId)) {
+          await dispatch(unenrollFromEventAsync(eventId) as any).unwrap();
+        }
+        setEvent((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                enrolledCount: Math.max(0, (prev.enrolledCount || 1) - 1),
+                canEnroll: true,
+                enrolled: false,
+              }
+            : prev
+        );
+        Toast.show({ type: "info", text1: "Unenrolled" });
+      } else {
+        dispatch(enrollInEvent(eventId));
+        dispatch(enroll(eventId));
+        if (isUuid(eventId)) {
+          await dispatch(enrollInEventAsync(eventId) as any).unwrap();
+        }
+        setEvent((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                enrolledCount: (prev.enrolledCount || 0) + 1,
+                canEnroll: false,
+                enrolled: true,
+              }
+            : prev
+        );
+        Toast.show({ type: "success", text1: "Enrolled!" });
+      }
+    } catch (error: any) {
+      if (isEnrolled) {
+        dispatch(enrollInEvent(eventId));
+        dispatch(enroll(eventId));
+      } else {
+        dispatch(unenrollFromEvent(eventId));
+        dispatch(unenroll(eventId));
+      }
+      Toast.show({
+        type: "error",
+        text1: "Enrollment failed",
+        text2: error?.message || "Please try again.",
+      });
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  const participants = enrollmentsList
     .map((e) => {
       const name = e.user?.name || e.userName || "";
       const userId = e.user?.id || e.userId || "";
@@ -120,12 +203,40 @@ export default function EventDetailScreen() {
             ) : (
               <Text style={styles.muted}>No description provided.</Text>
             )}
+            {event?.capacity ? (
+              <Text style={styles.metaText}>
+                {event.enrolledCount ?? 0}/{event.capacity} enrolled
+                {premiumSeatsOnly && !trulyFull ? " · Remaining seats are Premium" : ""}
+              </Text>
+            ) : null}
+            <TouchableOpacity
+              style={[
+                styles.retryBtn,
+                { marginTop: spacing.md, alignSelf: "flex-start" },
+                (enrolling || (!isEnrolled && !canEnroll)) && { opacity: 0.5 },
+                isEnrolled && { backgroundColor: Colors.success },
+              ]}
+              onPress={handleEnrollToggle}
+              disabled={enrolling || (!isEnrolled && !canEnroll)}
+            >
+              <Text style={styles.retryText}>
+                {enrolling
+                  ? "Please wait…"
+                  : isEnrolled
+                  ? "Unenroll"
+                  : trulyFull
+                  ? "Event full"
+                  : canEnroll
+                  ? "Enroll"
+                  : "Premium seats remaining"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Participants</Text>
             <Text style={styles.sectionSubtitle}>
-              {participants.length} enrolled
+              {event?.enrolledCount ?? participants.length} enrolled
             </Text>
             {participants.length === 0 ? (
               <View style={styles.card}>

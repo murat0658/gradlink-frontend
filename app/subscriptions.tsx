@@ -24,23 +24,16 @@ const plans: {
   icon: React.ComponentProps<typeof FontAwesome>["name"];
 }[] = [
   {
-    name: "Basic",
-    price: "$5/mo",
-    features: ["1 Project", "Basic Support", "Community Access"],
+    name: "Free",
+    price: "$0",
+    features: ["Alumni groups", "News and topics", "Open event enrollment"],
     color: "#e0e7ff",
     icon: "user",
   },
   {
-    name: "Pro",
-    price: "$15/mo",
-    features: ["10 Projects", "Priority Support", "Advanced Analytics"],
-    color: "#bae6fd",
-    icon: "star",
-  },
-  {
     name: "Premium",
-    price: "$30/mo",
-    features: ["Unlimited Projects", "24/7 Support", "Custom Integrations"],
+    price: "$15/mo",
+    features: ["Premium profile badge", "Featured in member lists", "Priority event seats"],
     color: "#fcd34d",
     icon: "diamond",
   },
@@ -162,7 +155,8 @@ export default function TabTwoScreen() {
               <Text style={styles.header}>Choose Your Plan</Text>
               <View style={styles.headerAccent} />
               <Text style={styles.headerSubtitle}>
-                Select the best plan for your needs and unlock more features.
+                Select the plan that fits how you want to show up in GradLink.
+                Premium is granted by an admin for now.
               </Text>
             </View>
             <View style={styles.plansContainer}>

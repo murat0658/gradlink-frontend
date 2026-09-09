@@ -9,6 +9,9 @@ export interface AppEvent {
   capacity: number;
   enrolledCount: number;
   isEnrolled: boolean;
+  canEnroll?: boolean;
+  prioritySeatsOnly?: boolean;
+  reservedPremiumSeats?: number;
   groupCode: string;
   groupName: string;
   createdAt: string;
@@ -40,6 +43,13 @@ export interface ThreadAnswer {
   collapsed?: boolean;
 }
 
+export interface BadgeAward {
+  code: string;
+  name: string;
+  category: string;
+  icon?: string;
+}
+
 // User types
 export interface User {
   id: string;
@@ -56,6 +66,10 @@ export interface User {
   graduationYear?: number;
   avatar?: string; // For backward compatibility
   isVerified?: boolean;
+  verified?: boolean;
+  isPremium?: boolean;
+  premium?: boolean;
+  badges?: BadgeAward[];
   createdAt: string;
   updatedAt?: string;
 }

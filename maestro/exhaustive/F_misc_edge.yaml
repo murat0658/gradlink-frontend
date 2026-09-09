@@ -49,7 +49,7 @@ tags: [exhaustive, misc]
 # === S069 subscriptions-ui ===
 - openLink: ${EXPO_URL}/--/subscriptions
 - extendedWaitUntil:
-    visible: "Choose Your Plan|Basic|Pro|Premium|Continue"
+    visible: "Choose Your Plan|Free|Premium|Continue"
     timeout: 25000
 
 - runFlow:
@@ -58,15 +58,15 @@ tags: [exhaustive, misc]
     commands:
       - tapOn: "Continue"
 
-- assertVisible: "Choose Your Plan|Basic|Pro|Premium|Subscribe"
+- assertVisible: "Choose Your Plan|Free|Premium|Subscribe"
 
 
 # === S070 subscriptions-plans-prices-ui ===
-- assertVisible: "$5/mo|$15/mo|$30/mo|Basic|Pro|Premium"
+- assertVisible: "$0|$15/mo|Free|Premium"
 
 
 # === S071 subscriptions-features-ui ===
-- assertVisible: "Basic Support|Priority Support|24/7 Support|Community Access|Advanced Analytics"
+- assertVisible: "Premium profile badge|Alumni groups|Priority event seats|News and topics"
 
 
 # === S072 not-found-ui ===
@@ -267,7 +267,7 @@ tags: [exhaustive, misc]
 # === S089 subscriptions CTA ===
 - openLink: ${EXPO_URL}/--/subscriptions
 - extendedWaitUntil:
-    visible: "Subscribe|Basic|Continue"
+    visible: "Subscribe|Premium|Continue"
     timeout: 20000
 
 - runFlow:
@@ -276,7 +276,7 @@ tags: [exhaustive, misc]
     commands:
       - tapOn: "Continue"
 
-- assertVisible: "Subscribe|Basic"
+- assertVisible: "Subscribe|Premium"
 
 # === S090-S100 final smoke ===
 - openLink: ${EXPO_URL}/--/auth

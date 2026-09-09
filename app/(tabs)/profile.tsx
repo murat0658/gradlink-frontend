@@ -41,6 +41,8 @@ import { AppEvent } from "../store/types";
 import { useRouter } from "expo-router";
 import { NotificationService } from "../services/NotificationService";
 import { Card, Button, Badge, Input, Divider } from "@/components/UI";
+import { StatusBadges } from "@/components/StatusBadges";
+import { isPremiumUser, isVerifiedUser } from "../utils/status";
 import Colors, {
   spacing,
   borderRadius,
@@ -345,6 +347,10 @@ export default function ProfileScreen() {
     }
   };
 
+  const premium = isPremiumUser(user);
+  const verified = isVerifiedUser(user);
+  const avatarStyle = [styles.avatar, premium && styles.avatarPremium];
+
   return (
     <ScrollView
       style={styles.container}
@@ -374,9 +380,10 @@ export default function ProfileScreen() {
           </RNView>
         )}
 
-        {/* Joined Badges */}
-        {joinedGroups.length > 0 && (
+        {/* Status and joined badges */}
+        {(premium || verified || joinedGroups.length > 0) && (
           <RNView style={styles.badgeRow}>
+            <StatusBadges premium={premium} verified={verified} />
             {joinedGroups.map((membership: any) => {
               const groupCode = membership?.groupCode ?? membership;
               const group = groupsFromStore.find(
@@ -412,9 +419,9 @@ export default function ProfileScreen() {
             accessibilityLabel="Change profile photo"
           >
             {hasAvatarUri(form.avatarUrl) ? (
-              <Image source={{ uri: form.avatarUrl }} style={styles.avatar} />
+              <Image source={{ uri: form.avatarUrl }} style={avatarStyle} />
             ) : (
-              <RNView style={[styles.avatar, styles.avatarPlaceholder]}>
+              <RNView style={[avatarStyle, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarInitials}>
                   {profileInitials(form.name)}
                 </Text>
@@ -427,10 +434,10 @@ export default function ProfileScreen() {
         ) : hasAvatarUri(user.avatarUrl || (user as any).avatar) ? (
           <Image
             source={{ uri: user.avatarUrl || (user as any).avatar }}
-            style={styles.avatar}
+            style={avatarStyle}
           />
         ) : (
-          <RNView style={[styles.avatar, styles.avatarPlaceholder]}>
+          <RNView style={[avatarStyle, styles.avatarPlaceholder]}>
             <Text style={styles.avatarInitials}>
               {profileInitials(user.name)}
             </Text>
@@ -1191,6 +1198,9 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.tint,
     ...shadows.md,
+  },
+  avatarPremium: {
+    borderColor: Colors.warning,
   },
   avatarPlaceholder: {
     backgroundColor: Colors.backgroundTertiary,
