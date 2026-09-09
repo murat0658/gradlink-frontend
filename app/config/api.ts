@@ -38,6 +38,11 @@ export const API_ENDPOINTS = {
     PROFILE: "/api/users/me",
     UPDATE: "/api/users/me",
   },
+  BILLING: {
+    ME: "/api/billing/me",
+    SUBSCRIBE: "/api/billing/subscribe",
+    CANCEL: "/api/billing/cancel",
+  },
   // News — backend supports GET by group + POST create only
   NEWS: {
     BASE: "/api/news",

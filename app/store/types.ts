@@ -48,6 +48,8 @@ export interface BadgeAward {
   name: string;
   category: string;
   icon?: string;
+  featured?: boolean;
+  description?: string;
 }
 
 // User types

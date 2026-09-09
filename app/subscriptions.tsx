@@ -1,20 +1,21 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   Pressable,
-  View as RNView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useDispatch } from "react-redux";
-import { joinGroup, joinGroupAsync } from "./store";
-import { useState } from "react";
+import { joinGroup, joinGroupAsync, fetchUserProfile } from "./store";
 import { LinearGradient } from "expo-linear-gradient";
+import Toast from "react-native-toast-message";
 import Colors from "@/constants/Colors";
+import { apiService } from "./services/ApiService";
 
 const plans: {
   name: string;
@@ -45,28 +46,102 @@ export default function TabTwoScreen() {
   const params = useLocalSearchParams();
   const joinGroupCode = params.joinGroup as string | undefined;
   const fromGroup = params.fromGroup === "1";
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(!!joinGroupCode && fromGroup);
+  const [billing, setBilling] = useState<{
+    premium?: boolean;
+    sandboxEnabled?: boolean;
+    canSubscribe?: boolean;
+    canCancel?: boolean;
+    source?: string | null;
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    apiService
+      .getBilling()
+      .then(setBilling)
+      .catch(() => setBilling(null));
+  }, []);
+
+  const maybeJoinGroup = async () => {
+    if (!joinGroupCode) {
+      return;
+    }
+    try {
+      await dispatch(joinGroupAsync(joinGroupCode) as any);
+      dispatch(joinGroup(joinGroupCode));
+    } catch (error: any) {
+      console.error("Failed to join group:", error);
+    }
+  };
+
+  const finish = () => {
+    setShowModal(false);
+    router.back();
+  };
 
   const handlePlanSelect = async (planName: string) => {
-    setSelectedPlan(planName);
-    // Simulate payment process
-    setTimeout(async () => {
-      if (joinGroupCode) {
-        try {
-          await dispatch(joinGroupAsync(joinGroupCode) as any);
-          // Also update local state for immediate UI feedback
-          dispatch(joinGroup(joinGroupCode));
-        } catch (error: any) {
-          console.error("Failed to join group:", error);
-        }
+    if (busy) {
+      return;
+    }
+    if (planName === "Free") {
+      setBusy(true);
+      try {
+        await maybeJoinGroup();
+        finish();
+      } finally {
+        setBusy(false);
       }
-      setShowModal(false);
-      router.back();
-    }, 1000);
+      return;
+    }
+
+    if (billing?.premium) {
+      finish();
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const next = await apiService.subscribePremium();
+      setBilling(next);
+      await dispatch(fetchUserProfile() as any);
+      Toast.show({ type: "success", text1: "Premium is active" });
+      await maybeJoinGroup();
+      finish();
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not start Premium",
+        text2: error?.message || "Try again later",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (busy || !billing?.canCancel) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const next = await apiService.cancelPremium();
+      setBilling(next);
+      await dispatch(fetchUserProfile() as any);
+      Toast.show({ type: "success", text1: "Premium canceled" });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not cancel Premium",
+        text2: error?.message || "Try again later",
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const PlanCard = ({ plan }: { plan: (typeof plans)[number] }) => {
+    const isPremiumCard = plan.name === "Premium";
     return (
       <Pressable onPress={() => handlePlanSelect(plan.name)}>
         {({ pressed }) => (
@@ -105,11 +180,31 @@ export default function TabTwoScreen() {
             <TouchableOpacity
               style={styles.button}
               onPress={() => handlePlanSelect(plan.name)}
+              disabled={busy}
             >
-              <Text style={styles.buttonText}>
-                {joinGroupCode ? `Join with ${plan.name}` : "Subscribe"}
-              </Text>
+              {busy && isPremiumCard ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {isPremiumCard
+                    ? billing?.premium
+                      ? "Current plan"
+                      : "Subscribe"
+                    : joinGroupCode
+                      ? `Join with ${plan.name}`
+                      : "Included"}
+                </Text>
+              )}
             </TouchableOpacity>
+            {isPremiumCard && billing?.canCancel ? (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancel}
+                disabled={busy}
+              >
+                <Text style={styles.cancelButtonText}>Cancel Premium</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         )}
       </Pressable>
@@ -156,7 +251,11 @@ export default function TabTwoScreen() {
               <View style={styles.headerAccent} />
               <Text style={styles.headerSubtitle}>
                 Select the plan that fits how you want to show up in GradLink.
-                Premium is granted by an admin for now.
+                {billing?.premium
+                  ? billing.source === "ADMIN"
+                    ? " Premium was granted by an admin."
+                    : " Premium is active."
+                  : " Subscribe starts a sandbox Premium month you can test locally."}
               </Text>
             </View>
             <View style={styles.plansContainer}>
@@ -321,11 +420,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 10,
     marginTop: 8,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+    textAlign: "center",
+  },
+  cancelButton: {
+    marginTop: 10,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#4f46e5",
+    fontWeight: "600",
+    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,

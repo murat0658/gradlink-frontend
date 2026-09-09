@@ -219,6 +219,86 @@ describe("ApiService", () => {
       });
     });
 
+    describe("setFeaturedBadges", () => {
+      it("should update featured earned badges", async () => {
+        const mockUser = createMockUser();
+        mockFetch(mockUser);
+
+        const result = await apiService.setFeaturedBadges(["EVENT_REGULAR"]);
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/users/me/badges/featured",
+          expect.objectContaining({
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+            body: JSON.stringify({ codes: ["EVENT_REGULAR"] }),
+          })
+        );
+        expect(result).toEqual(mockUser);
+      });
+    });
+
+    describe("billing", () => {
+      it("should get current billing status", async () => {
+        const mockBilling = { premium: false, sandboxEnabled: true, canSubscribe: true };
+        mockFetch(mockBilling);
+
+        const result = await apiService.getBilling();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/billing/me",
+          expect.objectContaining({
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockBilling);
+      });
+
+      it("should subscribe to premium", async () => {
+        const mockBilling = { premium: true, source: "SANDBOX", canCancel: true };
+        mockFetch(mockBilling);
+
+        const result = await apiService.subscribePremium();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/billing/subscribe",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockBilling);
+      });
+
+      it("should cancel premium", async () => {
+        const mockBilling = { premium: false, canSubscribe: true };
+        mockFetch(mockBilling);
+
+        const result = await apiService.cancelPremium();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/billing/cancel",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockBilling);
+      });
+    });
+
     describe("getUserProfile", () => {
       it("should get user profile by ID", async () => {
         const mockUser = createMockUser();

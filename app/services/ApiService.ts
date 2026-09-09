@@ -327,6 +327,29 @@ class ApiService {
     });
   }
 
+  async setFeaturedBadges(codes: string[]) {
+    return this.request<any>("/api/users/me/badges/featured", {
+      method: "PUT",
+      body: JSON.stringify({ codes }),
+    });
+  }
+
+  async getBilling() {
+    return this.request<any>("/api/billing/me");
+  }
+
+  async subscribePremium() {
+    return this.request<any>("/api/billing/subscribe", {
+      method: "POST",
+    });
+  }
+
+  async cancelPremium() {
+    return this.request<any>("/api/billing/cancel", {
+      method: "POST",
+    });
+  }
+
   async getUserProfile(userId: string) {
     return this.request<any>(`/api/users/${userId}`);
   }

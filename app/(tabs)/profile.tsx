@@ -42,7 +42,9 @@ import { useRouter } from "expo-router";
 import { NotificationService } from "../services/NotificationService";
 import { Card, Button, Badge, Input, Divider } from "@/components/UI";
 import { StatusBadges } from "@/components/StatusBadges";
+import { EarnedBadges, earnedBadges } from "@/components/EarnedBadges";
 import { isPremiumUser, isVerifiedUser } from "../utils/status";
+import { apiService } from "../services/ApiService";
 import Colors, {
   spacing,
   borderRadius,
@@ -351,6 +353,31 @@ export default function ProfileScreen() {
   const verified = isVerifiedUser(user);
   const avatarStyle = [styles.avatar, premium && styles.avatarPremium];
 
+  const handleToggleFeaturedBadge = async (code: string) => {
+    const earned = earnedBadges((user as any).badges);
+    const featured = earned.filter((badge) => badge.featured).map((badge) => badge.code);
+    const next = featured.includes(code)
+      ? featured.filter((item) => item !== code)
+      : [...featured, code];
+    if (next.length > 3) {
+      Toast.show({
+        type: "info",
+        text1: "You can feature up to 3 badges",
+      });
+      return;
+    }
+    try {
+      await apiService.setFeaturedBadges(next);
+      dispatch(fetchUserProfile() as any);
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not update featured badges",
+        text2: error?.message || "Please try again.",
+      });
+    }
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -411,6 +438,11 @@ export default function ProfileScreen() {
             })}
           </RNView>
         )}
+        <EarnedBadges
+          badges={(user as any).badges}
+          editMode={editMode}
+          onToggle={handleToggleFeaturedBadge}
+        />
 
         {editMode ? (
           <TouchableOpacity
