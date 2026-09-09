@@ -13,7 +13,6 @@ import { useSelector, useDispatch } from "react-redux";
 import Toast from "react-native-toast-message";
 import {
   setTopicAnswers,
-  updateTopicAnswers,
   selectTopicAnswers,
   selectUserProfile,
   RootState,
@@ -44,6 +43,43 @@ function getRelativeTime(dateString: string) {
 
 function generateId() {
   return Math.random().toString(36).slice(2) + Date.now();
+}
+
+function replyAuthor(reply: any): string {
+  return reply?.authorId?.name || reply?.author?.name || "Member";
+}
+
+function toThreadAnswer(reply: any): ThreadAnswer {
+  return {
+    id: String(reply?.id ?? ""),
+    author: replyAuthor(reply),
+    content: reply?.content ?? "",
+    date: reply?.createdAt || reply?.date || new Date().toISOString(),
+    upvotes: Number(reply?.upvotes ?? 0),
+    parentId: reply?.parentId ? String(reply.parentId) : undefined,
+    replies: [],
+  };
+}
+
+function buildReplyTree(replies: any[]): ThreadAnswer[] {
+  const nodes = (Array.isArray(replies) ? replies : []).map(toThreadAnswer);
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const roots: ThreadAnswer[] = [];
+  for (const node of nodes) {
+    if (node.parentId && byId.has(node.parentId)) {
+      const parent = byId.get(node.parentId)!;
+      parent.replies = parent.replies || [];
+      parent.replies.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
+}
+
+function parseUpvoteCount(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 const ACCENT = "#4f46e5";
@@ -79,25 +115,35 @@ export default function TopicThreadScreen() {
   // Track which answer (by id) is being replied to
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  // Track upvotes (local only)
   const [upvotedIds, setUpvotedIds] = useState<Set<string>>(new Set());
+  const [postingReply, setPostingReply] = useState(false);
+
+  const applyTopicPayload = (topic: any, replies: any[]) => {
+    setPinned(Boolean(topic?.pinned ?? topic?.isPinned));
+    setPinRequested(Boolean(topic?.pinRequested));
+    setMainPost((prev) => ({
+      ...prev,
+      id: topic?.id ? String(topic.id) : prev.id,
+      content: topic?.content || prev.content,
+      author: topic?.authorId?.name || topic?.author?.name || prev.author,
+      date: topic?.createdAt || prev.date,
+      upvotes: Number(topic?.upvotes ?? prev.upvotes ?? 0),
+      replies: buildReplyTree(replies),
+    }));
+  };
+
+  const reloadThread = async () => {
+    if (!groupCode || !title) return;
+    const [topic, replies] = await Promise.all([
+      apiService.getTopic(groupCode, title),
+      apiService.getTopicReplies(groupCode, title).catch(() => []),
+    ]);
+    applyTopicPayload(topic, Array.isArray(replies) ? replies : []);
+  };
 
   useEffect(() => {
     if (!groupCode || !title) return;
-    apiService
-      .getTopic(groupCode, title)
-      .then((topic: any) => {
-        setPinned(Boolean(topic?.pinned ?? topic?.isPinned));
-        setPinRequested(Boolean(topic?.pinRequested));
-        if (topic?.content) {
-          setMainPost((prev) => ({
-            ...prev,
-            content: topic.content,
-            author: topic.authorId?.name || topic.author?.name || prev.author,
-          }));
-        }
-      })
-      .catch(() => {});
+    reloadThread().catch(() => {});
   }, [groupCode, title]);
 
   const handlePinRequest = async () => {
@@ -127,23 +173,6 @@ export default function TopicThreadScreen() {
     dispatch(setTopicAnswers({ key: topicKey, answers: [mainPost] }));
   }, [mainPost, dispatch, topicKey]);
 
-  // Recursive function to add a reply to the tree
-  function addReplyToTree(
-    tree: ThreadAnswer,
-    parentId: string,
-    reply: ThreadAnswer
-  ): ThreadAnswer {
-    if (tree.id === parentId) {
-      return { ...tree, replies: [reply, ...(tree.replies || [])] };
-    }
-    return {
-      ...tree,
-      replies: (tree.replies || []).map((r) =>
-        addReplyToTree(r, parentId, reply)
-      ),
-    };
-  }
-
   // Recursive function to toggle collapse
   function toggleCollapse(tree: ThreadAnswer, id: string): ThreadAnswer {
     if (tree.id === id) {
@@ -155,16 +184,90 @@ export default function TopicThreadScreen() {
     };
   }
 
-  // Recursive function to upvote
-  function upvoteTree(tree: ThreadAnswer, id: string): ThreadAnswer {
+  function applyUpvoteCount(
+    tree: ThreadAnswer,
+    id: string,
+    count: number
+  ): ThreadAnswer {
     if (tree.id === id) {
-      return { ...tree, upvotes: tree.upvotes + 1 };
+      return { ...tree, upvotes: count };
     }
     return {
       ...tree,
-      replies: (tree.replies || []).map((r) => upvoteTree(r, id)),
+      replies: (tree.replies || []).map((r) => applyUpvoteCount(r, id, count)),
     };
   }
+
+  const handleUpvoteTopic = async () => {
+    if (!groupCode || !title || upvotedIds.has(mainPost.id)) return;
+    setUpvotedIds((prev) => new Set(prev).add(mainPost.id));
+    try {
+      const result = await apiService.upvoteTopic(groupCode, title);
+      setMainPost((prev) => ({
+        ...prev,
+        upvotes: parseUpvoteCount(result?.upvotes, prev.upvotes),
+      }));
+    } catch (error: any) {
+      setUpvotedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(mainPost.id);
+        return next;
+      });
+      Toast.show({
+        type: "error",
+        text1: "Could not upvote",
+        text2: error?.message || "Please try again.",
+      });
+    }
+  };
+
+  const handleUpvoteReply = async (replyId: string) => {
+    if (!groupCode || !title || upvotedIds.has(replyId)) return;
+    setUpvotedIds((prev) => new Set(prev).add(replyId));
+    try {
+      const result = await apiService.upvoteReply(groupCode, title, replyId);
+      const nextCount = Number(result?.upvotes);
+      if (Number.isFinite(nextCount)) {
+        setMainPost((prev) => applyUpvoteCount(prev, replyId, nextCount));
+      }
+    } catch (error: any) {
+      setUpvotedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(replyId);
+        return next;
+      });
+      Toast.show({
+        type: "error",
+        text1: "Could not upvote",
+        text2: error?.message || "Please try again.",
+      });
+    }
+  };
+
+  const handlePostReply = async (parentId: string | null) => {
+    if (!groupCode || !title || !replyContent.trim() || postingReply) return;
+    setPostingReply(true);
+    try {
+      const payload: { content: string; parentId?: string } = {
+        content: replyContent.trim(),
+      };
+      if (parentId && parentId !== mainPost.id) {
+        payload.parentId = parentId;
+      }
+      await apiService.addReply(groupCode, title, payload);
+      setReplyToId(null);
+      setReplyContent("");
+      await reloadThread();
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not post reply",
+        text2: error?.message || "Please try again.",
+      });
+    } finally {
+      setPostingReply(false);
+    }
+  };
 
   // Recursive render of answers
   function renderAnswers(answers: ThreadAnswer[], level = 1) {
@@ -214,11 +317,7 @@ export default function TopicThreadScreen() {
           <RNView style={styles.actionButtonsRow}>
             <TouchableOpacity
               style={styles.upvoteButton}
-              onPress={() => {
-                if (upvotedIds.has(answer.id)) return;
-                setMainPost((prev) => upvoteTree(prev, answer.id));
-                setUpvotedIds((prev) => new Set(prev).add(answer.id));
-              }}
+              onPress={() => handleUpvoteReply(answer.id)}
               disabled={upvotedIds.has(answer.id)}
             >
               <FontAwesome
@@ -275,26 +374,15 @@ export default function TopicThreadScreen() {
               <TouchableOpacity
                 style={[
                   styles.postButton,
-                  !replyContent.trim() && { opacity: 0.5 },
+                  (!replyContent.trim() || postingReply) && { opacity: 0.5 },
                 ]}
-                onPress={() => {
-                  if (!replyContent.trim()) return;
-                  const reply: ThreadAnswer = {
-                    id: generateId(),
-                    author: CURRENT_USER,
-                    content: replyContent,
-                    date: new Date().toISOString(),
-                    replies: [],
-                    upvotes: 1,
-                  };
-                  setMainPost((prev) => addReplyToTree(prev, answer.id, reply));
-                  setReplyToId(null);
-                  setReplyContent("");
-                }}
+                onPress={() => handlePostReply(answer.id)}
                 activeOpacity={0.85}
-                disabled={!replyContent.trim()}
+                disabled={!replyContent.trim() || postingReply}
               >
-                <Text style={styles.postButtonText}>Post</Text>
+                <Text style={styles.postButtonText}>
+                  {postingReply ? "Posting…" : "Post"}
+                </Text>
               </TouchableOpacity>
             </RNView>
           )}
@@ -357,11 +445,7 @@ export default function TopicThreadScreen() {
           <RNView style={styles.actionButtonsRow}>
             <TouchableOpacity
               style={styles.upvoteButton}
-              onPress={() => {
-                if (upvotedIds.has(mainPost.id)) return;
-                setMainPost((prev) => upvoteTree(prev, mainPost.id));
-                setUpvotedIds((prev) => new Set(prev).add(mainPost.id));
-              }}
+              onPress={handleUpvoteTopic}
               disabled={upvotedIds.has(mainPost.id)}
             >
               <FontAwesome
@@ -418,28 +502,15 @@ export default function TopicThreadScreen() {
               <TouchableOpacity
                 style={[
                   styles.postButton,
-                  !replyContent.trim() && { opacity: 0.5 },
+                  (!replyContent.trim() || postingReply) && { opacity: 0.5 },
                 ]}
-                onPress={() => {
-                  if (!replyContent.trim()) return;
-                  const reply: ThreadAnswer = {
-                    id: generateId(),
-                    author: CURRENT_USER,
-                    content: replyContent,
-                    date: new Date().toISOString(),
-                    replies: [],
-                    upvotes: 1,
-                  };
-                  setMainPost((prev) =>
-                    addReplyToTree(prev, mainPost.id, reply)
-                  );
-                  setReplyToId(null);
-                  setReplyContent("");
-                }}
+                onPress={() => handlePostReply(mainPost.id)}
                 activeOpacity={0.85}
-                disabled={!replyContent.trim()}
+                disabled={!replyContent.trim() || postingReply}
               >
-                <Text style={styles.postButtonText}>Post</Text>
+                <Text style={styles.postButtonText}>
+                  {postingReply ? "Posting…" : "Post"}
+                </Text>
               </TouchableOpacity>
             </RNView>
           )}

@@ -635,6 +635,21 @@ class ApiService {
     return this.request<any>(`/api/groups/${groupId}/topics/${encodedTitle}`);
   }
 
+  async getTopicReplies(groupId: string | number, topicTitle: string) {
+    const encodedTitle = encodeURIComponent(topicTitle);
+    return this.request<any[]>(
+      `/api/groups/${groupId}/topics/${encodedTitle}/replies`
+    );
+  }
+
+  async upvoteTopic(groupId: string | number, topicTitle: string) {
+    const encodedTitle = encodeURIComponent(topicTitle);
+    return this.request<{ message?: string; upvotes?: string; error?: string }>(
+      `/api/groups/${groupId}/topics/${encodedTitle}/upvote`,
+      { method: "POST" }
+    );
+  }
+
   async createTopic(
     groupId: string | number,
     topicData: {

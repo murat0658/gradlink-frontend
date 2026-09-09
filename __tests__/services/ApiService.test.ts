@@ -848,6 +848,49 @@ describe("ApiService", () => {
       });
     });
 
+    describe("getTopicReplies", () => {
+      it("should get replies for a topic", async () => {
+        const mockReplies = [{ id: "1", content: "Reply content" }];
+        mockFetch(mockReplies);
+
+        const result = await apiService.getTopicReplies("harvard", "Networking");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/groups/harvard/topics/Networking/replies",
+          expect.objectContaining({
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual(mockReplies);
+      });
+    });
+
+    describe("upvoteTopic", () => {
+      it("should upvote a topic", async () => {
+        mockFetch({ message: "Topic upvoted successfully", upvotes: "2" });
+
+        const result = await apiService.upvoteTopic("harvard", "Networking");
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:8080/api/groups/harvard/topics/Networking/upvote",
+          expect.objectContaining({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer test-token",
+            },
+          })
+        );
+        expect(result).toEqual({
+          message: "Topic upvoted successfully",
+          upvotes: "2",
+        });
+      });
+    });
+
     describe("addReply", () => {
       it("should add reply to topic", async () => {
         const mockReply = { id: "1", content: "Reply content" };
