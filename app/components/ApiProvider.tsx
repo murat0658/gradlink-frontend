@@ -8,6 +8,8 @@ interface ApiProviderProps {
   children: React.ReactNode;
 }
 
+let refreshInFlight: Promise<boolean> | null = null;
+
 export const ApiProvider = ({ children }: ApiProviderProps) => {
   const dispatch = useDispatch();
   const token = useSelector(selectToken);
@@ -31,52 +33,55 @@ export const ApiProvider = ({ children }: ApiProviderProps) => {
 
   // Handle token refresh
   const refreshToken = useCallback(async () => {
-    try {
-      console.log("🔄 Attempting token refresh...");
-      console.log("Current Redux token exists:", !!token);
-
-      // Check if we have a token before attempting refresh
-      if (!token) {
-        console.warn("⚠️ No token available for refresh, skipping");
-        return false;
-      }
-
-      const response = await apiService.refreshToken();
-      if (response && response.token) {
-        console.log("✅ Token refresh successful");
-        dispatch(setToken(response.token));
-        apiService.setToken(response.token);
-        return true;
-      } else {
-        console.warn("⚠️ Token refresh response missing token");
-        return false;
-      }
-    } catch (error: any) {
-      console.error("❌ Token refresh failed:", error);
-
-      // Log specific error details for debugging
-      if (error.message) {
-        console.error("Error message:", error.message);
-      }
-
-      // Check if it's a "no token" error
-      if (error.message && error.message.includes("No token available")) {
-        console.warn("⚠️ Token refresh skipped: no token available");
-        return false;
-      }
-
-      // Check if it's a server error (500) vs other errors
-      if (error.message && error.message.includes("500")) {
-        console.error("🚨 Backend server error - refresh endpoint not working");
-        // Don't logout immediately for server errors, just return false
-        return false;
-      }
-
-      // For other errors (network, 401, etc.), logout the user
-      dispatch(logout());
-      apiService.setToken(null);
-      return false;
+    if (refreshInFlight) {
+      return refreshInFlight;
     }
+    refreshInFlight = (async () => {
+      try {
+        console.log("🔄 Attempting token refresh...");
+        console.log("Current Redux token exists:", !!token);
+
+        // Check if we have a token before attempting refresh
+        if (!token) {
+          console.warn("⚠️ No token available for refresh, skipping");
+          return false;
+        }
+
+        const response = await apiService.refreshToken();
+        if (response && response.token) {
+          console.log("✅ Token refresh successful");
+          dispatch(setToken(response.token));
+          apiService.setToken(response.token);
+          return true;
+        } else {
+          console.warn("⚠️ Token refresh response missing token");
+          return false;
+        }
+      } catch (error: any) {
+        console.error("❌ Token refresh failed:", error);
+
+        if (error.message) {
+          console.error("Error message:", error.message);
+        }
+
+        if (error.message && error.message.includes("No token available")) {
+          console.warn("⚠️ Token refresh skipped: no token available");
+          return false;
+        }
+
+        if (error.message && error.message.includes("500")) {
+          console.error("🚨 Backend server error - refresh endpoint not working");
+          return false;
+        }
+
+        dispatch(logout());
+        apiService.setToken(null);
+        return false;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+    return refreshInFlight;
   }, [dispatch, token]);
 
   // Handle authentication errors

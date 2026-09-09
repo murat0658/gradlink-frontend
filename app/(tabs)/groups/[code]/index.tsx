@@ -38,7 +38,6 @@ import {
   selectSubscribedGroupCodes,
   selectGroups,
   selectToken,
-  joinGroup,
   leaveGroup,
   leaveGroupAsync,
   joinGroupAsync,
@@ -115,14 +114,14 @@ export default function GroupInfoScreen() {
     {
       id: "gjob-1",
       title: "Alumni Referral: Frontend Engineer",
-      company: group.university,
+      company: group?.university ?? "University",
       location: "Remote",
       type: "Full-time",
     },
     {
       id: "gjob-2",
       title: "Research Assistant (Part-time)",
-      company: group.university,
+      company: group?.university ?? "University",
       location: "Campus",
       type: "Part-time",
     },
@@ -188,14 +187,6 @@ export default function GroupInfoScreen() {
       setTopicsLoading(false);
     }
   };
-
-  if (!group) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.notFound}>Group not found.</Text>
-      </View>
-    );
-  }
 
   // Load news from API
   const loadNews = async () => {
@@ -386,6 +377,14 @@ export default function GroupInfoScreen() {
       groupCode: code,
     });
   }, [showUnsubModal, subscribed, code]);
+
+  if (!group) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.notFound}>Group not found.</Text>
+      </View>
+    );
+  }
 
   const groupEvents = events.filter((e: any) => e.groupCode === code);
   const isPast = (e: any) => e.endTime && new Date(e.endTime) < new Date();
@@ -704,10 +703,10 @@ export default function GroupInfoScreen() {
                       await dispatch(
                         joinGroupAsync(code as string) as any
                       ).unwrap();
-                      dispatch(joinGroup(code as string));
                       Toast.show({
                         type: "success",
-                        text1: "Joined group",
+                        text1: "Application submitted",
+                        text2: "Pending approval.",
                       });
                     } catch (error: any) {
                       Toast.show({

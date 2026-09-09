@@ -143,8 +143,13 @@ class ApiService {
           console.warn("Failed to parse error response as JSON:", parseError);
         }
 
-        // Handle authentication errors
-        if (response.status === 401 && this.onAuthError) {
+        // Handle authentication errors, but never from refresh itself — that
+        // would re-enter this handler and log the user out on a failed refresh.
+        if (
+          response.status === 401 &&
+          this.onAuthError &&
+          endpoint !== "/api/auth/refresh"
+        ) {
           this.onAuthError();
         }
 

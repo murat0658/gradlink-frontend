@@ -11,7 +11,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useDispatch } from "react-redux";
-import { joinGroup, joinGroupAsync, fetchUserProfile } from "./store";
+import { joinGroupAsync, fetchUserProfile } from "./store";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
 import Colors from "@/constants/Colors";
@@ -68,8 +68,7 @@ export default function TabTwoScreen() {
       return;
     }
     try {
-      await dispatch(joinGroupAsync(joinGroupCode) as any);
-      dispatch(joinGroup(joinGroupCode));
+      await dispatch(joinGroupAsync(joinGroupCode) as any).unwrap();
     } catch (error: any) {
       console.error("Failed to join group:", error);
     }
