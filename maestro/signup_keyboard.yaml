@@ -1,0 +1,35 @@
+# Signup keyboard / scrollability check in Expo Go
+appId: host.exp.Exponent
+tags:
+  - smoke
+  - signup
+---
+- openLink: ${EXPO_URL}/--/signup
+- extendedWaitUntil:
+    visible:
+      text: "Create Account|Sign up to get started|Sign Up"
+    timeout: 45000
+
+# Dismiss system password sheet if present
+- runFlow:
+    when:
+      visible: "Sonra"
+    commands:
+      - tapOn: "Sonra"
+- runFlow:
+    when:
+      visible: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+
+# Focus password (opens keyboard), then ensure CTA still reachable
+- tapOn:
+    text: "Password"
+- scrollUntilVisible:
+    element:
+      text: "Sign Up"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 25
+- assertVisible:
+    text: "Sign Up"

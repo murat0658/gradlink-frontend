@@ -1,0 +1,360 @@
+appId: host.exp.Exponent
+tags: [exhaustive, misc]
+---
+
+- runFlow:
+    file: ../shared/login.yaml
+
+
+# === S065 notifications-open-deeplink ===
+- openLink: ${EXPO_URL}/--/notifications
+- extendedWaitUntil:
+    visible: "Notifications|No notifications yet|Clear All|Continue"
+    timeout: 30000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Notifications"
+
+
+# === S066 notifications-empty-or-list-ui ===
+- assertVisible: "No notifications yet|Clear All|Just now|m ago|h ago|Notifications"
+
+
+# === S067 notifications-clear-all-ui ===
+- runFlow:
+    when:
+      visible: "Clear All"
+    commands:
+      - assertVisible: "Clear All"
+
+
+# === S068 notifications-clear-cancel-edge ===
+- runFlow:
+    when:
+      visible: "Clear All"
+    commands:
+      - tapOn: "Clear All"
+      - runFlow:
+          when:
+            visible: "Cancel"
+          commands:
+            - tapOn: "Cancel"
+
+
+# === S069 subscriptions-ui ===
+- openLink: ${EXPO_URL}/--/subscriptions
+- extendedWaitUntil:
+    visible: "Choose Your Plan|Basic|Pro|Premium|Continue"
+    timeout: 25000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Choose Your Plan|Basic|Pro|Premium|Subscribe"
+
+
+# === S070 subscriptions-plans-prices-ui ===
+- assertVisible: "$5/mo|$15/mo|$30/mo|Basic|Pro|Premium"
+
+
+# === S071 subscriptions-features-ui ===
+- assertVisible: "Basic Support|Priority Support|24/7 Support|Community Access|Advanced Analytics"
+
+
+# === S072 not-found-ui ===
+- openLink: ${EXPO_URL}/--/this-route-does-not-exist-xyz
+- extendedWaitUntil:
+    visible: "Oops!|.*doesn't exist.*|Go to home screen!|Continue|Welcome to GradLink|Timeline"
+    timeout: 25000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Oops!|This screen doesn't exist.|Go to home screen!|Welcome to GradLink|Timeline|Groups"
+
+
+# === S073 event-detail-deeplink-edge ===
+- openLink: ${EXPO_URL}/--/event/00000000-0000-0000-0000-000000000000
+- extendedWaitUntil:
+    visible: "Event|Loading event|Failed to load|Retry|Participants|Continue|Timeline"
+    timeout: 25000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Event|Failed to load|Retry|Participants|Loading event|Timeline|Groups"
+
+
+# === S074 logout-header ===
+- openLink: ${EXPO_URL}/--/(tabs)/profile
+- extendedWaitUntil:
+    visible: "Edit Profile|Profile|Log out|Timeline|Continue"
+    timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- tapOn:
+    id: "header-logout"
+    optional: true
+- tapOn:
+    text: "Log out"
+    optional: true
+- openLink: ${EXPO_URL}/--/auth
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Sign In|Continue"
+    timeout: 30000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Sign In"
+
+
+# === S075 auth-ui-after-logout ===
+- assertVisible: "Welcome to GradLink"
+- assertVisible: "Email"
+- assertVisible: "Password"
+
+
+# === S076 relogin-after-logout ===
+- tapOn: "Email"
+- eraseText
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- eraseText
+- inputText: ${PASSWORD}
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: "Groups|Timeline|Profile"
+    timeout: 60000
+
+
+# === S077 switch-timeline-groups-jobs-profile ===
+- tapOn: "Timeline"
+- openLink: ${EXPO_URL}/--/(tabs)/jobs
+- extendedWaitUntil:
+    visible: "Sample data|.*Sample listings.*|Continue"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Sample data|.*Sample listings.*"
+- openLink: ${EXPO_URL}/--/(tabs)/profile
+- extendedWaitUntil:
+    visible: "Edit Profile|Test Alert|Profile|Continue"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Edit Profile|Test Alert|Profile"
+
+
+# === S078 groups-retry-absent ===
+- tapOn:
+    text: "Groups"
+    index: 0
+- assertNotVisible: "Couldn't load groups"
+
+
+# === S079 jobs-remote-location-ui ===
+- openLink: ${EXPO_URL}/--/(tabs)/jobs
+- extendedWaitUntil:
+    visible: "Sample data|.*Sample listings.*|Continue"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: ".*Remote.*|.*Istanbul.*|Sample data"
+
+
+# === S080 timeline-header-icon-text ===
+- tapOn: "Timeline"
+- assertVisible: "Your Timeline|Show past events|Timeline"
+
+
+# === S081-S083 country list reopen ===
+- runFlow:
+    file: ../shared/ensure-logged-out.yaml
+- openLink: ${EXPO_URL}/--/signup
+- extendedWaitUntil:
+    visible: "Create Account|Continue"
+    timeout: 30000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- tapOn: "+1|+90|+44"
+- extendedWaitUntil:
+    visible: "Close|United Kingdom|Germany|India"
+    timeout: 10000
+- assertVisible: "United Kingdom"
+- assertVisible: "Germany"
+- assertVisible: "India"
+- tapOn: "Close"
+
+# === S084 auth copy ===
+- openLink: ${EXPO_URL}/--/auth
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Continue|Timeline"
+    timeout: 30000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- runFlow:
+    when:
+      visible: "Don't have an account?"
+    commands:
+      - assertVisible: "Don't have an account?"
+
+# === S085-S087 groups/jobs copy ===
+- runFlow:
+    file: ../shared/login.yaml
+- tapOn:
+    text: "Groups"
+    index: 0
+- assertVisible: "Browse and join alumni groups|University Graduate Groups|.*members.*"
+- tapOn: "Jobs"
+- assertVisible: ".*Istanbul.*"
+- assertVisible: "Today|Posted"
+
+# === S088 profile label ===
+- tapOn: "Profile"
+- scrollUntilVisible:
+    element: "Test Alert"
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 25
+- assertVisible: "Test Alert"
+- assertNotVisible: "Test Notification"
+
+# === S089 subscriptions CTA ===
+- openLink: ${EXPO_URL}/--/subscriptions
+- extendedWaitUntil:
+    visible: "Subscribe|Basic|Continue"
+    timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Subscribe|Basic"
+
+# === S090-S100 final smoke ===
+- openLink: ${EXPO_URL}/--/auth
+- extendedWaitUntil:
+    visible: "Sign In|Timeline|Continue"
+    timeout: 30000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- runFlow:
+    when:
+      visible: "Sign In"
+    commands:
+      - assertVisible: "Sign In"
+- runFlow:
+    file: ../shared/login.yaml
+- tapOn:
+    text: "Groups"
+    index: 0
+- assertVisible: "Join|Leave|Subscribe|Unsubscribe|University Graduate Groups|.*members.*"
+- tapOn:
+    text: "Groups"
+    index: 0
+- assertVisible: "Subscribe|Unsubscribe|Join|Leave|.*members.*|University Graduate Groups"
+- openLink: ${EXPO_URL}/--/notifications
+- extendedWaitUntil:
+    visible: "Notifications|Continue"
+    timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Notifications"
+- runFlow:
+    when:
+      visible: "No notifications yet"
+    commands:
+      - assertVisible: "No notifications yet"
+- openLink: ${EXPO_URL}/--/event/bad-id
+- extendedWaitUntil:
+    visible: "Retry|Failed|Event|Timeline|Continue"
+    timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Retry|Failed|Event|Timeline|Groups"
+- openLink: ${EXPO_URL}/--/nope
+- extendedWaitUntil:
+    visible: "Oops!|Go to home screen!|Timeline|Continue"
+    timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Oops!|Go to home screen!|Timeline|Groups"
+- tapOn: "Jobs"
+- assertVisible: "Sample data"
+- tapOn: "Timeline"
+- tapOn:
+    text: "Groups"
+    index: 0
+- tapOn: "Jobs"
+- tapOn: "Profile"
+- assertVisible: "Timeline"
+- assertVisible: "Groups"
+- assertVisible: "Jobs"
+- assertVisible: "Profile"

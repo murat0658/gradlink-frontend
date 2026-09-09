@@ -6,6 +6,9 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
@@ -19,6 +22,7 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
   const { msg } = useLocalSearchParams();
@@ -29,13 +33,14 @@ export default function AuthScreen() {
       return;
     }
     setError("");
+    setSubmitting(true);
+    Keyboard.dismiss();
     try {
       const data = await apiService.login(email, password);
       if (!data.token) {
         setError("No token received. Please try again.");
         return;
       }
-      // Set the token in the API service
       apiService.setToken(data.token);
 
       dispatch(setToken(data.token));
@@ -45,67 +50,93 @@ export default function AuthScreen() {
       setError(
         err.message || "Could not connect to server. Please try again later."
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
     >
-      <View style={styles.card}>
-        <FontAwesome
-          name="graduation-cap"
-          size={48}
-          color="#4f46e5"
-          style={{ marginBottom: 16 }}
-        />
-        <Text style={styles.title}>Welcome to GradLink</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
-        {msg ? <Text style={styles.success}>{msg}</Text> : null}
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#aaa"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#aaa"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleLogin}
-          activeOpacity={0.85}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.buttonText}>Sign In</Text>
-        </TouchableOpacity>
-        <View
-          style={{
-            marginTop: 18,
-            flexDirection: "row",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ color: "#6b7280", fontSize: 15 }}>
-            Don't have an account?{" "}
-          </Text>
-          <Link
-            href="./signup"
-            style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
-          >
-            Sign up
-          </Link>
-        </View>
-      </View>
+          <View style={styles.card}>
+            <FontAwesome
+              name="graduation-cap"
+              size={48}
+              color="#4f46e5"
+              style={{ marginBottom: 16 }}
+            />
+            <Text style={styles.title}>Welcome to GradLink</Text>
+            <Text style={styles.subtitle}>Sign in to continue</Text>
+            {msg ? <Text style={styles.success}>{String(msg)}</Text> : null}
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#aaa"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="next"
+              testID="auth-email"
+              accessibilityLabel="Email"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#aaa"
+              value={password}
+              onChangeText={setPassword}
+              // Maestro / XCUITest often cannot type into iOS secure fields in Expo Go
+              secureTextEntry={!(__DEV__ && Platform.OS === "ios")}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+              testID="auth-password"
+              accessibilityLabel="Password"
+              autoCorrect={false}
+              textContentType="password"
+            />
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <TouchableOpacity
+              style={[styles.button, submitting && styles.buttonDisabled]}
+              onPress={handleLogin}
+              activeOpacity={0.85}
+              disabled={submitting}
+              testID="auth-sign-in"
+              accessibilityLabel="Sign In"
+            >
+              <Text style={styles.buttonText}>
+                {submitting ? "Signing in…" : "Sign In"}
+              </Text>
+            </TouchableOpacity>
+            <View
+              style={{
+                marginTop: 18,
+                flexDirection: "row",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "#6b7280", fontSize: 15 }}>
+                Don't have an account?{" "}
+              </Text>
+              <Link
+                href="./signup"
+                style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
+              >
+                Sign up
+              </Link>
+            </View>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
@@ -113,9 +144,14 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
+    paddingVertical: 32,
+    paddingHorizontal: 16,
   },
   card: {
     backgroundColor: "#fff",
@@ -161,6 +197,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignItems: "center",
     width: "100%",
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",

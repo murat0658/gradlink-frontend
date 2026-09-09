@@ -1,0 +1,138 @@
+appId: host.exp.Exponent
+tags: [exhaustive, auth]
+---
+
+- runFlow:
+    file: ../shared/ensure-logged-out.yaml
+
+# === S001 auth-screen-renders (UI) ===
+- openLink: ${EXPO_URL}/--/auth
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Continue"
+    timeout: 60000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Welcome to GradLink"
+- assertVisible: "Sign in to continue"
+- assertVisible: "Email"
+- assertVisible: "Password"
+- assertVisible: "Sign In"
+- assertVisible: ".*Don't have an account.*"
+- assertVisible: "Sign up"
+
+
+# === S002 auth-empty-submit-error ===
+- tapOn: "Email"
+- eraseText
+- tapOn: "Password"
+- eraseText
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- assertVisible: "Please enter both email and password."
+
+
+# === S003 auth-email-only-error ===
+- tapOn: "Email"
+- eraseText
+- inputText: "onlyemail@example.com"
+- tapOn: "Password"
+- eraseText
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- assertVisible: "Please enter both email and password."
+
+
+# === S004 auth-password-only-error ===
+- tapOn: "Email"
+- eraseText
+- tapOn: "Password"
+- eraseText
+- inputText: "OnlyPassword1"
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- assertVisible: "Please enter both email and password.|.*[Ii]nvalid.*|.*[Ff]ailed.*|Authentication required|Sign In"
+- tapOn: "Email"
+- eraseText
+- inputText: "   "
+- tapOn: "Password"
+- eraseText
+- inputText: "   "
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- assertVisible: "Please enter both email and password."
+
+
+# === S006 auth-wrong-password-error ===
+- tapOn: "Email"
+- eraseText
+- inputText: "nobody-invalid@example.com"
+- tapOn: "Password"
+- eraseText
+- inputText: "WrongPass999"
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: ".*[Ii]nvalid.*|.*[Ff]ailed.*|.*[Ee]rror.*|.*[Cc]ould not.*|Authentication required|Please enter both"
+    timeout: 25000
+
+
+# === S007 auth-nav-to-signup-ui ===
+- tapOn: "Sign up"
+- extendedWaitUntil:
+    visible: "Create Account|Continue"
+    timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Create Account"
+- assertVisible: "Sign up to get started"
+
+
+# === S008 auth-back-from-signup ===
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Welcome to GradLink"
+    timeout: 20000
+- assertVisible: "Sign In"
+
+
+# === S009 auth-valid-login ===
+- tapOn: "Email"
+- eraseText
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- eraseText
+- inputText: ${PASSWORD}
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: "Groups|Timeline|Profile|Your Timeline"
+    timeout: 60000
+
+
+# === S010 auth-tabs-chrome-after-login ===
+- assertVisible: "Timeline"
+- assertVisible: "Groups"
+- assertVisible: "Jobs"
+- assertVisible: "Profile"

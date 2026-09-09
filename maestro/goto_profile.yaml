@@ -1,0 +1,13 @@
+appId: host.exp.Exponent
+---
+- runFlow:
+    file: shared/login.yaml
+- tapOn: "Profile"
+- extendedWaitUntil:
+    visible: "Edit Profile|Test Alert|Profile"
+    timeout: 25000
+- scrollUntilVisible:
+    element: "Test Alert"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 20

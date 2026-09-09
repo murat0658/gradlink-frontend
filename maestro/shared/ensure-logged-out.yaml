@@ -1,0 +1,37 @@
+appId: host.exp.Exponent
+---
+# If already on tabs, log out so auth/signup deep links work.
+- runFlow:
+    when:
+      visible: "Groups|Timeline|Profile|Your Timeline"
+    commands:
+      - openLink: ${EXPO_URL}/--/(tabs)/profile
+      - extendedWaitUntil:
+          visible: "Edit Profile|Loading profile|Retry|Profile|Continue"
+          timeout: 20000
+      - runFlow:
+          when:
+            visible: "Continue"
+          commands:
+            - tapOn: "Continue"
+      - tapOn:
+          id: "header-logout"
+          optional: true
+      - tapOn:
+          text: "Log out"
+          optional: true
+      # Fallback: header sign-out is top-right icon without reliable text on Android
+      - runFlow:
+          when:
+            visible: "Edit Profile|Profile"
+          commands:
+            - tapOn:
+                point: "92%,8%"
+      - extendedWaitUntil:
+          visible: "Welcome to GradLink|Sign In|Continue"
+          timeout: 30000
+      - runFlow:
+          when:
+            visible: "Continue"
+          commands:
+            - tapOn: "Continue"

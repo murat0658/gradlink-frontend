@@ -159,7 +159,17 @@ export function Button({
 
   return (
     <TouchableOpacity style={buttonStyle} {...props}>
-      <Text style={textStyle}>{children}</Text>
+      <View style={styles.buttonContent}>
+        {React.Children.map(children, (child) =>
+          typeof child === "string" || typeof child === "number" ? (
+            <Text style={textStyle} numberOfLines={1}>
+              {child}
+            </Text>
+          ) : (
+            child
+          )
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -367,6 +377,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 1,
   },
   buttonPrimary: {},
   buttonSecondary: {},

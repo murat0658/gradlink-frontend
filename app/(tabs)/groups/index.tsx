@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, TouchableOpacity, View } from "react-native";
+import { StyleSheet, ScrollView, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text } from "@/components/Themed";
 import { Link } from "expo-router";
@@ -10,15 +10,21 @@ import Colors, {
   shadows,
 } from "@/constants/Colors";
 import { useEffect } from "react";
-import { useSelector, useDispatch, Provider } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { fetchGroups } from "@/app/store/thunks";
-import { selectGroups, selectToken } from "@/app/store/selectors";
-import { store } from "@/app/store";
+import {
+  selectGroups,
+  selectGroupsLoading,
+  selectGroupsError,
+  selectToken,
+} from "@/app/store/selectors";
 
-function GroupsScreenInner() {
+export default function GroupsScreen() {
   const dispatch = useDispatch();
   const token = useSelector(selectToken);
   const groups = useSelector(selectGroups);
+  const loading = useSelector(selectGroupsLoading);
+  const error = useSelector(selectGroupsError);
 
   useEffect(() => {
     if (token) {
@@ -39,7 +45,26 @@ function GroupsScreenInner() {
       />
 
       <View style={styles.groupsContainer}>
-        {groups.length === 0 ? (
+        {loading && groups.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator color={Colors.tint} />
+            <Text style={[styles.emptySubtext, { marginTop: spacing.md }]}>
+              Loading groups…
+            </Text>
+          </View>
+        ) : error && groups.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Couldn’t load groups</Text>
+            <Text style={styles.emptySubtext}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => dispatch(fetchGroups() as any)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : groups.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No groups yet</Text>
             <Text style={styles.emptySubtext}>
@@ -48,48 +73,48 @@ function GroupsScreenInner() {
           </View>
         ) : (
           groups.map((group: any) => (
-          <Link
-            key={group.code}
-            href={{ pathname: "./groups/[code]", params: { code: group.code } }}
-            asChild
-          >
-            <TouchableOpacity>
-              <Card style={styles.card}>
-                <View style={styles.cardContent}>
-                  <View
-                    style={[
-                      styles.iconCircle,
-                      { backgroundColor: group.color },
-                    ]}
-                  >
-                    <FontAwesome
-                      name={group.icon as any}
-                      size={24}
-                      color="#fff"
-                    />
-                  </View>
-                  <View style={styles.infoArea}>
-                    <Text style={styles.groupName}>{group.university}</Text>
-                    <Text style={styles.groupDescription}>
-                      {group.description}
-                    </Text>
-                    <View style={styles.membersRow}>
+            <Link
+              key={group.code}
+              href={{ pathname: "./[code]", params: { code: group.code } }}
+              asChild
+            >
+              <TouchableOpacity>
+                <Card style={styles.card}>
+                  <View style={styles.cardContent}>
+                    <View
+                      style={[
+                        styles.iconCircle,
+                        { backgroundColor: group.color },
+                      ]}
+                    >
                       <FontAwesome
-                        name="users"
-                        size={16}
-                        color={Colors.textSecondary}
-                        style={{ marginRight: spacing.xs }}
+                        name={group.icon as any}
+                        size={24}
+                        color="#fff"
                       />
-                      <Text style={styles.membersText}>
-                        {group.members} members
+                    </View>
+                    <View style={styles.infoArea}>
+                      <Text style={styles.groupName}>{group.university}</Text>
+                      <Text style={styles.groupDescription}>
+                        {group.description}
                       </Text>
+                      <View style={styles.membersRow}>
+                        <FontAwesome
+                          name="users"
+                          size={16}
+                          color={Colors.textSecondary}
+                          style={{ marginRight: spacing.xs }}
+                        />
+                        <Text style={styles.membersText}>
+                          {group.members ?? group.memberCount ?? 0} members
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              </Card>
-            </TouchableOpacity>
-          </Link>
-        ))
+                </Card>
+              </TouchableOpacity>
+            </Link>
+          ))
         )}
       </View>
     </ScrollView>
@@ -157,13 +182,17 @@ const styles = StyleSheet.create({
   emptySubtext: {
     ...typography.sm,
     color: Colors.textTertiary,
+    textAlign: "center",
+  },
+  retryButton: {
+    marginTop: spacing.md,
+    backgroundColor: Colors.tint,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });
-
-export default function GroupsScreen() {
-  return (
-    <Provider store={store}>
-      <GroupsScreenInner />
-    </Provider>
-  );
-}

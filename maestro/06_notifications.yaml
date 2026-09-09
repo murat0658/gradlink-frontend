@@ -1,0 +1,19 @@
+# Notifications screen
+appId: host.exp.Exponent
+tags:
+  - authenticated
+  - notifications
+---
+- runFlow:
+    file: shared/login.yaml
+
+- openLink: ${EXPO_URL}/--/notifications
+- extendedWaitUntil:
+    visible: "Notifications|No notifications yet|Clear All|Continue"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Notifications|No notifications yet|Clear All"

@@ -186,7 +186,13 @@ function TabLayoutInner() {
       router.replace("/auth");
     };
     return (
-      <Pressable onPress={handleLogout} style={{ marginRight: spacing.md }}>
+      <Pressable
+        onPress={handleLogout}
+        style={{ marginRight: spacing.md }}
+        accessibilityLabel="Log out"
+        accessibilityRole="button"
+        testID="header-logout"
+      >
         {({ pressed }) => (
           <FontAwesome
             name="sign-out"

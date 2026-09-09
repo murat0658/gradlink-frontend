@@ -1,0 +1,114 @@
+appId: host.exp.Exponent
+tags: [exhaustive, signup]
+---
+
+- runFlow:
+    file: ../shared/ensure-logged-out.yaml
+
+# === S011 signup-screen-ui ===
+- openLink: ${EXPO_URL}/--/signup
+- extendedWaitUntil:
+    visible: "Create Account|Continue"
+    timeout: 60000
+
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- assertVisible: "Create Account"
+- assertVisible: "Sign up to get started"
+- assertVisible: "Name"
+- assertVisible: "Phone"
+- assertVisible: "Email"
+- assertVisible: "Password"
+- assertVisible: "Sign Up"
+- assertVisible: ".*Already have an account.*"
+- assertVisible: "Sign in"
+
+
+# === S012 signup-empty-submit ===
+- tapOn: "Sign Up"
+- assertVisible: "Please fill in all fields with valid information.|Create Account"
+
+
+# === S013 signup-country-modal-open ===
+- tapOn: "+1"
+- extendedWaitUntil:
+    visible: "Search country code|United States|Turkey|Close"
+    timeout: 10000
+- assertVisible: "United States/Canada|United Kingdom|Turkey|Close"
+
+
+# === S014-S015 signup-select-turkey (list pick; search is flaky on emulator IME) ===
+- scrollUntilVisible:
+    element: "Turkey"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 40
+- tapOn: "Turkey"
+- assertVisible: "\\+90"
+
+
+# === S016 signup-country-reopen-close ===
+- tapOn: "+90"
+- extendedWaitUntil:
+    visible: "Close"
+    timeout: 8000
+- tapOn: "Close"
+- assertVisible: "Sign Up"
+
+
+# === S017 signup-keyboard-cta ===
+- tapOn: "Password"
+- scrollUntilVisible:
+    element: "Sign Up"
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 20
+- assertVisible: "Sign Up"
+
+
+# === S018 signup-partial-name-only ===
+- tapOn: "Name"
+- eraseText
+- inputText: "Edge Tester"
+- tapOn: "Sign Up"
+- assertVisible: "Please fill in all fields with valid information.|Create Account"
+
+
+# === S019 signup-invalid-phone-edge ===
+- tapOn: "Phone"
+- eraseText
+- inputText: "12"
+- scrollUntilVisible:
+    element: "Email|Sign Up|Create Account"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 20
+- tapOn:
+    text: "Email"
+    optional: true
+- eraseText
+- inputText: "edge.phone@example.com"
+- tapOn: "Password"
+- eraseText
+- inputText: "TestPass123"
+- tapOn:
+    text: "Create Account"
+    optional: true
+- tapOn: "Sign Up"
+- assertVisible: "Please fill in all fields with valid information.|Create Account"
+
+
+# === S020 signup-nav-sign-in ===
+- scrollUntilVisible:
+    element: "Sign in"
+    direction: DOWN
+    timeout: 8000
+    visibilityPercentage: 20
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Welcome to GradLink"
+    timeout: 20000

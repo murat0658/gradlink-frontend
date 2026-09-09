@@ -1,0 +1,94 @@
+appId: host.exp.Exponent
+tags: [exhaustive, timeline, jobs]
+---
+
+- runFlow:
+    file: ../shared/login.yaml
+
+
+# === S021 tabs-all-four-visible ===
+- assertVisible: "Timeline"
+- assertVisible: "Groups"
+- assertVisible: "Jobs"
+- assertVisible: "Profile"
+
+
+# === S022 timeline-header-ui ===
+- tapOn: "Timeline"
+- extendedWaitUntil:
+    visible: "Your Timeline|Show past events|Timeline"
+    timeout: 20000
+- assertVisible: "Your Timeline|Timeline"
+- assertVisible: "Show past events"
+
+
+# === S023 timeline-subtitle-or-empty ===
+- assertVisible: "See your activity|No updates yet|Show past events|Your Timeline"
+
+
+# === S024 timeline-past-toggle-ui ===
+- assertVisible: "Show past events"
+- tapOn: "Show past events"
+
+
+# === S025 timeline-dismiss-banner-optional ===
+- runFlow:
+    when:
+      visible: "Dismiss"
+    commands:
+      - tapOn: "Dismiss"
+
+
+# === S026 jobs-tab-header-ui ===
+- openLink: ${EXPO_URL}/--/(tabs)/jobs
+- extendedWaitUntil:
+    visible: "Jobs|Sample data|.*Sample listings.*|Continue"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- runFlow:
+    when:
+      visible: ".*Access denied.*|.*Error message.*"
+    commands:
+      - tapOn:
+          point: "50%,92%"
+- assertVisible: "Jobs"
+
+
+# === S027 jobs-sample-badge-ui ===
+- assertVisible: "Sample data"
+
+
+# === S028 jobs-subtitle-ui ===
+- assertVisible: ".*Sample listings.*"
+
+
+# === S029 jobs-swe-card-ui ===
+- assertVisible: "Software Engineer (New Grad)"
+- assertVisible: ".*GradLink Partners.*"
+
+
+# === S030 jobs-designer-card-ui ===
+- assertVisible: "Product Designer Intern"
+- assertVisible: ".*Campus Studio.*"
+
+
+# === S031 jobs-type-badges-ui ===
+- assertVisible: "Full-time"
+- assertVisible: "Internship"
+
+
+# === S032 jobs-tags-ui ===
+- assertVisible: "React|TypeScript|Figma|UX"
+
+
+# === S033 jobs-posted-ui ===
+- assertVisible: ".*Posted.*"
+
+
+# === S034 jobs-next-step-hint-ui ===
+- assertVisible: "Next step"
+- assertVisible: ".*When backend endpoints are ready.*"

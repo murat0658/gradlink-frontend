@@ -1,0 +1,54 @@
+appId: host.exp.Exponent
+---
+# Already authenticated → nothing to do
+- runFlow:
+    when:
+      visible: "Groups|Timeline|Profile|Your Timeline"
+    commands:
+      - assertVisible: "Groups|Timeline|Profile|Your Timeline"
+
+# Otherwise sign in (recover from deep-link / Expo Continue / transient API toasts)
+- runFlow:
+    when:
+      notVisible: "Groups|Timeline|Profile|Your Timeline"
+    commands:
+      - openLink: ${EXPO_URL}/--/auth
+      - extendedWaitUntil:
+          visible: "Welcome to GradLink|Sign In|Continue|Email|Groups|Timeline"
+          timeout: 90000
+      - runFlow:
+          when:
+            visible: "Continue"
+          commands:
+            - tapOn: "Continue"
+      - runFlow:
+          when:
+            visible: "Groups|Timeline|Profile|Your Timeline"
+          commands:
+            - assertVisible: "Groups|Timeline|Profile|Your Timeline"
+      - runFlow:
+          when:
+            notVisible: "Groups|Timeline|Profile|Your Timeline"
+          commands:
+            - runFlow:
+                when:
+                  visible: ".*API Request failed.*|.*Access denied.*|.*Error message.*"
+                commands:
+                  - tapOn:
+                      point: "92%,90%"
+            - tapOn: "Email"
+            - eraseText
+            - inputText: ${EMAIL}
+            - tapOn:
+                text: "Welcome to GradLink"
+                optional: true
+            - tapOn: "Password"
+            - eraseText
+            - inputText: ${PASSWORD}
+            - tapOn:
+                text: "Welcome to GradLink"
+                optional: true
+            - tapOn: "Sign In"
+            - extendedWaitUntil:
+                visible: "Groups|Timeline|Profile|Your Timeline"
+                timeout: 60000

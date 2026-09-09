@@ -9,10 +9,11 @@ import {
   Modal,
   FlatList,
   Pressable,
+  ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Text } from "@/components/Themed";
-import { useDispatch } from "react-redux";
-import { setAuthenticated } from "./store";
 import { apiService } from "./services/ApiService";
 import { useRouter, Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -44,7 +45,7 @@ export default function SignupScreen() {
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [error, setError] = useState("");
-  const dispatch = useDispatch();
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   const filteredCountryCodes = COUNTRY_CODES.filter(
@@ -65,6 +66,8 @@ export default function SignupScreen() {
       return;
     }
     setError("");
+    setSubmitting(true);
+    Keyboard.dismiss();
     try {
       await apiService.register({
         name,
@@ -72,149 +75,166 @@ export default function SignupScreen() {
         password,
         phoneNumber: countryCode + phone,
       });
-      // Registration succeeded, route to sign in
-      setError("");
       router.replace({
         pathname: "/auth",
         params: { msg: "Registration successful! Please sign in." },
       });
-      return;
     } catch (err: any) {
       setError(
         err.message || "Could not connect to server. Please try again later."
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
     >
-      <View style={styles.card}>
-        <FontAwesome
-          name="user-plus"
-          size={48}
-          color={Colors.success}
-          style={{ marginBottom: 16 }}
-        />
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Sign up to get started</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          placeholderTextColor="#aaa"
-          value={name}
-          onChangeText={setName}
-        />
-        <View style={styles.phoneRow}>
-          <TouchableOpacity
-            style={styles.countryCodeButton}
-            onPress={() => setCountryModalVisible(true)}
-          >
-            <Text style={styles.countryCodeText}>{countryCode}</Text>
-            <FontAwesome
-              name="chevron-down"
-              size={14}
-              color={Colors.success}
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-          <TextInput
-            style={[styles.input, styles.inputPhone]}
-            placeholder="Phone"
-            placeholderTextColor="#aaa"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
-        </View>
-        <Modal
-          visible={countryModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setCountryModalVisible(false)}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <TextInput
-                style={styles.input}
-                value={countrySearch}
-                onChangeText={setCountrySearch}
-                placeholder="Search country code"
-                placeholderTextColor="#aaa"
-                autoFocus
-              />
-              <FlatList
-                data={filteredCountryCodes}
-                keyExtractor={(item) => item.code}
-                renderItem={({ item }) => (
-                  <Pressable
-                    style={styles.countryItem}
-                    onPress={() => {
-                      setCountryCode(item.code);
-                      setCountryModalVisible(false);
-                      setCountrySearch("");
-                    }}
-                  >
-                    <Text style={styles.countryCodeText}>{item.code}</Text>
-                    <Text style={styles.countryNameText}>{item.name}</Text>
-                  </Pressable>
-                )}
-                style={{ maxHeight: 300 }}
-              />
+          <View style={styles.card}>
+            <FontAwesome
+              name="user-plus"
+              size={48}
+              color={Colors.success}
+              style={{ marginBottom: 16 }}
+            />
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Sign up to get started</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Name"
+              placeholderTextColor="#aaa"
+              value={name}
+              onChangeText={setName}
+              returnKeyType="next"
+            />
+            <View style={styles.phoneRow}>
               <TouchableOpacity
-                style={styles.closeModalButton}
-                onPress={() => setCountryModalVisible(false)}
+                style={styles.countryCodeButton}
+                onPress={() => setCountryModalVisible(true)}
               >
-                <Text style={styles.closeModalButtonText}>Close</Text>
+                <Text style={styles.countryCodeText}>{countryCode}</Text>
+                <FontAwesome
+                  name="chevron-down"
+                  size={14}
+                  color={Colors.success}
+                  style={{ marginLeft: 4 }}
+                />
               </TouchableOpacity>
+              <TextInput
+                style={[styles.input, styles.inputPhone]}
+                placeholder="Phone"
+                placeholderTextColor="#aaa"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                returnKeyType="next"
+              />
+            </View>
+            <Modal
+              visible={countryModalVisible}
+              animationType="slide"
+              transparent={true}
+              onRequestClose={() => setCountryModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <TextInput
+                    style={styles.input}
+                    value={countrySearch}
+                    onChangeText={setCountrySearch}
+                    placeholder="Search country code"
+                    placeholderTextColor="#aaa"
+                    autoFocus
+                  />
+                  <FlatList
+                    data={filteredCountryCodes}
+                    keyExtractor={(item) => item.code}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        style={styles.countryItem}
+                        onPress={() => {
+                          setCountryCode(item.code);
+                          setCountryModalVisible(false);
+                          setCountrySearch("");
+                        }}
+                      >
+                        <Text style={styles.countryCodeText}>{item.code}</Text>
+                        <Text style={styles.countryNameText}>{item.name}</Text>
+                      </Pressable>
+                    )}
+                    style={{ maxHeight: 300 }}
+                    keyboardShouldPersistTaps="handled"
+                  />
+                  <TouchableOpacity
+                    style={styles.closeModalButton}
+                    onPress={() => setCountryModalVisible(false)}
+                  >
+                    <Text style={styles.closeModalButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#aaa"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="next"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#aaa"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={handleSignup}
+            />
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <TouchableOpacity
+              style={[styles.button, submitting && styles.buttonDisabled]}
+              onPress={handleSignup}
+              activeOpacity={0.85}
+              disabled={submitting}
+            >
+              <Text style={styles.buttonText}>
+                {submitting ? "Creating…" : "Sign Up"}
+              </Text>
+            </TouchableOpacity>
+            <View
+              style={{
+                marginTop: 18,
+                flexDirection: "row",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "#6b7280", fontSize: 15 }}>
+                Already have an account?{" "}
+              </Text>
+              <Link
+                href="./auth"
+                style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
+              >
+                Sign in
+              </Link>
             </View>
           </View>
-        </Modal>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#aaa"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#aaa"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleSignup}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
-        <View
-          style={{
-            marginTop: 18,
-            flexDirection: "row",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ color: "#6b7280", fontSize: 15 }}>
-            Already have an account?{" "}
-          </Text>
-          <Link
-            href="./auth"
-            style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
-          >
-            Sign in
-          </Link>
-        </View>
-      </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
@@ -222,45 +242,50 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#f9fafb",
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+  },
   card: {
+    width: "100%",
+    maxWidth: 400,
     backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 32,
-    width: 340,
-    maxWidth: "90%",
+    borderRadius: 16,
+    padding: 24,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#22223b",
-    marginBottom: 6,
+    color: "#1f2937",
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#6b7280",
-    marginBottom: 18,
+    marginBottom: 20,
   },
   input: {
     width: "100%",
-    fontSize: 16,
-    color: "#22223b",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 12,
+    fontSize: 16,
+    color: "#111827",
+    backgroundColor: "#fff",
   },
   phoneRow: {
     flexDirection: "row",
@@ -271,10 +296,10 @@ const styles = StyleSheet.create({
   countryCodeButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#f9fafb",
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     marginRight: 6,
@@ -342,6 +367,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
   },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
@@ -349,8 +377,8 @@ const styles = StyleSheet.create({
   },
   error: {
     color: "#ef4444",
-    fontSize: 14,
     marginBottom: 8,
-    alignSelf: "flex-start",
+    textAlign: "center",
+    width: "100%",
   },
 });

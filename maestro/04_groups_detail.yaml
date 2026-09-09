@@ -1,0 +1,54 @@
+# Group detail: open, join/subscribe toggles, leave confirm cancel
+appId: host.exp.Exponent
+tags:
+  - authenticated
+  - groups
+---
+- runFlow:
+    file: shared/login.yaml
+
+- tapOn:
+    text: "Groups"
+    index: 0
+- extendedWaitUntil:
+    visible: "University Graduate Groups"
+    timeout: 20000
+
+- tapOn:
+    text: "Harvard|Stanford|Oxford|MIT|Cambridge|Yale|Princeton|Columbia"
+    index: 0
+
+- extendedWaitUntil:
+    visible: "Join|Leave|Subscribe|Unsubscribe|Members"
+    timeout: 25000
+
+- runFlow:
+    when:
+      visible: "Join"
+    commands:
+      - tapOn: "Join"
+      - extendedWaitUntil:
+          visible: "Leave|Joined group|Subscribe|Unsubscribe"
+          timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Subscribe"
+    commands:
+      - tapOn: "Subscribe"
+
+- runFlow:
+    when:
+      visible: "Leave"
+    commands:
+      - tapOn: "Leave"
+      - extendedWaitUntil:
+          visible: "Cancel"
+          timeout: 10000
+      - tapOn: "Cancel"
+
+- scrollUntilVisible:
+    element: "Members"
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 25

@@ -1,0 +1,93 @@
+# GradLink live checks in Expo Go
+appId: host.exp.Exponent
+tags:
+  - smoke
+---
+- openLink: ${EXPO_URL}/--/auth
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Sign in to continue|Email"
+    timeout: 45000
+
+# Dismiss LogBox / API toasts
+- runFlow:
+    when:
+      visible: ".*API Request failed.*"
+    commands:
+      - tapOn:
+          text: ".*API Request failed.*"
+          optional: true
+
+- tapOn:
+    id: "auth-email"
+    optional: true
+- tapOn:
+    text: "Email"
+    optional: true
+- eraseText
+- inputText: ${EMAIL}
+- runFlow:
+    when:
+      visible: "Welcome to GradLink"
+    commands:
+      - tapOn: "Welcome to GradLink"
+
+# Password
+- tapOn:
+    id: "auth-password"
+    optional: true
+- tapOn:
+    text: "Password"
+    optional: true
+- eraseText
+- inputText: ${PASSWORD}
+- runFlow:
+    when:
+      visible: "Welcome to GradLink"
+    commands:
+      - tapOn: "Welcome to GradLink"
+
+- tapOn:
+    id: "auth-sign-in"
+    optional: true
+- tapOn:
+    text: "Sign In"
+    optional: true
+
+# iOS Keychain save sheet (TR / EN)
+- runFlow:
+    when:
+      visible: "Sonra"
+    commands:
+      - tapOn: "Sonra"
+- runFlow:
+    when:
+      visible: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+- runFlow:
+    when:
+      visible: "Kaydet"
+    commands:
+      - tapOn: "Sonra"
+
+- extendedWaitUntil:
+    visible: "Groups"
+    timeout: 45000
+
+- tapOn:
+    text: "Groups"
+    index: 0
+- extendedWaitUntil:
+    visible: "University Graduate Groups"
+    timeout: 15000
+- assertNotVisible: "Groups will appear here when loaded from the server."
+- assertNotVisible: "Couldn't load groups"
+
+- tapOn: "Profile"
+- scrollUntilVisible:
+    element: "Test Alert"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 50
+- assertVisible: "Test Alert"
+- assertNotVisible: "Test Notification"

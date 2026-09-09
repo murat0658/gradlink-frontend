@@ -1,0 +1,48 @@
+# Authenticated tabs: Timeline, Groups list, Jobs, Profile
+appId: host.exp.Exponent
+tags:
+  - authenticated
+  - tabs
+---
+- runFlow:
+    file: shared/login.yaml
+
+# Timeline
+- tapOn: "Timeline"
+- extendedWaitUntil:
+    visible: "Your Timeline|Show past events|Timeline"
+    timeout: 20000
+- assertVisible: "Show past events"
+
+# Groups list (not empty)
+- tapOn:
+    text: "Groups"
+    index: 0
+- extendedWaitUntil:
+    visible: "University Graduate Groups"
+    timeout: 20000
+- assertNotVisible: "Groups will appear here when loaded from the server."
+- assertNotVisible: "Couldn't load groups"
+
+# Jobs sample listings
+- tapOn: "Jobs"
+- extendedWaitUntil:
+    visible: "Sample data|Sample listings"
+    timeout: 15000
+- assertVisible: "Software Engineer (New Grad)|Product Designer Intern|GradLink Partners"
+
+# Profile
+- tapOn: "Profile"
+- scrollUntilVisible:
+    element: "Edit Profile"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 40
+- assertVisible: "Edit Profile"
+- scrollUntilVisible:
+    element: "Test Alert"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 40
+- assertVisible: "Test Alert"
+- assertNotVisible: "Test Notification"

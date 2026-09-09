@@ -40,7 +40,7 @@ import {
 import { AppEvent } from "../store/types";
 import { useRouter } from "expo-router";
 import { NotificationService } from "../services/NotificationService";
-import { Card, Button, Badge, Header, Input, Divider } from "@/components/UI";
+import { Card, Button, Badge, Input, Divider } from "@/components/UI";
 import Colors, {
   spacing,
   borderRadius,
@@ -84,6 +84,31 @@ function validatePhone(phone: string) {
   // Require at least 10 digits in the phone number part
   const digits = phone.replace(/[^0-9]/g, "");
   return digits.length >= 10;
+}
+
+/** Avoid "+1 +1555…" when phoneNumber already includes the country code. */
+function formatProfilePhone(countryCode?: string, phoneNumber?: string) {
+  const code = (countryCode || "").trim();
+  const raw = (phoneNumber || "").trim();
+  if (!raw && !code) return "";
+  if (!raw) return code;
+  if (raw.startsWith("+")) return raw;
+  if (code && (raw.startsWith(code) || raw.startsWith(code.replace("+", "")))) {
+    return raw.startsWith("+") ? raw : `+${raw.replace(/^\+/, "")}`;
+  }
+  if (code) return `${code} ${raw}`.trim();
+  return raw;
+}
+
+function profileInitials(name?: string) {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function hasAvatarUri(uri?: string | null) {
+  return typeof uri === "string" && uri.trim().length > 0;
 }
 
 export default function ProfileScreen() {
@@ -384,17 +409,32 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={pickImage}
             style={styles.avatarEditWrapper}
+            accessibilityLabel="Change profile photo"
           >
-            <Image source={{ uri: form.avatarUrl }} style={styles.avatar} />
+            {hasAvatarUri(form.avatarUrl) ? (
+              <Image source={{ uri: form.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <RNView style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitials}>
+                  {profileInitials(form.name)}
+                </Text>
+              </RNView>
+            )}
             <RNView style={styles.avatarEditIcon}>
               <FontAwesome name="camera" size={18} color="#fff" />
             </RNView>
           </TouchableOpacity>
-        ) : (
+        ) : hasAvatarUri(user.avatarUrl || (user as any).avatar) ? (
           <Image
             source={{ uri: user.avatarUrl || (user as any).avatar }}
             style={styles.avatar}
           />
+        ) : (
+          <RNView style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarInitials}>
+              {profileInitials(user.name)}
+            </Text>
+          </RNView>
         )}
 
         {editMode ? (
@@ -855,20 +895,25 @@ export default function ProfileScreen() {
           <>
             <Text style={styles.name}>{user.name}</Text>
             <Text style={styles.email}>{user.email}</Text>
-            <RNView style={styles.phoneRow}>
-              <FontAwesome
-                name="phone"
-                size={16}
-                color={Colors.tint}
-                style={{ marginRight: spacing.xs }}
-              />
-              <Text style={styles.phoneCountryCode}>
-                {(user as any).countryCode || "+1"}
-              </Text>
-              <Text style={styles.phone}>
-                {(user as any).phoneNumber || (user as any).phone || ""}
-              </Text>
-            </RNView>
+            {!!formatProfilePhone(
+              (user as any).countryCode,
+              (user as any).phoneNumber || (user as any).phone
+            ) && (
+              <RNView style={styles.phoneRow}>
+                <FontAwesome
+                  name="phone"
+                  size={14}
+                  color={Colors.tint}
+                  style={{ marginRight: spacing.xs }}
+                />
+                <Text style={styles.phone}>
+                  {formatProfilePhone(
+                    (user as any).countryCode,
+                    (user as any).phoneNumber || (user as any).phone
+                  )}
+                </Text>
+              </RNView>
+            )}
 
             {/* Profile Information Cards */}
             {(user.bio ||
@@ -980,6 +1025,7 @@ export default function ProfileScreen() {
                 size="lg"
                 onPress={() => setEditMode(true)}
                 style={styles.editButton}
+                accessibilityLabel="Edit Profile"
               >
                 <FontAwesome
                   name="pencil"
@@ -990,20 +1036,23 @@ export default function ProfileScreen() {
                 Edit Profile
               </Button>
 
-              <Button
-                variant="outline"
-                size="lg"
-                onPress={handleTestNotification}
-                style={styles.testNotificationButton}
-              >
-                <FontAwesome
-                  name="bell"
-                  size={16}
-                  color={Colors.tint}
-                  style={{ marginRight: spacing.xs }}
-                />
-                Test Notification
-              </Button>
+              {__DEV__ && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onPress={handleTestNotification}
+                  style={styles.testNotificationButton}
+                  accessibilityLabel="Test Alert"
+                >
+                  <FontAwesome
+                    name="bell"
+                    size={16}
+                    color={Colors.tint}
+                    style={{ marginRight: spacing.xs }}
+                  />
+                  Test Alert
+                </Button>
+              )}
             </RNView>
           </>
         )}
@@ -1012,7 +1061,17 @@ export default function ProfileScreen() {
       {/* Enrolled Events Section */}
       {enrolledEvents.length > 0 && (
         <RNView style={styles.enrolledEventsSection}>
-          <Header title="My Enrolled Events" icon="📅" color={Colors.tint} />
+          <RNView style={styles.sectionHeaderRow}>
+            <RNView
+              style={[
+                styles.sectionHeaderIcon,
+                { backgroundColor: Colors.tint },
+              ]}
+            >
+              <FontAwesome name="calendar" size={16} color="#fff" />
+            </RNView>
+            <Text style={styles.sectionHeaderTitle}>My Enrolled Events</Text>
+          </RNView>
           <RNView style={styles.showPastEventsRow}>
             <Text style={styles.showPastEventsLabel}>Show past events</Text>
             <Switch
@@ -1107,14 +1166,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: "center",
-    padding: spacing.xl,
-    paddingBottom: 50,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   profileCard: {
     alignItems: "center",
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
     width: "100%",
-    padding: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
     backgroundColor: Colors.card,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
@@ -1122,26 +1184,35 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: spacing.lg,
-    borderWidth: 4,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    marginBottom: spacing.md,
+    borderWidth: 3,
     borderColor: Colors.tint,
     ...shadows.md,
   },
+  avatarPlaceholder: {
+    backgroundColor: Colors.backgroundTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitials: {
+    ...typography.xl,
+    fontWeight: "700",
+    color: Colors.tint,
+  },
   name: {
-    ...typography["2xl"],
+    ...typography.xl,
     fontWeight: "700",
     color: Colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     textAlign: "center",
   },
   email: {
-    ...typography.base,
-    fontSize: 16,
+    ...typography.sm,
     color: Colors.textSecondary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     textAlign: "center",
   },
   phoneRow: {
@@ -1152,13 +1223,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   phone: {
-    ...typography.base,
-    fontSize: 16,
+    ...typography.sm,
     color: Colors.textSecondary,
   },
   phoneCountryCode: {
-    ...typography.base,
-    fontSize: 16,
+    ...typography.sm,
     fontWeight: "600",
     color: Colors.text,
     marginRight: spacing.xs,
@@ -1169,7 +1238,8 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   editButton: {
-    flex: 1,
+    width: "100%",
+    alignSelf: "stretch",
   },
   saveButton: {
     flex: 1,
@@ -1180,7 +1250,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     width: "100%",
     gap: spacing.md,
   },
@@ -1200,7 +1270,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     ...typography.lg,
-    fontSize: 18,
     fontWeight: "700",
     color: Colors.text,
     marginBottom: spacing.md,
@@ -1219,7 +1288,7 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   avatarEditIcon: {
     position: "absolute",
@@ -1256,6 +1325,25 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: spacing.xl,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  sectionHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionHeaderTitle: {
+    ...typography.lg,
+    fontWeight: "700",
+    color: Colors.text,
+    flex: 1,
+  },
   showPastEventsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1264,7 +1352,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   showPastEventsLabel: {
-    fontSize: 15,
+    ...typography.sm,
     color: Colors.text,
   },
   enrolledEventItem: {
@@ -1279,15 +1367,13 @@ const styles = StyleSheet.create({
   },
   enrolledEventTitle: {
     ...typography.lg,
-    fontSize: 17,
     fontWeight: "700",
     color: Colors.text,
     flex: 1,
     flexWrap: "wrap",
   },
   enrolledEventGroup: {
-    ...typography.base,
-    fontSize: 15,
+    ...typography.sm,
     color: Colors.textSecondary,
     marginBottom: spacing.sm,
     flexWrap: "wrap",
@@ -1307,8 +1393,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   enrolledEventDetailText: {
-    ...typography.base,
-    fontSize: 14,
+    ...typography.sm,
     color: Colors.text,
     marginLeft: spacing.xs,
     flexShrink: 1,
@@ -1318,7 +1403,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   testNotificationButton: {
-    flex: 1,
+    width: "100%",
+    alignSelf: "stretch",
   },
   loadingContainer: {
     alignItems: "center",
@@ -1326,7 +1412,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...typography.base,
-    fontSize: 16,
     color: Colors.text,
   },
   errorContainer: {
@@ -1335,7 +1420,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...typography.base,
-    fontSize: 16,
     color: Colors.error,
     textAlign: "center",
     marginBottom: spacing.sm,
@@ -1372,7 +1456,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.lg,
-    fontSize: 18,
     fontWeight: "700",
     color: Colors.text,
     marginBottom: spacing.lg,
@@ -1412,7 +1495,6 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     ...typography.base,
-    fontSize: 16,
     color: Colors.text,
     flexShrink: 1,
     paddingRight: spacing.sm,
@@ -1449,15 +1531,14 @@ const styles = StyleSheet.create({
   },
   countryCodeText: {
     ...typography.sm,
-    fontSize: 14,
     fontWeight: "700",
     color: "#fff",
   },
   // Profile info display styling
   profileInfoSection: {
     width: "100%",
-    marginTop: spacing.lg,
-    gap: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
   },
   extraEducationBox: {
     backgroundColor: Colors.background,
@@ -1505,7 +1586,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   infoCard: {
-    padding: spacing.lg,
+    padding: spacing.md,
     backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -1518,28 +1599,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   infoCardTitle: {
-    ...typography.base,
-    fontSize: 16,
+    ...typography.sm,
     fontWeight: "700",
     color: Colors.text,
   },
   infoCardText: {
-    ...typography.base,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.sm,
+    lineHeight: 20,
     color: Colors.text,
   },
   infoCardSubtext: {
     marginTop: spacing.xs,
     ...typography.sm,
-    fontSize: 14,
     color: Colors.textSecondary,
   },
   actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: spacing.xl,
+    flexDirection: "column",
+    alignItems: "stretch",
+    marginTop: spacing.lg,
     width: "100%",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
 });

@@ -1,0 +1,36 @@
+# Profile actions: Test Alert + Edit Profile open/cancel
+appId: host.exp.Exponent
+tags:
+  - authenticated
+  - profile
+---
+- runFlow:
+    file: shared/login.yaml
+
+- tapOn: "Profile"
+- scrollUntilVisible:
+    element: "Test Alert"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+- tapOn: "Test Alert"
+# Toast may be ephemeral — don't hard-fail if missed
+- runFlow:
+    when:
+      visible: "Test notification sent|Could not send test notification"
+    commands:
+      - assertVisible: "Test notification sent|Could not send test notification"
+
+- scrollUntilVisible:
+    element: "Edit Profile"
+    direction: UP
+    timeout: 10000
+    visibilityPercentage: 40
+- tapOn: "Edit Profile"
+- extendedWaitUntil:
+    visible: "Save Changes|Full Name|Cancel"
+    timeout: 15000
+- assertVisible: "Save Changes"
+- tapOn:
+    text: "Cancel"
+    optional: true

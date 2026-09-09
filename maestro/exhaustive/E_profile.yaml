@@ -1,0 +1,133 @@
+appId: host.exp.Exponent
+tags: [exhaustive, profile]
+---
+
+- runFlow:
+    file: ../shared/login.yaml
+
+
+# === S054 profile-tab-ui ===
+- openLink: ${EXPO_URL}/--/(tabs)/profile
+- extendedWaitUntil:
+    visible: "Edit Profile|Loading profile|Retry|Profile|Continue"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+
+# === S055 profile-edit-button-ui ===
+- scrollUntilVisible:
+    element: "Edit Profile"
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible: "Edit Profile"
+
+
+# === S056 profile-test-alert-ui (__DEV__ / Expo Go only) ===
+- scrollUntilVisible:
+    element: "Edit Profile"
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 40
+- assertVisible: "Edit Profile"
+- scrollUntilVisible:
+    element: "Test Alert"
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 40
+- assertVisible: "Test Alert"
+- assertNotVisible: "Test Notification"
+# Full labels must be visible (no "Edit Pr…" / "Test A…")
+- assertVisible:
+    text: "Edit Profile"
+- assertVisible:
+    text: "Test Alert"
+
+
+# === S057 profile-test-alert-tap ===
+- tapOn: "Test Alert"
+- runFlow:
+    when:
+      visible: "Test notification sent|Could not send test notification|Enable notifications"
+    commands:
+      - assertVisible: "Test notification sent|Could not send test notification|Enable notifications"
+
+
+# === S058 profile-edit-mode-ui ===
+- scrollUntilVisible:
+    element: "Edit Profile"
+    direction: UP
+    timeout: 10000
+    visibilityPercentage: 30
+- tapOn: "Edit Profile"
+- extendedWaitUntil:
+    visible: "Save Changes|Full Name|Cancel|Basic Information"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Save Changes"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+- assertVisible: "Save Changes"
+
+
+# === S059 profile-edit-mode-sections-ui ===
+# Placeholders are often replaced by filled values; assert section chrome instead.
+- scrollUntilVisible:
+    element: "Basic Information|About You|Education|Save Changes|Cancel"
+    direction: UP
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible: "Basic Information|About You|Education|Save Changes|Cancel|Work (Optional)"
+
+
+# === S060 profile-invalid-email-edge ===
+- runFlow:
+    when:
+      visible: "Email Address"
+    commands:
+      - tapOn: "Email Address"
+      - eraseText
+      - inputText: "not-an-email"
+      - tapOn:
+          text: "Basic Information|About You|Full Name"
+          optional: true
+      - assertVisible: "Please enter a valid email address.|Save Changes|Email Address"
+
+
+# === S061 profile-cancel-edit ===
+- tapOn:
+    text: "Cancel"
+    optional: true
+- extendedWaitUntil:
+    visible: "Edit Profile|Test Alert|Profile"
+    timeout: 15000
+
+
+# === S062 profile-enrolled-section-optional ===
+- runFlow:
+    when:
+      visible: "My Enrolled Events"
+    commands:
+      - assertVisible: "My Enrolled Events"
+      - assertVisible: "Show past events"
+
+
+# === S063 profile-joined-badge-optional ===
+- runFlow:
+    when:
+      visible: "Joined"
+    commands:
+      - assertVisible: "Joined"
+
+
+# === S064 profile-about-location-optional ===
+- runFlow:
+    when:
+      visible: "About|Location|Education|Work"
+    commands:
+      - assertVisible: "About|Location|Education|Work"

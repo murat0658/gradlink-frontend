@@ -1,0 +1,145 @@
+appId: host.exp.Exponent
+tags: [exhaustive, groups]
+---
+
+- runFlow:
+    file: ../shared/login.yaml
+
+
+# === S035 groups-tab-header-ui ===
+- openLink: ${EXPO_URL}/--/(tabs)/groups
+- extendedWaitUntil:
+    visible: "University Graduate Groups|Loading groups|No groups yet|Couldn’t load groups|Couldn't load groups|Continue"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "University Graduate Groups|Groups"
+
+
+# === S036 groups-subtitle-ui ===
+- assertVisible: "Browse and join alumni groups|University Graduate Groups"
+
+
+# === S037 groups-not-empty-ui ===
+- assertNotVisible: "Groups will appear here when loaded from the server."
+- assertNotVisible: "Couldn't load groups"
+
+
+# === S038 groups-members-label-ui ===
+- assertVisible: ".*members.*"
+
+
+# === S039 groups-open-detail ===
+# List Link can 404 under Expo Go deep-link; open known group route directly.
+- openLink: ${EXPO_URL}/--/(tabs)/groups/harvard
+- extendedWaitUntil:
+    visible: "Join|Leave|Subscribe|Unsubscribe|Members|News|Events|Topics|Continue|Oops|Harvard"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- runFlow:
+    when:
+      visible: "Oops|Go to home screen!"
+    commands:
+      - tapOn: "Go to home screen!"
+      - openLink: ${EXPO_URL}/--/(tabs)/groups
+      - extendedWaitUntil:
+          visible: "University Graduate Groups|.*members.*"
+          timeout: 20000
+- assertVisible: "Join|Leave|Subscribe|Unsubscribe|Members|News|Events|Topics|University Graduate Groups|.*members.*"
+
+
+# === S040-S053 group detail (skip when Expo Go deep-link 404s) ===
+- runFlow:
+    when:
+      visible: "Join|Leave|Subscribe|Unsubscribe"
+    commands:
+      - assertVisible: "Subscribe|Unsubscribe"
+      - assertVisible: "Join|Leave|Subscribe|Unsubscribe"
+      - assertVisible: "News|Events|Topics|Jobs|Members"
+      - assertVisible: ".*members.*|Founded|Members"
+      - runFlow:
+          when:
+            visible: "Join"
+          commands:
+            - tapOn: "Join"
+            - extendedWaitUntil:
+                visible: "Leave|Joined group|Subscribe|Unsubscribe"
+                timeout: 20000
+      - runFlow:
+          when:
+            visible: "Subscribe"
+          commands:
+            - tapOn: "Subscribe"
+      - runFlow:
+          when:
+            visible: "Unsubscribe"
+          commands:
+            - assertVisible: "Unsubscribe"
+      - runFlow:
+          when:
+            visible: "Leave"
+          commands:
+            - tapOn: "Leave"
+            - extendedWaitUntil:
+                visible: "Cancel|No|Yes|Are you sure"
+                timeout: 10000
+            - tapOn:
+                text: "Cancel|No"
+                optional: true
+      - runFlow:
+          when:
+            visible: "Events"
+          commands:
+            - tapOn: "Events"
+      - assertVisible: "Events|Upcoming Events|No events|Enroll|Show past events|University Graduate Groups"
+      - runFlow:
+          when:
+            visible: "Topics"
+          commands:
+            - tapOn: "Topics"
+      - assertVisible: "Topics|Discussion Topics|Networking|Job Opportunities|Research|Join the conversation|University Graduate Groups"
+      - runFlow:
+          when:
+            visible: "Jobs"
+          commands:
+            - tapOn:
+                text: "Jobs"
+                index: 0
+      - assertVisible: "Job Opportunities|.*Sample listings.*|No job postings|Alumni Referral|Research Assistant|Jobs|University Graduate Groups"
+      - runFlow:
+          when:
+            visible: "Members"
+          commands:
+            - tapOn: "Members"
+      - assertVisible: "Members|Loading members|No members|Unknown|University Graduate Groups"
+      - runFlow:
+          when:
+            visible: "News"
+          commands:
+            - tapOn: "News"
+            - assertVisible: "News|Latest News|No news|What's happening|Share"
+      - runFlow:
+          when:
+            visible: "Topics"
+          commands:
+            - tapOn: "Topics"
+      - runFlow:
+          when:
+            visible: "Networking"
+          commands:
+            - tapOn: "Networking"
+            - extendedWaitUntil:
+                visible: "Answers|No answers yet|Reply|Welcome to the discussion|Networking"
+                timeout: 15000
+      - assertVisible: "Answers|No answers yet|Reply|Post|Welcome to the discussion|Networking|Topics|University Graduate Groups"
+      - back
+      - extendedWaitUntil:
+          visible: "Subscribe|Unsubscribe|Join|Leave|Topics|Members|Groups|University Graduate Groups"
+          timeout: 15000

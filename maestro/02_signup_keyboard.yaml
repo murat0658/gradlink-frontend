@@ -1,0 +1,33 @@
+# Signup form + keyboard CTA reachability
+appId: host.exp.Exponent
+tags:
+  - auth
+  - signup
+---
+- openLink: ${EXPO_URL}/--/signup
+- extendedWaitUntil:
+    visible: "Create Account|Sign up to get started|Sign Up|Continue"
+    timeout: 45000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Name"
+- assertVisible: "Phone"
+- assertVisible: "Email"
+- assertVisible: "Password"
+- tapOn: "Password"
+- scrollUntilVisible:
+    element: "Sign Up"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 25
+- assertVisible: "Sign Up"
+# Footer link (keyboard may cover "Already have…"; Sign in is enough)
+- scrollUntilVisible:
+    element: "Sign in"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 20
+- assertVisible: "Sign in"

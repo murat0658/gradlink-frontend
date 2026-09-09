@@ -1,0 +1,21 @@
+# Logout returns to sign-in
+appId: host.exp.Exponent
+tags:
+  - authenticated
+  - auth
+---
+- runFlow:
+    file: shared/login.yaml
+
+- tapOn: "Profile"
+- tapOn:
+    id: "header-logout"
+    optional: true
+- tapOn:
+    text: "Log out"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Sign In|Email"
+    timeout: 30000
+- assertVisible: "Sign In"

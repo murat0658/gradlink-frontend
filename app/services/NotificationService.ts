@@ -1,38 +1,83 @@
-import * as Notifications from "expo-notifications";
+import { isRunningInExpoGo } from "expo";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import { AppEvent } from "../store/types";
 import { store } from "../store";
 import { addNotification } from "../store/slices/notificationsSlice";
 
-function notificationsSupported(): boolean {
+type NotificationsModule = typeof import("expo-notifications");
+
+let notificationsModule: NotificationsModule | null | undefined;
+
+/**
+ * Expo Go (SDK 53+) removed Android remote push from expo-notifications.
+ * Importing the package still runs DevicePushTokenAutoRegistration, which
+ * calls console.error on Android. Never load the package in Expo Go.
+ */
+function canUseNativeNotifications(): boolean {
   if (Platform.OS === "web") return false;
-  // On iOS simulator, expo-notifications APIs can be flaky depending on runtime.
-  // We prefer a no-crash experience and degrade gracefully.
+  if (isRunningInExpoGo()) return false;
+  // iOS simulator: native APIs are unreliable
   if (Platform.OS === "ios" && !Device.isDevice) return false;
   return true;
 }
 
-// Configure notification behavior (safe on web/simulator)
-try {
-  if (notificationsSupported()) {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowList: true,
-      }),
-    });
+async function loadNotifications(): Promise<NotificationsModule | null> {
+  if (!canUseNativeNotifications()) return null;
+  if (notificationsModule !== undefined) return notificationsModule;
+
+  try {
+    notificationsModule = await import("expo-notifications");
+    return notificationsModule;
+  } catch (e) {
+    if (__DEV__) console.warn("Failed to load expo-notifications:", e);
+    notificationsModule = null;
+    return null;
   }
-} catch (e) {
-  // Not supported on web or in some environments
-  if (__DEV__) console.warn("Notification handler not set:", e);
+}
+
+function addInAppNotification(partial: {
+  id: string;
+  type: "event" | "general";
+  title: string;
+  message: string;
+  eventId?: string;
+}) {
+  store.dispatch(
+    addNotification({
+      ...partial,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+    })
+  );
 }
 
 export class NotificationService {
-  /** Set up Android notification channel (required before permissions on Android 13+). No-op on iOS. */
-  private static async setupAndroidChannel(): Promise<void> {
+  private static handlerConfigured = false;
+
+  private static async ensureHandler(
+    Notifications: NotificationsModule
+  ): Promise<void> {
+    if (NotificationService.handlerConfigured) return;
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowList: true,
+        }),
+      });
+      NotificationService.handlerConfigured = true;
+    } catch (e) {
+      if (__DEV__) console.warn("Notification handler not set:", e);
+    }
+  }
+
+  /** Set up Android notification channel. No-op in Expo Go / iOS. */
+  private static async setupAndroidChannel(
+    Notifications: NotificationsModule
+  ): Promise<void> {
     if (Platform.OS !== "android") return;
     try {
       await Notifications.setNotificationChannelAsync("default", {
@@ -48,8 +93,14 @@ export class NotificationService {
 
   static async requestPermissions(): Promise<boolean> {
     try {
-      if (!notificationsSupported()) return false;
-      await NotificationService.setupAndroidChannel();
+      const Notifications = await loadNotifications();
+      if (!Notifications) {
+        // Expo Go: in-app list only; treat as available for local UX.
+        return isRunningInExpoGo();
+      }
+
+      await NotificationService.ensureHandler(Notifications);
+      await NotificationService.setupAndroidChannel(Notifications);
 
       const { status: existingStatus } =
         await Notifications.getPermissionsAsync();
@@ -73,25 +124,28 @@ export class NotificationService {
   }
 
   static async scheduleEventNotification(event: AppEvent) {
-    if (!notificationsSupported()) return;
     const eventTime = new Date(event.startTime);
     const now = new Date();
     const timeUntilEvent = eventTime.getTime() - now.getTime();
 
-    // Only schedule if event is within 24 hours and in the future
-    if (timeUntilEvent > 0 && timeUntilEvent <= 24 * 60 * 60 * 1000) {
-      const hoursUntilEvent = Math.floor(timeUntilEvent / (1000 * 60 * 60));
+    if (timeUntilEvent <= 0 || timeUntilEvent > 24 * 60 * 60 * 1000) return;
 
-      // Show immediate notification for events within 24 hours
-      try {
-        const granted = await NotificationService.requestPermissions();
-        if (!granted) return;
+    const hoursUntilEvent = Math.floor(timeUntilEvent / (1000 * 60 * 60));
+    const title = "Event Scheduled";
+    const message = `${event.title} is scheduled for ${hoursUntilEvent} hour${
+      hoursUntilEvent !== 1 ? "s" : ""
+    } from now!`;
+
+    try {
+      const granted = await NotificationService.requestPermissions();
+      if (!granted) return;
+
+      const Notifications = await loadNotifications();
+      if (Notifications) {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: "Event Scheduled",
-            body: `${event.title} is scheduled for ${hoursUntilEvent} hour${
-              hoursUntilEvent !== 1 ? "s" : ""
-            } from now!`,
+            title,
+            body: message,
             data: {
               eventId: event.id,
               eventTitle: event.title,
@@ -101,33 +155,29 @@ export class NotificationService {
             },
             sound: "default",
           },
-          trigger: null, // Immediate notification
+          trigger: null,
         });
-
-        // Also add to Redux store for the notifications screen
-        const notification = {
-          id: `push-${event.id}-${Date.now()}`,
-          type: "event" as const,
-          title: "Event Scheduled",
-          message: `${event.title} is scheduled for ${hoursUntilEvent} hour${
-            hoursUntilEvent !== 1 ? "s" : ""
-          } from now!`,
-          eventId: event.id,
-          timestamp: new Date().toISOString(),
-          isRead: false,
-        };
-
-        store.dispatch(addNotification(notification));
-
-        console.log(`Scheduled notification for event: ${event.title}`);
-      } catch (error) {
-        if (__DEV__) console.warn("Error scheduling event notification:", error);
       }
+
+      addInAppNotification({
+        id: `push-${event.id}-${Date.now()}`,
+        type: "event",
+        title,
+        message,
+        eventId: event.id,
+      });
+
+      if (__DEV__) console.log(`Scheduled notification for event: ${event.title}`);
+    } catch (error) {
+      if (__DEV__) console.warn("Error scheduling event notification:", error);
     }
   }
 
   static async cancelEventNotifications(eventId: string): Promise<void> {
     try {
+      const Notifications = await loadNotifications();
+      if (!Notifications) return;
+
       const scheduledNotifications =
         await Notifications.getAllScheduledNotificationsAsync();
 
@@ -145,6 +195,8 @@ export class NotificationService {
 
   static async cancelAllEventNotifications(): Promise<void> {
     try {
+      const Notifications = await loadNotifications();
+      if (!Notifications) return;
       await Notifications.cancelAllScheduledNotificationsAsync();
     } catch (e) {
       if (__DEV__) console.warn("cancelAllEventNotifications failed:", e);
@@ -153,6 +205,8 @@ export class NotificationService {
 
   static async getScheduledNotifications() {
     try {
+      const Notifications = await loadNotifications();
+      if (!Notifications) return [];
       return await Notifications.getAllScheduledNotificationsAsync();
     } catch (e) {
       if (__DEV__) console.warn("getScheduledNotifications failed:", e);
@@ -161,65 +215,97 @@ export class NotificationService {
   }
 
   /**
-   * Set up notification listeners. Returns a cleanup function to remove listeners on unmount.
-   * Safe to call on web/simulator; may no-op or throw – errors are caught.
+   * Set up notification listeners. No-op in Expo Go (avoids push-token ERROR).
    */
   static setupNotificationListeners(): (() => void) | null {
-    try {
-      if (!notificationsSupported()) return null;
-      const notificationListener = Notifications.addNotificationReceivedListener(
-        (notification) => {
-          if (__DEV__) console.log("Notification received:", notification);
-        }
-      );
-
-      const responseListener =
-        Notifications.addNotificationResponseReceivedListener((response) => {
-          if (__DEV__) console.log("Notification response:", response);
-        });
-
-      return () => {
-        try {
-          notificationListener.remove();
-          responseListener.remove();
-        } catch (e) {
-          if (__DEV__) console.warn("Error removing notification listeners:", e);
-        }
-      };
-    } catch (error) {
-      if (__DEV__) console.warn("Notification listeners setup failed:", error);
+    if (!canUseNativeNotifications()) {
+      if (__DEV__ && isRunningInExpoGo()) {
+        console.log(
+          "Notifications: Expo Go detected — using in-app notifications only (no native push module)."
+        );
+      }
       return null;
     }
+
+    let cleaned = false;
+    let cleanupNative: (() => void) | null = null;
+
+    void (async () => {
+      try {
+        const Notifications = await loadNotifications();
+        if (!Notifications || cleaned) return;
+
+        await NotificationService.ensureHandler(Notifications);
+
+        const notificationListener =
+          Notifications.addNotificationReceivedListener((notification) => {
+            if (__DEV__) console.log("Notification received:", notification);
+          });
+
+        const responseListener =
+          Notifications.addNotificationResponseReceivedListener((response) => {
+            if (__DEV__) console.log("Notification response:", response);
+          });
+
+        cleanupNative = () => {
+          try {
+            notificationListener.remove();
+            responseListener.remove();
+          } catch (e) {
+            if (__DEV__)
+              console.warn("Error removing notification listeners:", e);
+          }
+        };
+      } catch (error) {
+        if (__DEV__) console.warn("Notification listeners setup failed:", error);
+      }
+    })();
+
+    return () => {
+      cleaned = true;
+      cleanupNative?.();
+    };
   }
 
-  /** Test function to send immediate notification. Returns true if sent, false on error. */
+  /**
+   * Test notification. In Expo Go: Redux in-app only (no native module load).
+   * In a development/production build: schedules a local OS notification too.
+   */
   static async sendTestNotification(): Promise<boolean> {
     try {
-      if (!notificationsSupported()) return false;
       const granted = await NotificationService.requestPermissions();
       if (!granted) return false;
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Test Notification",
-          body: "This is a test push notification!",
-          data: { type: "test" },
-          sound: "default",
-        },
-        trigger: null,
+
+      const title = "Test Notification";
+      const message = "This is a test push notification!";
+
+      const Notifications = await loadNotifications();
+      if (Notifications) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title,
+            body: message,
+            data: { type: "test" },
+            sound: "default",
+          },
+          trigger: null,
+        });
+      }
+
+      addInAppNotification({
+        id: `test-${Date.now()}`,
+        type: "general",
+        title,
+        message,
       });
 
-      const notification = {
-        id: `test-${Date.now()}`,
-        type: "general" as const,
-        title: "Test Notification",
-        message: "This is a test push notification!",
-        timestamp: new Date().toISOString(),
-        isRead: false,
-      };
-
-      store.dispatch(addNotification(notification));
-
-      if (__DEV__) console.log("Test notification sent successfully");
+      if (__DEV__) {
+        console.log(
+          Notifications
+            ? "Test notification sent successfully"
+            : "Test notification added in-app (Expo Go — native push skipped)"
+        );
+      }
       return true;
     } catch (error) {
       if (__DEV__) console.warn("Error sending test notification:", error);

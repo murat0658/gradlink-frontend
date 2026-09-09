@@ -1,0 +1,54 @@
+# Auth validation & navigation (logged out)
+appId: host.exp.Exponent
+tags:
+  - auth
+  - smoke
+---
+- openLink: ${EXPO_URL}/--/auth
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Sign In|Continue"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+- tapOn: "Email"
+- eraseText
+- tapOn: "Password"
+- eraseText
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- assertVisible: "Please enter both email and password."
+
+- tapOn: "Email"
+- eraseText
+- inputText: "nobody-invalid@example.com"
+- tapOn: "Password"
+- eraseText
+- inputText: "WrongPass999"
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: ".*[Ii]nvalid.*|.*[Ff]ailed.*|.*[Ee]rror.*|.*[Cc]ould not.*|Authentication required|Please enter both email and password."
+    timeout: 25000
+
+- tapOn: "Sign up"
+- extendedWaitUntil:
+    visible: "Create Account|Sign Up|Continue"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Sign Up"
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Welcome to GradLink"
+    timeout: 20000

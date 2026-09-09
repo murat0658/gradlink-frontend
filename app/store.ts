@@ -1,5 +1,4 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { NotificationService } from "./services/NotificationService";
 
 // Import slices
 import userReducer from "./store/slices/userSlice";

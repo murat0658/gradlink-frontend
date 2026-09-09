@@ -351,7 +351,8 @@ class ApiService {
     const queryString = queryParams.toString();
     const endpoint = `/api/groups${queryString ? `?${queryString}` : ""}`;
 
-    return this.request<any[]>(endpoint);
+    // Spring Page { content: Group[] } or legacy Group[]
+    return this.request<any>(endpoint);
   }
 
   async getGroup(groupId: string | number) {

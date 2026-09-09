@@ -116,8 +116,23 @@ export const fetchGroups = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await apiService.getGroups(params);
-      return response;
+      const response = await apiService.getGroups({
+        page: 0,
+        size: 50,
+        ...params,
+      });
+      // Backend returns a Spring Page; older mocks may return a bare array.
+      const raw = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.content)
+          ? response.content
+          : [];
+      return raw.map((group: any) => ({
+        ...group,
+        members: group.members ?? group.memberCount ?? 0,
+        icon: group.icon || "university",
+        color: group.color || "#4f46e5",
+      }));
     } catch (error: any) {
       const errorMessage =
         error?.message || "Failed to fetch groups";
