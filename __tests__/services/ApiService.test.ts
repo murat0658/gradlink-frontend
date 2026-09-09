@@ -366,7 +366,7 @@ describe("ApiService", () => {
         expect(global.fetch).toHaveBeenCalledWith(
           "http://localhost:8080/api/groups/harvard/leave",
           expect.objectContaining({
-            method: "POST",
+            method: "DELETE",
             headers: {
               "Content-Type": "application/json",
               Authorization: "Bearer test-token",
@@ -457,7 +457,7 @@ describe("ApiService", () => {
           endTime: "2024-12-31T12:00:00Z",
           location: "Test Location",
           capacity: 100,
-          groupId: "harvard",
+          groupCode: "harvard",
         };
         mockFetch(mockEvent);
 
@@ -471,7 +471,15 @@ describe("ApiService", () => {
               "Content-Type": "application/json",
               Authorization: "Bearer test-token",
             },
-            body: JSON.stringify(eventData),
+            body: JSON.stringify({
+              title: "Test Event",
+              description: "Test event description",
+              startTime: "2024-12-31T10:00:00Z",
+              endTime: "2024-12-31T12:00:00Z",
+              location: "Test Location",
+              capacity: 100,
+              group: { code: "harvard" },
+            }),
           })
         );
         expect(result).toEqual(mockEvent);
@@ -817,7 +825,7 @@ describe("ApiService", () => {
         const result = await apiService.search("john");
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/api/search?query=john",
+          "http://localhost:8080/api/search?q=john",
           expect.objectContaining({
             headers: {
               "Content-Type": "application/json",
@@ -841,7 +849,7 @@ describe("ApiService", () => {
         const result = await apiService.search("harvard", params);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:8080/api/search?query=harvard&type=groups&page=0&size=10",
+          "http://localhost:8080/api/search?q=harvard&type=groups&page=0&size=10",
           expect.any(Object)
         );
         expect(result).toEqual(mockResults);

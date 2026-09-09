@@ -392,9 +392,9 @@ class ApiService {
     });
   }
 
-  async leaveGroup(groupId: string | number) {
-    return this.request(`/api/groups/${groupId}/leave`, {
-      method: "POST",
+  async leaveGroup(groupCode: string | number) {
+    return this.request(`/api/groups/${groupCode}/leave`, {
+      method: "DELETE",
     });
   }
 
@@ -461,11 +461,15 @@ class ApiService {
     endTime: string;
     location: string;
     capacity: number;
-    groupId: string | number;
+    groupCode: string;
   }) {
+    const { groupCode, ...rest } = eventData;
     return this.request<any>("/api/events", {
       method: "POST",
-      body: JSON.stringify(eventData),
+      body: JSON.stringify({
+        ...rest,
+        group: { code: groupCode },
+      }),
     });
   }
 
@@ -494,25 +498,12 @@ class ApiService {
     });
   }
 
-  async getEventEnrollments(
-    eventId: string,
-    params?: {
-      page?: number;
-      size?: number;
-    }
-  ) {
-    const queryParams = new URLSearchParams();
-    if (params?.page !== undefined)
-      queryParams.append("page", params.page.toString());
-    if (params?.size !== undefined)
-      queryParams.append("size", params.size.toString());
-
-    const queryString = queryParams.toString();
-    const endpoint = `/api/events/${eventId}/enrollments${
-      queryString ? `?${queryString}` : ""
-    }`;
-
-    return this.request<any[]>(endpoint);
+  /**
+   * Backend has no enrollments list endpoint yet; enroll also does not persist.
+   * Keep a stable client API that returns [] so UI can call it safely.
+   */
+  async getEventEnrollments(_eventId: string): Promise<any[]> {
+    return [];
   }
 
   // ========================================
@@ -731,7 +722,7 @@ class ApiService {
   async uploadFile(file: File, type: "avatar" | "event" | "topic") {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("uploadType", type);
+    formData.append("type", type);
 
     return this.request<{ url: string; filename: string }>(
       "/api/files/upload",
@@ -759,7 +750,7 @@ class ApiService {
     }
   ) {
     const queryParams = new URLSearchParams();
-    queryParams.append("query", query);
+    queryParams.append("q", query);
     if (params?.type) queryParams.append("type", params.type);
     if (params?.page !== undefined)
       queryParams.append("page", params.page.toString());

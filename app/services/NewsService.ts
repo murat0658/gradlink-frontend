@@ -27,11 +27,6 @@ export interface CreateNewsRequest {
   capacity?: number;
 }
 
-export interface UpdateNewsRequest {
-  title?: string;
-  content: string;
-}
-
 class NewsService {
   async createNews(newsData: CreateNewsRequest): Promise<NewsItem> {
     console.log("📰 NewsService.createNews() called with data:", newsData);
@@ -48,42 +43,6 @@ class NewsService {
       groupId.toString()
     );
     return apiService.makeRequest<NewsItem[]>(endpoint);
-  }
-
-  async updateNews(
-    newsId: string,
-    newsData: UpdateNewsRequest
-  ): Promise<NewsItem> {
-    console.log("📰 NewsService.updateNews() called for news:", newsId);
-    const endpoint = API_ENDPOINTS.NEWS.UPDATE.replace(":id", newsId);
-    return apiService.makeRequest<NewsItem>(endpoint, {
-      method: "PUT",
-      body: JSON.stringify(newsData),
-    });
-  }
-
-  async deleteNews(newsId: string): Promise<void> {
-    console.log("📰 NewsService.deleteNews() called for news:", newsId);
-    const endpoint = API_ENDPOINTS.NEWS.DELETE.replace(":id", newsId);
-    return apiService.makeRequest<void>(endpoint, {
-      method: "DELETE",
-    });
-  }
-
-  async likeNews(newsId: string): Promise<NewsItem> {
-    console.log("📰 NewsService.likeNews() called for news:", newsId);
-    const endpoint = `${API_ENDPOINTS.NEWS.BASE}/${newsId}/like`;
-    return apiService.makeRequest<NewsItem>(endpoint, {
-      method: "POST",
-    });
-  }
-
-  async unlikeNews(newsId: string): Promise<NewsItem> {
-    console.log("📰 NewsService.unlikeNews() called for news:", newsId);
-    const endpoint = `${API_ENDPOINTS.NEWS.BASE}/${newsId}/unlike`;
-    return apiService.makeRequest<NewsItem>(endpoint, {
-      method: "POST",
-    });
   }
 }
 

@@ -5,9 +5,9 @@
   "scripts": {
     "start": "expo start",
     "start:tunnel": "expo start --tunnel",
-    "start:clear": "lsof -ti:8081 | xargs kill -9 2>/dev/null || true; lsof -ti:19000 | xargs kill -9 2>/dev/null || true; lsof -ti:19001 | xargs kill -9 2>/dev/null || true; expo start --clear",
-    "clean": "lsof -ti:8081 | xargs kill -9 2>/dev/null || true; lsof -ti:19000 | xargs kill -9 2>/dev/null || true; lsof -ti:19001 | xargs kill -9 2>/dev/null || true; rm -rf node_modules/.cache .expo .expo-shared && expo start --clear",
-    "kill": "lsof -ti:8081 | xargs kill -9 2>/dev/null || true; lsof -ti:19000 | xargs kill -9 2>/dev/null || true; lsof -ti:19001 | xargs kill -9 2>/dev/null || true",
+    "start:clear": "lsof -ti:19000 | xargs kill -9 2>/dev/null || true; lsof -ti:19001 | xargs kill -9 2>/dev/null || true; expo start --clear",
+    "clean": "lsof -ti:19000 | xargs kill -9 2>/dev/null || true; lsof -ti:19001 | xargs kill -9 2>/dev/null || true; rm -rf node_modules/.cache .expo .expo-shared && expo start --clear",
+    "kill": "lsof -ti:19000 | xargs kill -9 2>/dev/null || true; lsof -ti:19001 | xargs kill -9 2>/dev/null || true",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

@@ -39,13 +39,11 @@ export default function EventDetailScreen() {
       setLoading(true);
       setError(null);
       try {
-        const [evt, enr] = await Promise.all([
-          apiService.getEvent(eventId),
-          apiService.getEventEnrollments(eventId).catch(() => []),
-        ]);
+        const evt = await apiService.getEvent(eventId);
         if (cancelled) return;
         setEvent(evt);
-        setEnrollments(Array.isArray(enr) ? enr : []);
+        // Backend has no enrollments list endpoint yet
+        setEnrollments([]);
       } catch (e: any) {
         if (cancelled) return;
         setError(e?.message || "Failed to load event details.");

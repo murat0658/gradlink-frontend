@@ -38,6 +38,7 @@ import {
   selectToken,
   joinGroup,
   leaveGroup,
+  leaveGroupAsync,
   selectJoinedGroups,
   enrollInEvent,
   unenrollFromEvent,
@@ -265,24 +266,15 @@ export default function GroupInfoScreen() {
     }
   };
 
-  // Like/unlike news
+  // Like/unlike is local-only — backend has no news like endpoints yet
   const toggleLike = async (newsId: string, isLiked: boolean) => {
-    try {
-      const updatedNews = isLiked
-        ? await newsService.unlikeNews(newsId)
-        : await newsService.likeNews(newsId);
-
-      setApiNews((prev) =>
-        prev.map((news) => (news.id === newsId ? updatedNews : news))
-      );
-    } catch (error) {
-      console.error("❌ Failed to toggle like:", error);
-      Toast.show({
-        type: "error",
-        text1: "Failed to update like",
-        text2: "Please try again.",
-      });
-    }
+    setApiNews((prev) =>
+      prev.map((news) => {
+        if (news.id !== newsId) return news;
+        const likes = Math.max(0, (news.likes ?? 0) + (isLiked ? -1 : 1));
+        return { ...news, isLiked: !isLiked, likes };
+      })
+    );
   };
 
   // Create group in backend if it doesn't exist
@@ -632,7 +624,22 @@ export default function GroupInfoScreen() {
           {joined ? (
             <TouchableOpacity
               style={styles.leaveButton}
-              onPress={() => dispatch(leaveGroup(code as string))}
+              onPress={async () => {
+                try {
+                  await dispatch(leaveGroupAsync(code as string) as any).unwrap();
+                  dispatch(leaveGroup(code as string));
+                  Toast.show({
+                    type: "success",
+                    text1: "Left group",
+                  });
+                } catch (error: any) {
+                  Toast.show({
+                    type: "error",
+                    text1: "Failed to leave group",
+                    text2: error?.message || "Please try again.",
+                  });
+                }
+              }}
               activeOpacity={0.85}
             >
               <FontAwesome

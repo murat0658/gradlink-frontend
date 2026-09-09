@@ -38,13 +38,11 @@ export const API_ENDPOINTS = {
     PROFILE: "/api/users/me",
     UPDATE: "/api/users/me",
   },
-  // News
+  // News — backend supports GET by group + POST create only
   NEWS: {
     BASE: "/api/news",
     CREATE: "/api/news",
     BY_GROUP: "/api/news/group/:id",
-    UPDATE: "/api/news/:id",
-    DELETE: "/api/news/:id",
   },
 } as const;
 
