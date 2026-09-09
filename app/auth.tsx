@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
   Keyboard,
-  TouchableWithoutFeedback,
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
@@ -17,6 +16,7 @@ import { apiService } from "./services/ApiService";
 import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Colors from "@/constants/Colors";
+import { useKeyboardAwareForm } from "./hooks/useKeyboardAwareForm";
 
 export default function AuthScreen() {
   const [email, setEmail] = useState("");
@@ -26,6 +26,8 @@ export default function AuthScreen() {
   const dispatch = useDispatch();
   const router = useRouter();
   const { msg } = useLocalSearchParams();
+  const { scrollRef, keyboardVisible, bottomPad, scrollFocusedIntoView } =
+    useKeyboardAwareForm();
 
   const handleLogin = async () => {
     if (email.trim() === "" || password.trim() === "") {
@@ -58,85 +60,91 @@ export default function AuthScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.card}>
-            <FontAwesome
-              name="graduation-cap"
-              size={48}
-              color="#4f46e5"
-              style={{ marginBottom: 16 }}
-            />
-            <Text style={styles.title}>Welcome to GradLink</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
-            {msg ? <Text style={styles.success}>{String(msg)}</Text> : null}
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#aaa"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              returnKeyType="next"
-              testID="auth-email"
-              accessibilityLabel="Email"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#aaa"
-              value={password}
-              onChangeText={setPassword}
-              // Maestro / XCUITest often cannot type into iOS secure fields in Expo Go
-              secureTextEntry={!(__DEV__ && Platform.OS === "ios")}
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              testID="auth-password"
-              accessibilityLabel="Password"
-              autoCorrect={false}
-              textContentType="password"
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <TouchableOpacity
-              style={[styles.button, submitting && styles.buttonDisabled]}
-              onPress={handleLogin}
-              activeOpacity={0.85}
-              disabled={submitting}
-              testID="auth-sign-in"
-              accessibilityLabel="Sign In"
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          keyboardVisible && styles.scrollContentKeyboardOpen,
+          { paddingBottom: bottomPad + 48 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.card}>
+          <FontAwesome
+            name="graduation-cap"
+            size={48}
+            color="#4f46e5"
+            style={{ marginBottom: 16 }}
+          />
+          <Text style={styles.title}>Welcome to GradLink</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
+          {msg ? <Text style={styles.success}>{String(msg)}</Text> : null}
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#aaa"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="next"
+            onFocus={scrollFocusedIntoView}
+            testID="auth-email"
+            accessibilityLabel="Email"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#aaa"
+            value={password}
+            onChangeText={setPassword}
+            // Maestro / XCUITest often cannot type into iOS secure fields in Expo Go
+            secureTextEntry={!(__DEV__ && Platform.OS === "ios")}
+            returnKeyType="done"
+            onFocus={scrollFocusedIntoView}
+            onSubmitEditing={handleLogin}
+            testID="auth-password"
+            accessibilityLabel="Password"
+            autoCorrect={false}
+            textContentType="password"
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <TouchableOpacity
+            style={[styles.button, submitting && styles.buttonDisabled]}
+            onPress={handleLogin}
+            activeOpacity={0.85}
+            disabled={submitting}
+            testID="auth-sign-in"
+            accessibilityLabel="Sign In"
+          >
+            <Text style={styles.buttonText}>
+              {submitting ? "Signing in…" : "Sign In"}
+            </Text>
+          </TouchableOpacity>
+          <View
+            style={{
+              marginTop: 18,
+              flexDirection: "row",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ color: "#6b7280", fontSize: 15 }}>
+              Don't have an account?{" "}
+            </Text>
+            <Link
+              href="./signup"
+              style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
             >
-              <Text style={styles.buttonText}>
-                {submitting ? "Signing in…" : "Sign In"}
-              </Text>
-            </TouchableOpacity>
-            <View
-              style={{
-                marginTop: 18,
-                flexDirection: "row",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: "#6b7280", fontSize: 15 }}>
-                Don't have an account?{" "}
-              </Text>
-              <Link
-                href="./signup"
-                style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
-              >
-                Sign up
-              </Link>
-            </View>
+              Sign up
+            </Link>
           </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -150,8 +158,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 32,
+    paddingTop: 32,
     paddingHorizontal: 16,
+  },
+  scrollContentKeyboardOpen: {
+    justifyContent: "flex-start",
+    paddingTop: 16,
   },
   card: {
     backgroundColor: "#fff",

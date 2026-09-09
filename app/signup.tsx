@@ -11,13 +11,13 @@ import {
   Pressable,
   ScrollView,
   Keyboard,
-  TouchableWithoutFeedback,
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { apiService } from "./services/ApiService";
 import { useRouter, Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Colors from "@/constants/Colors";
+import { useKeyboardAwareForm } from "./hooks/useKeyboardAwareForm";
 
 const COUNTRY_CODES = [
   { code: "+1", name: "United States/Canada" },
@@ -47,6 +47,8 @@ export default function SignupScreen() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+  const { scrollRef, keyboardVisible, bottomPad, scrollFocusedIntoView } =
+    useKeyboardAwareForm();
 
   const filteredCountryCodes = COUNTRY_CODES.filter(
     (c) =>
@@ -91,150 +93,158 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.card}>
-            <FontAwesome
-              name="user-plus"
-              size={48}
-              color={Colors.success}
-              style={{ marginBottom: 16 }}
-            />
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Sign up to get started</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Name"
-              placeholderTextColor="#aaa"
-              value={name}
-              onChangeText={setName}
-              returnKeyType="next"
-            />
-            <View style={styles.phoneRow}>
-              <TouchableOpacity
-                style={styles.countryCodeButton}
-                onPress={() => setCountryModalVisible(true)}
-              >
-                <Text style={styles.countryCodeText}>{countryCode}</Text>
-                <FontAwesome
-                  name="chevron-down"
-                  size={14}
-                  color={Colors.success}
-                  style={{ marginLeft: 4 }}
-                />
-              </TouchableOpacity>
-              <TextInput
-                style={[styles.input, styles.inputPhone]}
-                placeholder="Phone"
-                placeholderTextColor="#aaa"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                returnKeyType="next"
-              />
-            </View>
-            <Modal
-              visible={countryModalVisible}
-              animationType="slide"
-              transparent={true}
-              onRequestClose={() => setCountryModalVisible(false)}
-            >
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                  <TextInput
-                    style={styles.input}
-                    value={countrySearch}
-                    onChangeText={setCountrySearch}
-                    placeholder="Search country code"
-                    placeholderTextColor="#aaa"
-                    autoFocus
-                  />
-                  <FlatList
-                    data={filteredCountryCodes}
-                    keyExtractor={(item) => item.code}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        style={styles.countryItem}
-                        onPress={() => {
-                          setCountryCode(item.code);
-                          setCountryModalVisible(false);
-                          setCountrySearch("");
-                        }}
-                      >
-                        <Text style={styles.countryCodeText}>{item.code}</Text>
-                        <Text style={styles.countryNameText}>{item.name}</Text>
-                      </Pressable>
-                    )}
-                    style={{ maxHeight: 300 }}
-                    keyboardShouldPersistTaps="handled"
-                  />
-                  <TouchableOpacity
-                    style={styles.closeModalButton}
-                    onPress={() => setCountryModalVisible(false)}
-                  >
-                    <Text style={styles.closeModalButtonText}>Close</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#aaa"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              returnKeyType="next"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#aaa"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              returnKeyType="done"
-              onSubmitEditing={handleSignup}
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          keyboardVisible && styles.scrollContentKeyboardOpen,
+          { paddingBottom: bottomPad + 48 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.card}>
+          <FontAwesome
+            name="user-plus"
+            size={48}
+            color={Colors.success}
+            style={{ marginBottom: 16 }}
+          />
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Sign up to get started</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            placeholderTextColor="#aaa"
+            value={name}
+            onChangeText={setName}
+            returnKeyType="next"
+            onFocus={scrollFocusedIntoView}
+          />
+          <View style={styles.phoneRow}>
             <TouchableOpacity
-              style={[styles.button, submitting && styles.buttonDisabled]}
-              onPress={handleSignup}
-              activeOpacity={0.85}
-              disabled={submitting}
+              style={styles.countryCodeButton}
+              onPress={() => setCountryModalVisible(true)}
             >
-              <Text style={styles.buttonText}>
-                {submitting ? "Creating…" : "Sign Up"}
-              </Text>
+              <Text style={styles.countryCodeText}>{countryCode}</Text>
+              <FontAwesome
+                name="chevron-down"
+                size={14}
+                color={Colors.success}
+                style={{ marginLeft: 4 }}
+              />
             </TouchableOpacity>
-            <View
-              style={{
-                marginTop: 18,
-                flexDirection: "row",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: "#6b7280", fontSize: 15 }}>
-                Already have an account?{" "}
-              </Text>
-              <Link
-                href="./auth"
-                style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
-              >
-                Sign in
-              </Link>
-            </View>
+            <TextInput
+              style={[styles.input, styles.inputPhone]}
+              placeholder="Phone"
+              placeholderTextColor="#aaa"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              returnKeyType="next"
+              onFocus={scrollFocusedIntoView}
+            />
           </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+          <Modal
+            visible={countryModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setCountryModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <TextInput
+                  style={styles.input}
+                  value={countrySearch}
+                  onChangeText={setCountrySearch}
+                  placeholder="Search country code"
+                  placeholderTextColor="#aaa"
+                  autoFocus
+                />
+                <FlatList
+                  data={filteredCountryCodes}
+                  keyExtractor={(item) => item.code}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={styles.countryItem}
+                      onPress={() => {
+                        setCountryCode(item.code);
+                        setCountryModalVisible(false);
+                        setCountrySearch("");
+                      }}
+                    >
+                      <Text style={styles.countryCodeText}>{item.code}</Text>
+                      <Text style={styles.countryNameText}>{item.name}</Text>
+                    </Pressable>
+                  )}
+                  style={{ maxHeight: 300 }}
+                  keyboardShouldPersistTaps="handled"
+                />
+                <TouchableOpacity
+                  style={styles.closeModalButton}
+                  onPress={() => setCountryModalVisible(false)}
+                >
+                  <Text style={styles.closeModalButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#aaa"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="next"
+            onFocus={scrollFocusedIntoView}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#aaa"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            returnKeyType="done"
+            onFocus={scrollFocusedIntoView}
+            onSubmitEditing={handleSignup}
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <TouchableOpacity
+            style={[styles.button, submitting && styles.buttonDisabled]}
+            onPress={handleSignup}
+            activeOpacity={0.85}
+            disabled={submitting}
+          >
+            <Text style={styles.buttonText}>
+              {submitting ? "Creating…" : "Sign Up"}
+            </Text>
+          </TouchableOpacity>
+          <View
+            style={{
+              marginTop: 18,
+              flexDirection: "row",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ color: "#6b7280", fontSize: 15 }}>
+              Already have an account?{" "}
+            </Text>
+            <Link
+              href="./auth"
+              style={{ color: "#4f46e5", fontWeight: "bold", fontSize: 15 }}
+            >
+              Sign in
+            </Link>
+          </View>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -248,8 +258,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 32,
+    paddingTop: 32,
     paddingHorizontal: 16,
+  },
+  scrollContentKeyboardOpen: {
+    justifyContent: "flex-start",
+    paddingTop: 16,
   },
   card: {
     width: "100%",
