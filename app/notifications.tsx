@@ -20,6 +20,7 @@ import {
   fetchNotifications,
   markNotificationAsReadAsync,
 } from "./store";
+import { apiService } from "./services/ApiService";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/Colors";
 
@@ -68,7 +69,17 @@ export default function NotificationsModal() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => dispatch(removeNotification(notificationId)),
+          onPress: async () => {
+            try {
+              await apiService.deleteNotification(notificationId);
+              dispatch(removeNotification(notificationId));
+            } catch (error: any) {
+              Alert.alert(
+                "Could not delete",
+                error?.message || "Please try again."
+              );
+            }
+          },
         },
       ]
     );
@@ -85,7 +96,17 @@ export default function NotificationsModal() {
         {
           text: "Clear All",
           style: "destructive",
-          onPress: () => dispatch(clearAllNotifications()),
+          onPress: async () => {
+            try {
+              await apiService.deleteAllNotifications();
+              dispatch(clearAllNotifications());
+            } catch (error: any) {
+              Alert.alert(
+                "Could not clear notifications",
+                error?.message || "Please try again."
+              );
+            }
+          },
         },
       ]
     );
