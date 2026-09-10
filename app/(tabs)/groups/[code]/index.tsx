@@ -53,6 +53,7 @@ import {
   enrollInEventAsync,
   unenrollFromEventAsync,
   fetchGroups,
+  selectGroupsLoading,
   selectUserProfile,
   fetchJoinedGroups,
   fetchEnrollments,
@@ -73,13 +74,83 @@ export default function GroupInfoScreen() {
   const dispatch = useDispatch();
   const token = useSelector(selectToken);
   const groupsFromStore = useSelector(selectGroups);
-  const group = groupsFromStore.find((g: any) => g.code === code);
+  const groupsLoading = useSelector(selectGroupsLoading);
+  const [fetchedGroup, setFetchedGroup] = useState<any>(null);
+  const [groupLookupDone, setGroupLookupDone] = useState(false);
+  const [groupEventsFromApi, setGroupEventsFromApi] = useState<any[] | null>(null);
 
   useEffect(() => {
     if (token && groupsFromStore.length === 0) {
       dispatch(fetchGroups() as any);
     }
   }, [dispatch, token, groupsFromStore.length]);
+
+  useEffect(() => {
+    const fromStore = groupsFromStore.find((g: any) => g.code === code);
+    if (fromStore) {
+      setFetchedGroup(null);
+      setGroupLookupDone(true);
+      return;
+    }
+    if (!token || !code) {
+      setFetchedGroup(null);
+      setGroupLookupDone(true);
+      return;
+    }
+    if (groupsLoading && groupsFromStore.length === 0) {
+      setGroupLookupDone(false);
+      return;
+    }
+    let cancelled = false;
+    setGroupLookupDone(false);
+    apiService
+      .getGroup(String(code))
+      .then((g) => {
+        if (cancelled) return;
+        setFetchedGroup(
+          g
+            ? {
+                ...g,
+                members: g.members ?? g.memberCount ?? 0,
+                icon: g.icon || "university",
+                color: g.color || "#4f46e5",
+              }
+            : null
+        );
+        setGroupLookupDone(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFetchedGroup(null);
+        setGroupLookupDone(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, code, groupsFromStore, groupsLoading]);
+
+  useEffect(() => {
+    if (!token || !code) {
+      setGroupEventsFromApi(null);
+      return;
+    }
+    let cancelled = false;
+    apiService
+      .getEvents({ groupCode: String(code), page: 0, size: 50 })
+      .then((res) => {
+        if (cancelled) return;
+        setGroupEventsFromApi(unwrapPageContent<any>(res));
+      })
+      .catch(() => {
+        if (!cancelled) setGroupEventsFromApi([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, code]);
+
+  const group =
+    groupsFromStore.find((g: any) => g.code === code) || fetchedGroup;
 
   useEffect(() => {
     if (token) {
@@ -147,11 +218,7 @@ export default function GroupInfoScreen() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [topics, setTopics] = useState<
     { title: string; posts: number; pinned?: boolean; pinRequested?: boolean }[]
-  >([
-    { title: "Networking", posts: 12 },
-    { title: "Job Opportunities", posts: 8 },
-    { title: "Research", posts: 5 },
-  ]);
+  >([]);
   const [topicsLoading, setTopicsLoading] = useState(false);
 
   const loadMembers = async () => {
@@ -181,7 +248,6 @@ export default function GroupInfoScreen() {
       setTopicsLoading(true);
       const res = await apiService.getTopics(code as string);
       const list = unwrapPageContent<any>(res);
-      if (list.length === 0) return;
       setTopics(
         list.map((t: any) => ({
           title: t.title,
@@ -191,7 +257,7 @@ export default function GroupInfoScreen() {
         }))
       );
     } catch {
-      // Keep the local sample topics if the API is unavailable.
+      setTopics([]);
     } finally {
       setTopicsLoading(false);
     }
@@ -352,12 +418,15 @@ export default function GroupInfoScreen() {
   if (!group) {
     return (
       <View style={styles.container}>
-        <Text style={styles.notFound}>Group not found.</Text>
+        <Text style={styles.notFound}>
+          {groupLookupDone ? "Group not found." : "Loading group..."}
+        </Text>
       </View>
     );
   }
 
-  const groupEvents = events.filter((e: any) => e.groupCode === code);
+  const groupEvents =
+    groupEventsFromApi ?? events.filter((e: any) => e.groupCode === code);
   const isPast = (e: any) => e.endTime && new Date(e.endTime) < new Date();
   const upcomingEvents = groupEvents.filter((e: any) => !isPast(e));
   const pastEvents = groupEvents.filter((e: any) => isPast(e));
