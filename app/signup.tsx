@@ -18,6 +18,7 @@ import { useRouter, Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Colors from "@/constants/Colors";
 import { useKeyboardAwareForm } from "./hooks/useKeyboardAwareForm";
+import { validateEmail, validatePassword } from "./utils/validation";
 
 const COUNTRY_CODES = [
   { code: "+1", name: "United States/Canada" },
@@ -65,6 +66,14 @@ export default function SignupScreen() {
       !validatePhone(phone)
     ) {
       setError("Please fill in all fields with valid information.");
+      return;
+    }
+    if (!validateEmail(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!validatePassword(password)) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
     setError("");
