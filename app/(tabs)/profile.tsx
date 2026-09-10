@@ -252,7 +252,6 @@ export default function ProfileScreen() {
       await dispatch(
         updateUserProfile({
           name: form.name,
-          email: form.email,
           phoneNumber: form.phoneNumber,
           avatarUrl: form.avatarUrl,
           bio: form.bio,
@@ -514,16 +513,8 @@ export default function ProfileScreen() {
                   />
                   <Input
                     value={form.email}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, email: text }))
-                    }
-                    onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                    editable={false}
                     placeholder="Email Address"
-                    error={
-                      !emailValid && touched.email
-                        ? "Please enter a valid email address."
-                        : undefined
-                    }
                     style={styles.inputWithIconField}
                   />
                 </RNView>

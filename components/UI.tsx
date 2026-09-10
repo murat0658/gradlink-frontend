@@ -277,6 +277,7 @@ interface InputProps {
   style?: TextStyle;
   multiline?: boolean;
   numberOfLines?: number;
+  editable?: boolean;
 }
 
 export function Input({
@@ -288,6 +289,7 @@ export function Input({
   style,
   multiline = false,
   numberOfLines = 1,
+  editable = true,
 }: InputProps) {
   return (
     <View style={styles.inputContainer}>
@@ -309,6 +311,7 @@ export function Input({
         onBlur={onBlur}
         multiline={multiline}
         numberOfLines={numberOfLines}
+        editable={editable}
       />
       {error && (
         <Text style={[styles.inputError, { color: Colors.error }]}>

@@ -11,15 +11,7 @@ class ApiService {
   }
 
   setToken(token: string | null) {
-    console.log("🔑 ApiService.setToken() called");
-    console.log("Previous token exists:", !!this.token);
-    console.log("New token exists:", !!token);
-    console.log(
-      "New token preview:",
-      token ? `${token.substring(0, 20)}...` : "null"
-    );
     this.token = token;
-    console.log("Token set successfully");
   }
 
   setAuthErrorHandler(handler?: () => Promise<boolean> | boolean | void) {
@@ -31,22 +23,10 @@ class ApiService {
       "Content-Type": "application/json",
     };
 
-    console.log("🔍 getHeaders() called");
-    console.log("Current token exists:", !!this.token);
-    console.log(
-      "Token value:",
-      this.token ? `${this.token.substring(0, 20)}...` : "null"
-    );
-
-    // All endpoints except auth endpoints require authentication
     if (this.token) {
       headers["Authorization"] = `Bearer ${this.token}`;
-      console.log("✅ Authorization header added");
-    } else {
-      console.log("❌ No token available, skipping Authorization header");
     }
 
-    console.log("Final headers:", headers);
     return headers;
   }
 
@@ -104,15 +84,6 @@ class ApiService {
     const headers = requireAuth
       ? this.getHeaders()
       : { "Content-Type": "application/json" };
-
-    // Debug logging for refresh token requests
-    if (endpoint === "/api/auth/refresh") {
-      console.log("🔍 Refresh token request details:");
-      console.log("URL:", url);
-      console.log("Require auth:", requireAuth);
-      console.log("Headers:", headers);
-      console.log("Token in headers:", (headers as any)["Authorization"]);
-    }
 
     const config: RequestInit = {
       ...options,
