@@ -943,7 +943,6 @@ describe("ApiService", () => {
             method: "POST",
             headers: {
               Authorization: "Bearer test-token",
-              "Content-Type": "application/json",
             },
             body: expect.any(Object),
           })

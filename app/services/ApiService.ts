@@ -18,10 +18,11 @@ class ApiService {
     this.onAuthError = handler;
   }
 
-  private getHeaders(): HeadersInit {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-    };
+  private getHeaders(body?: BodyInit | null): HeadersInit {
+    const headers: Record<string, string> = {};
+    if (!(typeof FormData !== "undefined" && body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
 
     if (this.token) {
       headers["Authorization"] = `Bearer ${this.token}`;
@@ -82,7 +83,7 @@ class ApiService {
 
     // For auth endpoints, don't include Authorization header
     const headers = requireAuth
-      ? this.getHeaders()
+      ? this.getHeaders(options.body)
       : { "Content-Type": "application/json" };
 
     const config: RequestInit = {
@@ -91,13 +92,8 @@ class ApiService {
     };
 
     try {
-      // Log request details for debugging
       if (__DEV__) {
         console.log(`🌐 API Request: ${options.method || "GET"} ${url}`);
-        console.log(`📤 Request headers:`, headers);
-        if (options.body) {
-          console.log(`📤 Request body:`, options.body);
-        }
       }
 
       const response = await fetch(url, config);
@@ -264,16 +260,7 @@ class ApiService {
   }
 
   async refreshToken() {
-    console.log("🔄 ApiService.refreshToken() called");
-    console.log("Current token exists:", !!this.token);
-    console.log(
-      "Token preview:",
-      this.token ? `${this.token.substring(0, 20)}...` : "null"
-    );
-
-    // Check if we have a token before attempting refresh
     if (!this.token) {
-      console.error("❌ Cannot refresh token: no token available");
       throw new Error("No token available for refresh");
     }
 
@@ -780,10 +767,6 @@ class ApiService {
       "/api/files/upload",
       {
         method: "POST",
-        headers: {
-          // Remove Content-Type for FormData, but keep Authorization
-          Authorization: this.token ? `Bearer ${this.token}` : "",
-        },
         body: formData,
       }
     );
