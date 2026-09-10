@@ -265,7 +265,7 @@ export default function GroupInfoScreen() {
 
   // Load news from API
   const loadNews = async () => {
-    if (!subscribed) return;
+    if (!code) return;
 
     try {
       setIsLoadingNews(true);
@@ -392,10 +392,8 @@ export default function GroupInfoScreen() {
 
   // Load news when component mounts and when subscription changes
   useEffect(() => {
-    if (subscribed) {
-      loadNews();
-    }
-  }, [subscribed, code]);
+    loadNews();
+  }, [code, token]);
 
   // Debug subscription state changes
   useEffect(() => {
