@@ -333,10 +333,6 @@ export default function GroupInfoScreen() {
         title: newsHeader.trim() || undefined,
         description: newsContent.trim(),
         groupCode: code as string,
-        location: "Online", // Default location for news posts
-        startTime: new Date().toISOString(), // Current time as start
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours later as end
-        capacity: 1000, // Large capacity for news posts
       });
 
       // Ensure the news object has the required properties
@@ -389,8 +385,8 @@ export default function GroupInfoScreen() {
 
       Toast.show({
         type: "success",
-        text1: "News shared successfully!",
-        text2: "Your news has been posted to the group.",
+        text1: "Update posted",
+        text2: "Shared with the group — not a calendar event.",
       });
 
       console.log("✅ News shared successfully:", newNews);

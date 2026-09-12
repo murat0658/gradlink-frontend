@@ -1,94 +1,34 @@
 import React from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View as RNView } from "react-native";
+import { ScrollView, StyleSheet, View as RNView } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Text, View } from "@/components/Themed";
-import { Card, Header, Badge } from "@/components/UI";
+import { Text } from "@/components/Themed";
+import { Card, Header } from "@/components/UI";
 import Colors, { spacing, typography, borderRadius, shadows } from "@/constants/Colors";
 
-type Job = {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  type: "Internship" | "Full-time" | "Part-time" | "Remote";
-  postedAt: string;
-  tags: string[];
-};
-
-const mockJobs: Job[] = [
-  {
-    id: "job-1",
-    title: "Software Engineer (New Grad)",
-    company: "GradLink Partners",
-    location: "Istanbul",
-    type: "Full-time",
-    postedAt: "Today",
-    tags: ["React", "TypeScript", "Backend"],
-  },
-  {
-    id: "job-2",
-    title: "Product Designer Intern",
-    company: "Campus Studio",
-    location: "Remote",
-    type: "Internship",
-    postedAt: "2d ago",
-    tags: ["Figma", "UX", "Mobile"],
-  },
-];
-
+/**
+ * Jobs board is not wired to a backend yet.
+ * Show an honest empty state instead of sample listings that look real.
+ */
 export default function JobsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <Header
         title="Jobs"
-        subtitle="Sample listings — real job postings are coming soon."
+        subtitle="Career listings for your alumni network."
         icon="💼"
         color={Colors.tint}
       />
 
-      <RNView style={styles.list}>
-        <Badge variant="warning" size="sm" style={{ alignSelf: "flex-start" }}>
-          Sample data
-        </Badge>
-        {mockJobs.map((job) => (
-          <TouchableOpacity key={job.id} activeOpacity={0.92}>
-            <Card style={styles.card}>
-              <RNView style={styles.cardHeader}>
-                <RNView style={styles.icon}>
-                  <FontAwesome name="briefcase" size={18} color="#fff" />
-                </RNView>
-                <RNView style={{ flex: 1 }}>
-                  <Text style={styles.title}>{job.title}</Text>
-                  <Text style={styles.subtitle}>
-                    {job.company} • {job.location}
-                  </Text>
-                </RNView>
-                <Badge variant="info" size="sm">
-                  {job.type}
-                </Badge>
-              </RNView>
-
-              <RNView style={styles.tags}>
-                {job.tags.map((t) => (
-                  <RNView key={t} style={styles.tag}>
-                    <Text style={styles.tagText}>{t}</Text>
-                  </RNView>
-                ))}
-              </RNView>
-
-              <Text style={styles.postedAt}>Posted {job.postedAt}</Text>
-            </Card>
-          </TouchableOpacity>
-        ))}
-
-        <Card style={styles.hint}>
-          <Text style={styles.hintTitle}>Next step</Text>
-          <Text style={styles.hintText}>
-            When backend endpoints are ready, we can replace this mock list with real job postings
-            and add a detail screen + apply flow.
-          </Text>
-        </Card>
-      </RNView>
+      <Card style={styles.empty}>
+        <RNView style={styles.iconWrap}>
+          <FontAwesome name="briefcase" size={28} color={Colors.tint} />
+        </RNView>
+        <Text style={styles.title}>Coming soon</Text>
+        <Text style={styles.body}>
+          Real job and internship postings will appear here once the jobs API is available.
+          For now this tab is a placeholder — nothing here is live.
+        </Text>
+      </Card>
     </ScrollView>
   );
 }
@@ -101,44 +41,35 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     backgroundColor: Colors.backgroundSecondary,
   },
-  list: { width: "100%", gap: spacing.lg },
-  card: {
+  empty: {
     width: "100%",
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.card,
+    padding: spacing.xl,
+    alignItems: "center",
     ...shadows.sm,
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  icon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: Colors.tint,
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.background,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: spacing.lg,
   },
-  title: { ...typography.lg, fontWeight: "800", color: Colors.text },
-  subtitle: { ...typography.sm, color: Colors.textSecondary, marginTop: 2 },
-  tags: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  tag: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: 999,
+  title: {
+    ...typography.xl,
+    fontWeight: "800",
+    color: Colors.text,
+    marginBottom: spacing.sm,
   },
-  tagText: { ...typography.xs, color: Colors.textSecondary, fontWeight: "700" },
-  postedAt: { ...typography.xs, color: Colors.textTertiary, marginTop: spacing.md },
-  hint: { padding: spacing.lg, backgroundColor: Colors.card },
-  hintTitle: { ...typography.base, fontWeight: "800", marginBottom: spacing.xs },
-  hintText: { ...typography.sm, color: Colors.textSecondary, lineHeight: 20 },
+  body: {
+    ...typography.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
+  },
 });
-
