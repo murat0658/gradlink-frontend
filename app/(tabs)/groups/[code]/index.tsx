@@ -561,6 +561,22 @@ export default function GroupInfoScreen() {
   const handleEnroll = async (eventId: string) => {
     dispatch(enrollInEvent(eventId));
     dispatch(enroll(eventId));
+    setGroupEventsFromApi((prev) =>
+      prev
+        ? prev.map((e) =>
+            e.id === eventId
+              ? {
+                  ...e,
+                  isEnrolled: true,
+                  enrolledCount: Math.min(
+                    (e.enrolledCount ?? 0) + 1,
+                    e.capacity ?? (e.enrolledCount ?? 0) + 1
+                  ),
+                }
+              : e
+          )
+        : prev
+    );
 
     if (!isUuid(eventId)) {
       Toast.show({
@@ -581,10 +597,26 @@ export default function GroupInfoScreen() {
     } catch (error: any) {
       dispatch(unenrollFromEvent(eventId));
       dispatch(unenroll(eventId));
+      setGroupEventsFromApi((prev) =>
+        prev
+          ? prev.map((e) =>
+              e.id === eventId
+                ? {
+                    ...e,
+                    isEnrolled: false,
+                    enrolledCount: Math.max((e.enrolledCount ?? 1) - 1, 0),
+                  }
+                : e
+            )
+          : prev
+      );
       Toast.show({
         type: "error",
         text1: "Enrollment Failed",
-        text2: error.message || "Failed to enroll in event. Please try again.",
+        text2: toastErrorText(
+          error,
+          "Failed to enroll in event. Please try again."
+        ),
       });
     }
   };
@@ -592,6 +624,19 @@ export default function GroupInfoScreen() {
   const handleUnenroll = async (eventId: string) => {
     dispatch(unenrollFromEvent(eventId));
     dispatch(unenroll(eventId));
+    setGroupEventsFromApi((prev) =>
+      prev
+        ? prev.map((e) =>
+            e.id === eventId
+              ? {
+                  ...e,
+                  isEnrolled: false,
+                  enrolledCount: Math.max((e.enrolledCount ?? 1) - 1, 0),
+                }
+              : e
+          )
+        : prev
+    );
 
     if (!isUuid(eventId)) {
       Toast.show({
@@ -612,11 +657,29 @@ export default function GroupInfoScreen() {
     } catch (error: any) {
       dispatch(enrollInEvent(eventId));
       dispatch(enroll(eventId));
+      setGroupEventsFromApi((prev) =>
+        prev
+          ? prev.map((e) =>
+              e.id === eventId
+                ? {
+                    ...e,
+                    isEnrolled: true,
+                    enrolledCount: Math.min(
+                      (e.enrolledCount ?? 0) + 1,
+                      e.capacity ?? (e.enrolledCount ?? 0) + 1
+                    ),
+                  }
+                : e
+            )
+          : prev
+      );
       Toast.show({
         type: "error",
         text1: "Unenrollment Failed",
-        text2:
-          error.message || "Failed to unenroll from event. Please try again.",
+        text2: toastErrorText(
+          error,
+          "Failed to unenroll from event. Please try again."
+        ),
       });
     }
   };

@@ -43,17 +43,25 @@ export function groupAccessMessage(status: number | null | undefined): string {
 
 /** Map thrown API / network errors into a single toast-friendly line. */
 export function toastErrorText(error: unknown, fallback = "Please try again."): string {
-  if (error instanceof Error && error.message.trim()) {
-    const msg = error.message.trim();
-    if (
-      msg.includes("Network error") ||
-      msg.includes("Failed to fetch") ||
-      msg.includes("Network request failed")
-    ) {
-      return "You appear to be offline. Check your connection and try again.";
-    }
-    return msg;
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : error &&
+            typeof error === "object" &&
+            "message" in error &&
+            typeof (error as { message: unknown }).message === "string"
+          ? (error as { message: string }).message
+          : "";
+  const msg = raw.trim();
+  if (!msg) return fallback;
+  if (
+    msg.includes("Network error") ||
+    msg.includes("Failed to fetch") ||
+    msg.includes("Network request failed")
+  ) {
+    return "You appear to be offline. Check your connection and try again.";
   }
-  if (typeof error === "string" && error.trim()) return error.trim();
-  return fallback;
+  return msg;
 }

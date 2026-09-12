@@ -65,6 +65,13 @@ describe("Offline / toast error copy", () => {
     expect(toastErrorText(new Error("Event is full"))).toBe("Event is full");
   });
 
+  it("maps RTK serialized errors the same way", () => {
+    expect(
+      toastErrorText({ message: "Network error: Unable to connect to http://x" })
+    ).toMatch(/offline/i);
+    expect(toastErrorText({ message: "Event is full" })).toBe("Event is full");
+  });
+
   it("uses fallback for empty errors", () => {
     expect(toastErrorText(null)).toBe("Please try again.");
   });
