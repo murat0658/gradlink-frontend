@@ -46,6 +46,11 @@ import { Card, Button, Badge, Input, Divider } from "@/components/UI";
 import { StatusBadges } from "@/components/StatusBadges";
 import { EarnedBadges, earnedBadges } from "@/components/EarnedBadges";
 import { isPremiumUser, isVerifiedUser } from "../utils/status";
+import StarterGuideModal from "@/components/StarterGuideModal";
+import {
+  markStarterGuideSeen,
+  resetStarterGuideSeen,
+} from "../services/starterGuideStorage";
 import { apiService } from "../services/ApiService";
 import Colors, {
   spacing,
@@ -159,6 +164,7 @@ export default function ProfileScreen() {
     "highSchool" | "university" | "masters"
   >("university");
   const [newEducationName, setNewEducationName] = useState("");
+  const [showStarterGuide, setShowStarterGuide] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
   const joinedGroups = useSelector(selectJoinedGroups);
@@ -386,6 +392,7 @@ export default function ProfileScreen() {
   };
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
@@ -1188,12 +1195,38 @@ export default function ProfileScreen() {
                   </Button>
                 )}
                 </Card>
-              </TouchableOpacity>
-            );
+            </TouchableOpacity>
+          );
           })}
         </RNView>
       )}
+
+      <TouchableOpacity
+        style={styles.starterGuideBtn}
+        onPress={async () => {
+          await resetStarterGuideSeen();
+          setShowStarterGuide(true);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Open starter guide"
+      >
+        <FontAwesome name="map-o" size={16} color={Colors.tint} />
+        <Text style={styles.starterGuideBtnText}>Starter guide</Text>
+      </TouchableOpacity>
     </ScrollView>
+    <StarterGuideModal
+      visible={showStarterGuide}
+      onClose={async () => {
+        setShowStarterGuide(false);
+        await markStarterGuideSeen();
+      }}
+      onFinish={async () => {
+        setShowStarterGuide(false);
+        await markStarterGuideSeen();
+        router.push("/(tabs)/groups");
+      }}
+    />
+    </>
   );
 }
 
@@ -1232,6 +1265,26 @@ const styles = StyleSheet.create({
   },
   avatarPremium: {
     borderColor: Colors.warning,
+  },
+  starterGuideBtn: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  starterGuideBtnText: {
+    ...typography.sm,
+    fontWeight: "700",
+    color: Colors.tint,
   },
   avatarPlaceholder: {
     backgroundColor: Colors.backgroundTertiary,

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, Tabs } from "expo-router";
 import {
@@ -24,6 +24,11 @@ import { Provider } from "react-redux";
 import { store } from "../store";
 import { API_BASE_URL } from "../config/api";
 import { clearAuthToken } from "../services/authStorage";
+import {
+  hasSeenStarterGuide,
+  markStarterGuideSeen,
+} from "../services/starterGuideStorage";
+import StarterGuideModal from "@/components/StarterGuideModal";
 import { useRouter } from "expo-router";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -162,6 +167,28 @@ function TabLayoutInner() {
   const token = useSelector(selectToken);
   const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
+  const [showStarterGuide, setShowStarterGuide] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!token) {
+      setShowStarterGuide(false);
+      return;
+    }
+    hasSeenStarterGuide()
+      .then((seen) => {
+        if (!cancelled && !seen) setShowStarterGuide(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const dismissStarterGuide = async () => {
+    setShowStarterGuide(false);
+    await markStarterGuideSeen();
+  };
 
   console.log("🔧 TabLayout: Redux hooks successful", {
     token: !!token,
@@ -208,6 +235,7 @@ function TabLayoutInner() {
   };
 
   return (
+    <>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.tint,
@@ -341,6 +369,14 @@ function TabLayoutInner() {
         }}
       />
     </Tabs>
+    <StarterGuideModal
+      visible={showStarterGuide}
+      onClose={dismissStarterGuide}
+      onFinish={() => {
+        router.push("/(tabs)/groups");
+      }}
+    />
+    </>
   );
 }
 
