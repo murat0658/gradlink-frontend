@@ -12,6 +12,9 @@ import Toast from "react-native-toast-message";
 import { NotificationService } from "./services/NotificationService";
 import { ApiProvider } from "./components/ApiProvider";
 import { selectIsAuthenticated } from "./store/selectors";
+import { setAuthenticated, setToken } from "./store/slices/userSlice";
+import { apiService } from "./services/ApiService";
+import { loadAuthToken } from "./services/authStorage";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -26,7 +29,7 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 // Component to handle authentication routing
-function RootLayoutNav() {
+function RootLayoutNav({ authReady }: { authReady: boolean }) {
   const segments = useSegments();
   const router = useRouter();
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -41,7 +44,7 @@ function RootLayoutNav() {
   }, []);
 
   useEffect(() => {
-    if (!isNavigationReady) return;
+    if (!authReady || !isNavigationReady) return;
     
     // Get current route segment
     const currentSegment = segments[0];
@@ -60,7 +63,7 @@ function RootLayoutNav() {
         router.replace("/(tabs)");
       }
     }
-  }, [isAuthenticated, segments, isNavigationReady, router]);
+  }, [isAuthenticated, segments, isNavigationReady, authReady, router]);
 
   return (
     <ThemeProvider value={DefaultTheme}>
@@ -87,6 +90,27 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
   });
+  const [authReady, setAuthReady] = useState(false);
+
+  // Restore persisted session before routing decisions (web hard-refresh).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await loadAuthToken();
+        if (!cancelled && token) {
+          store.dispatch(setToken(token));
+          store.dispatch(setAuthenticated(true));
+          apiService.setToken(token);
+        }
+      } finally {
+        if (!cancelled) setAuthReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Initialize notifications and cleanup listeners on unmount (skip on web)
   useEffect(() => {
@@ -112,12 +136,12 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && authReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, authReady]);
 
-  if (!loaded) {
+  if (!loaded || !authReady) {
     return null;
   }
 
@@ -130,7 +154,7 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <ApiProvider>
-        <RootLayoutNav />
+        <RootLayoutNav authReady={authReady} />
       </ApiProvider>
     </Provider>
   );

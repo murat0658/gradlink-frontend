@@ -13,6 +13,7 @@ import { Text } from "@/components/Themed";
 import { useDispatch } from "react-redux";
 import { setAuthenticated, setToken } from "./store";
 import { apiService } from "./services/ApiService";
+import { saveAuthToken } from "./services/authStorage";
 import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Colors from "@/constants/Colors";
@@ -44,6 +45,7 @@ export default function AuthScreen() {
         return;
       }
       apiService.setToken(data.token);
+      await saveAuthToken(data.token);
 
       dispatch(setToken(data.token));
       dispatch(setAuthenticated(true));

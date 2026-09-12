@@ -57,10 +57,16 @@ import {
   selectUserProfile,
   fetchJoinedGroups,
   fetchEnrollments,
+  fetchSubscriptions,
 } from "../../../store";
 import { AppEvent } from "../../../store/types";
 import { isUuid } from "../../../utils/validation";
 import Colors from "@/constants/Colors";
+import {
+  groupAccessMessage,
+  membershipCtas,
+  toastErrorText,
+} from "../../../utils/membershipUx";
 
 // Add a type for topic posts
 type TopicPost = {
@@ -77,6 +83,7 @@ export default function GroupInfoScreen() {
   const groupsLoading = useSelector(selectGroupsLoading);
   const [fetchedGroup, setFetchedGroup] = useState<any>(null);
   const [groupLookupDone, setGroupLookupDone] = useState(false);
+  const [groupAccessStatus, setGroupAccessStatus] = useState<number | null>(null);
   const [groupEventsFromApi, setGroupEventsFromApi] = useState<any[] | null>(null);
 
   useEffect(() => {
@@ -89,11 +96,13 @@ export default function GroupInfoScreen() {
     const fromStore = groupsFromStore.find((g: any) => g.code === code);
     if (fromStore) {
       setFetchedGroup(null);
+      setGroupAccessStatus(null);
       setGroupLookupDone(true);
       return;
     }
     if (!token || !code) {
       setFetchedGroup(null);
+      setGroupAccessStatus(null);
       setGroupLookupDone(true);
       return;
     }
@@ -103,10 +112,12 @@ export default function GroupInfoScreen() {
     }
     let cancelled = false;
     setGroupLookupDone(false);
+    setGroupAccessStatus(null);
     apiService
       .getGroup(String(code))
       .then((g) => {
         if (cancelled) return;
+        setGroupAccessStatus(null);
         setFetchedGroup(
           g
             ? {
@@ -119,8 +130,18 @@ export default function GroupInfoScreen() {
         );
         setGroupLookupDone(true);
       })
-      .catch(() => {
+      .catch((err: any) => {
         if (cancelled) return;
+        const msg = String(err?.message || "");
+        const status =
+          typeof err?.statusCode === "number"
+            ? err.statusCode
+            : msg.includes("Access denied") || msg.includes("403")
+              ? 403
+              : msg.includes("not found") || msg.includes("404")
+                ? 404
+                : null;
+        setGroupAccessStatus(status);
         setFetchedGroup(null);
         setGroupLookupDone(true);
       });
@@ -156,6 +177,7 @@ export default function GroupInfoScreen() {
     if (token) {
       dispatch(fetchJoinedGroups() as any);
       dispatch(fetchEnrollments() as any);
+      dispatch(fetchSubscriptions() as any);
     }
   }, [dispatch, token]);
 
@@ -417,12 +439,15 @@ export default function GroupInfoScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.notFound}>
-          {groupLookupDone ? "Group not found." : "Loading group..."}
+          {groupLookupDone
+            ? groupAccessMessage(groupAccessStatus)
+            : "Loading group..."}
         </Text>
       </View>
     );
   }
 
+  const cta = membershipCtas({ subscribed, joined });
   const groupEvents =
     groupEventsFromApi ?? events.filter((e: any) => e.groupCode === code);
   const isPast = (e: any) => e.endTime && new Date(e.endTime) < new Date();
@@ -698,7 +723,7 @@ export default function GroupInfoScreen() {
     >
       <View style={styles.headerWrapper}>
         <View style={styles.headerButtonRow}>
-          {joined ? (
+          {cta.showLeave ? (
             <TouchableOpacity
               style={styles.leaveButton}
               onPress={() => setShowLeaveModal(true)}
@@ -714,6 +739,7 @@ export default function GroupInfoScreen() {
             </TouchableOpacity>
           ) : (
             <>
+              {cta.showSubscribe && (
               <TouchableOpacity
                 key={`subscribe-${subscribed}-${code}`}
                 style={[
@@ -731,10 +757,11 @@ export default function GroupInfoScreen() {
                   style={{ marginRight: 6 }}
                 />
                 <Text style={styles.stylishSubscribeButtonText}>
-                  {subscribed ? "Unsubscribe" : "Subscribe"}
+                  {cta.subscribeLabel}
                 </Text>
               </TouchableOpacity>
-              {subscribed && (
+              )}
+              {cta.showJoin && (
                 <TouchableOpacity
                   style={styles.joinButton}
                   onPress={async () => {
@@ -751,7 +778,7 @@ export default function GroupInfoScreen() {
                       Toast.show({
                         type: "error",
                         text1: "Failed to join group",
-                        text2: error?.message || "Please try again.",
+                        text2: toastErrorText(error),
                       });
                     }
                   }}

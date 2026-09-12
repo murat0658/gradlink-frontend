@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { selectToken, selectIsAuthenticated } from "../store";
 import { setToken, setAuthenticated, logout } from "../store/slices/userSlice";
 import { apiService } from "../services/ApiService";
+import { clearAuthToken, saveAuthToken } from "../services/authStorage";
 
 interface ApiProviderProps {
   children: React.ReactNode;
@@ -14,22 +15,6 @@ export const ApiProvider = ({ children }: ApiProviderProps) => {
   const dispatch = useDispatch();
   const token = useSelector(selectToken);
   const isAuthenticated = useSelector(selectIsAuthenticated);
-
-  // Clean up any stale state on app start
-  useEffect(() => {
-    console.log("🚀 ApiProvider initialized");
-    console.log("Initial token state:", !!token);
-    console.log("Initial auth state:", isAuthenticated);
-
-    // If we have a token but are not authenticated, clear the token
-    if (token && !isAuthenticated) {
-      console.log(
-        "🧹 Cleaning up stale token - token exists but not authenticated"
-      );
-      dispatch(setToken(null));
-      apiService.setToken(null);
-    }
-  }, []); // Run only once on mount
 
   // Handle token refresh
   const refreshToken = useCallback(async () => {
@@ -52,6 +37,7 @@ export const ApiProvider = ({ children }: ApiProviderProps) => {
           console.log("✅ Token refresh successful");
           dispatch(setToken(response.token));
           apiService.setToken(response.token);
+          await saveAuthToken(response.token);
           return true;
         } else {
           console.warn("⚠️ Token refresh response missing token");
@@ -76,6 +62,7 @@ export const ApiProvider = ({ children }: ApiProviderProps) => {
 
         dispatch(logout());
         apiService.setToken(null);
+        await clearAuthToken();
         return false;
       } finally {
         refreshInFlight = null;
@@ -104,6 +91,7 @@ export const ApiProvider = ({ children }: ApiProviderProps) => {
       console.log("🚪 Token refresh failed, logging out user");
       dispatch(logout());
       apiService.setToken(null);
+      await clearAuthToken();
     } else {
       console.log("✅ Token refresh successful, user remains authenticated");
     }

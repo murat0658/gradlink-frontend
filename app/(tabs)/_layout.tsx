@@ -23,6 +23,7 @@ import { selectToken, selectUnreadNotifications } from "../store/selectors";
 import { Provider } from "react-redux";
 import { store } from "../store";
 import { API_BASE_URL } from "../config/api";
+import { clearAuthToken } from "../services/authStorage";
 import { useRouter } from "expo-router";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -181,6 +182,7 @@ function TabLayoutInner() {
       } catch (err) {
         // Optionally handle error
       }
+      await clearAuthToken();
       dispatch(setToken(null));
       dispatch(setAuthenticated(false));
       router.replace("/auth");

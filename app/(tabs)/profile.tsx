@@ -316,6 +316,8 @@ export default function ProfileScreen() {
     }
     dispatch(setToken(null));
     dispatch(setAuthenticated(false));
+    const { clearAuthToken } = await import("../services/authStorage");
+    await clearAuthToken();
     router.replace("/auth");
   };
 

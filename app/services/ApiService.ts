@@ -173,7 +173,11 @@ class ApiService {
           errorMessage,
         });
 
-        throw new Error(errorMessage);
+        const apiError = new Error(errorMessage) as Error & {
+          statusCode?: number;
+        };
+        apiError.statusCode = response.status;
+        throw apiError;
       }
 
       // Handle empty responses
