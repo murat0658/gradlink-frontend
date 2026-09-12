@@ -75,7 +75,10 @@ export default function GroupsScreen() {
           groups.map((group: any) => (
             <Link
               key={group.code}
-              href={{ pathname: "./[code]", params: { code: group.code } }}
+              href={{
+                pathname: "/(tabs)/groups/[code]",
+                params: { code: group.code },
+              }}
               asChild
             >
               <TouchableOpacity>
@@ -106,7 +109,10 @@ export default function GroupsScreen() {
                           style={{ marginRight: spacing.xs }}
                         />
                         <Text style={styles.membersText}>
-                          {group.members ?? group.memberCount ?? 0} members
+                          {(() => {
+                            const count = group.members ?? group.memberCount ?? 0;
+                            return `${count} member${count === 1 ? "" : "s"}`;
+                          })()}
                         </Text>
                       </View>
                     </View>

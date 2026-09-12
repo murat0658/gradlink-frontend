@@ -815,6 +815,7 @@ export default function GroupInfoScreen() {
               styles.tabText,
               activeTab === "news" && styles.activeTabText,
             ]}
+            numberOfLines={1}
           >
             News
           </Text>
@@ -828,6 +829,7 @@ export default function GroupInfoScreen() {
               styles.tabText,
               activeTab === "events" && styles.activeTabText,
             ]}
+            numberOfLines={1}
           >
             Events
           </Text>
@@ -844,6 +846,7 @@ export default function GroupInfoScreen() {
               styles.tabText,
               activeTab === "topics" && styles.activeTabText,
             ]}
+            numberOfLines={1}
           >
             Topics
           </Text>
@@ -857,6 +860,7 @@ export default function GroupInfoScreen() {
               styles.tabText,
               activeTab === "jobs" && styles.activeTabText,
             ]}
+            numberOfLines={1}
           >
             Jobs
           </Text>
@@ -873,15 +877,16 @@ export default function GroupInfoScreen() {
               styles.tabText,
               activeTab === "members" && styles.activeTabText,
             ]}
+            numberOfLines={1}
           >
             Members
           </Text>
         </TouchableOpacity>
       </RNView>
-      {/* Tab Content */}
-      {activeTab === "news" && subscribed && (
+      {/* Tab Content — news is viewable without follow; posting requires membership */}
+      {activeTab === "news" && (
         <View style={styles.newsSection}>
-          {/* Redesigned Twitter-like Share News Form */}
+          {joined ? (
           <View style={styles.shareNewsCard}>
             <View style={styles.shareNewsRow}>
               <View style={styles.avatarWrapper}>
@@ -925,6 +930,16 @@ export default function GroupInfoScreen() {
               </View>
             </View>
           </View>
+          ) : (
+            <View style={styles.emptyNewsContainer}>
+              <FontAwesome name="newspaper-o" size={36} color="#d1d5db" />
+              <Text style={styles.emptyNewsSubtext}>
+                {subscribed
+                  ? "Join this group to post updates. You can still read the latest news below."
+                  : "Subscribe to follow this group. Join as a member if you want to post updates."}
+              </Text>
+            </View>
+          )}
           <View style={styles.newsHeaderSection}>
             <View style={styles.newsHeaderRow}>
               <View style={styles.newsHeaderLeft}>
@@ -1707,18 +1722,22 @@ const styles = StyleSheet.create({
 
   tabBar: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    alignItems: "stretch",
     marginTop: 28,
     marginBottom: 8,
     backgroundColor: "#ede9fe",
     borderRadius: 12,
     padding: 4,
+    gap: 2,
   },
   tab: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 10,
+    paddingHorizontal: 2,
     borderRadius: 8,
+    minWidth: 0,
   },
   activeTab: {
     backgroundColor: "#4f46e5",
@@ -1726,7 +1745,8 @@ const styles = StyleSheet.create({
   tabText: {
     color: "#4f46e5",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 13,
+    textAlign: "center",
   },
   activeTabText: {
     color: "#fff",
