@@ -154,7 +154,11 @@ class ApiService {
         } else if (response.status === 404) {
           errorMessage = "Requested resource not found.";
         } else if (response.status === 401) {
-          errorMessage = "Authentication required. Please log in again.";
+          errorMessage =
+            endpoint.includes("/api/auth/login") ||
+            endpoint.includes("/api/auth/register")
+              ? errorData.message || "Invalid email or password."
+              : "Authentication required. Please log in again.";
         } else if (response.status === 403) {
           errorMessage =
             errorData.error ||
