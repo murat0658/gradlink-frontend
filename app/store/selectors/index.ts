@@ -82,7 +82,18 @@ export const selectSubscribedGroupCodes = createSelector(
 
 export const selectJoinedGroupCodes = createSelector(
   [selectJoinedGroups],
-  (joinedGroups) => joinedGroups.map((group) => group.groupCode)
+  (joinedGroups) =>
+    joinedGroups
+      .filter((group) => (group as any).status !== "PENDING")
+      .map((group) => group.groupCode)
+);
+
+export const selectPendingGroupCodes = createSelector(
+  [selectJoinedGroups],
+  (joinedGroups) =>
+    joinedGroups
+      .filter((group) => (group as any).status === "PENDING")
+      .map((group) => group.groupCode)
 );
 
 // Loading state selectors

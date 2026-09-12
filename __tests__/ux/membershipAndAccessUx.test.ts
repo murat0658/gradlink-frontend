@@ -5,43 +5,63 @@ import {
 } from "../../app/utils/membershipUx";
 
 describe("Membership CTA UX", () => {
-  it("visitor: Subscribe only", () => {
+  it("visitor: Follow only", () => {
     expect(membershipCtas({ subscribed: false, joined: false })).toEqual({
       showSubscribe: true,
       showJoin: false,
       showLeave: false,
-      subscribeLabel: "Subscribe",
+      showPending: false,
+      subscribeLabel: "Follow",
+      joinLabel: "Request to join",
     });
   });
 
-  it("subscribed non-member: Subscribe→Unsubscribe + Join", () => {
+  it("following non-member: Unfollow + Request to join", () => {
     expect(membershipCtas({ subscribed: true, joined: false })).toEqual({
       showSubscribe: true,
       showJoin: true,
       showLeave: false,
-      subscribeLabel: "Unsubscribe",
+      showPending: false,
+      subscribeLabel: "Unfollow",
+      joinLabel: "Request to join",
     });
   });
 
-  it("member: Leave only (no Subscribe/Join)", () => {
+  it("pending application: show Pending, hide Join", () => {
+    expect(
+      membershipCtas({ subscribed: true, joined: false, pending: true })
+    ).toEqual({
+      showSubscribe: true,
+      showJoin: false,
+      showLeave: false,
+      showPending: true,
+      subscribeLabel: "Unfollow",
+      joinLabel: "Pending",
+    });
+  });
+
+  it("member: Leave only", () => {
     expect(membershipCtas({ subscribed: true, joined: true })).toEqual({
       showSubscribe: false,
       showJoin: false,
       showLeave: true,
-      subscribeLabel: "Unsubscribe",
+      showPending: false,
+      subscribeLabel: "Unfollow",
+      joinLabel: "Request to join",
     });
   });
 
-  it("joined wins even if subscription flag is false", () => {
-    expect(membershipCtas({ subscribed: false, joined: true }).showLeave).toBe(
-      true
-    );
+  it("joined wins over pending", () => {
+    expect(
+      membershipCtas({ subscribed: true, joined: true, pending: true })
+        .showLeave
+    ).toBe(true);
   });
 });
 
 describe("Group access UX copy", () => {
-  it("403 → private/inactive messaging", () => {
-    expect(groupAccessMessage(403)).toMatch(/private or inactive/i);
+  it("403 → private/inactive messaging with next step", () => {
+    expect(groupAccessMessage(403)).toMatch(/browse public groups/i);
   });
 
   it("404 → not found", () => {

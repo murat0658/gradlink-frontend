@@ -35,12 +35,13 @@ describe("joinedGroupsSlice", () => {
   });
 
   describe("joinGroup", () => {
-    it("should add a new joined group", () => {
+    it("should add a pending membership application", () => {
       const action = joinGroup("group-1");
       const state = joinedGroupsReducer(initialState, action);
 
       expect(state.items).toHaveLength(1);
       expect(state.items[0].groupCode).toBe("group-1");
+      expect(state.items[0].status).toBe("PENDING");
     });
   });
 

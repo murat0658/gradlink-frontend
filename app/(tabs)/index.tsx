@@ -4,12 +4,12 @@ import {
   View as RNView,
   TouchableOpacity,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Text, View } from "@/components/Themed";
 import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch, Provider } from "react-redux";
-import { store } from "../store";
+import { useSelector, useDispatch } from "react-redux";
 import {
   RootState,
   selectToken,
@@ -37,34 +37,13 @@ import Colors, {
   spacing,
   borderRadius,
   typography,
-  shadows,
 } from "@/constants/Colors";
 import { useRouter } from "expo-router";
-
-type News = {
-  title: string;
-  date: string;
-  content: string;
-};
-
-type Group = {
-  code: string;
-  university: string;
-  description: string;
-  members: number;
-  icon: string;
-  color: string;
-  founded: number;
-  location: string;
-  news?: News[];
-};
+import { newsService, NewsItem } from "../services/NewsService";
 
 function TabOneScreenInner() {
   const router = useRouter();
   const token = useSelector(selectToken);
-  const subscriptions = useSelector((state: RootState) =>
-    selectSubscriptions(state)
-  );
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
   const joinedGroups = useSelector(selectJoinedGroups);
@@ -72,8 +51,21 @@ function TabOneScreenInner() {
   const unreadNotifications = useSelector(selectUnreadNotifications);
   const dispatch = useDispatch();
   const [showPastEvents, setShowPastEvents] = useState(false);
+  const [feedNews, setFeedNews] = useState<
+    {
+      id: string;
+      title: string;
+      date: string;
+      description: string;
+      icon: string;
+      color: string;
+      group: string;
+      groupCode: string;
+      type: "news";
+    }[]
+  >([]);
+  const [newsLoading, setNewsLoading] = useState(false);
 
-  // Fetch data from API when component mounts (only when authenticated)
   useEffect(() => {
     if (token) {
       dispatch(fetchEvents({}) as any);
@@ -84,7 +76,6 @@ function TabOneScreenInner() {
     }
   }, [dispatch, token]);
 
-  // Check for upcoming events and create notifications
   useEffect(() => {
     const checkUpcomingEvents = () => {
       const enrolledEvents = events.filter((event: any) =>
@@ -93,7 +84,6 @@ function TabOneScreenInner() {
 
       enrolledEvents.forEach((event: any) => {
         if (isEventComingSoon(event)) {
-          // Check if notification already exists for this event
           const existingNotification = notifications.find(
             (n: any) => n.type === "event" && n.eventId === event.id
           );
@@ -111,17 +101,16 @@ function TabOneScreenInner() {
       });
     };
 
-    // Check immediately
     checkUpcomingEvents();
-
-    // Check every 30 minutes
     const interval = setInterval(checkUpcomingEvents, 30 * 60 * 1000);
-
     return () => clearInterval(interval);
   }, [events, enrollments, notifications, dispatch]);
 
   const subscribedGroupCodes = useSelector(selectSubscribedGroupCodes);
   const groupsFromStore = useSelector(selectGroups);
+  const subscriptions = useSelector((state: RootState) =>
+    selectSubscriptions(state)
+  );
 
   useEffect(() => {
     if (token && groupsFromStore.length === 0) {
@@ -129,35 +118,90 @@ function TabOneScreenInner() {
     }
   }, [dispatch, token, groupsFromStore.length]);
 
-  const subscribedGroups = groupsFromStore.filter((g: Group) =>
-    subscribedGroupCodes.includes(g.code)
-  );
-  const subscribedGroupNews = subscribedGroups.flatMap((g: Group) =>
-    (g.news || []).map((news: News) => ({
-      title: news.title,
-      date: news.date,
-      description: news.content,
-      icon: g.icon,
-      color: g.color,
-      group: g.university,
-      type: "news",
-    }))
-  );
-  const joinedGroupActivity = joinedGroups.map((jg: any) => {
-    const g = groupsFromStore.find((x: any) => x.code === jg.groupCode);
-    return {
-      type: "joined_group" as const,
-      title: g?.university ? `Joined ${g.university}` : `Joined ${jg.groupCode}`,
-      date: jg.joinedAt || new Date().toISOString(),
-      description: "You became a member of this group.",
-      icon: "users" as const,
-      color: Colors.tint,
-      groupCode: jg.groupCode,
+  // Load real news for followed groups (group detail uses the same News API).
+  useEffect(() => {
+    if (!token || subscribedGroupCodes.length === 0) {
+      setFeedNews([]);
+      return;
+    }
+    let cancelled = false;
+    setNewsLoading(true);
+    Promise.all(
+      subscribedGroupCodes.slice(0, 8).map(async (code) => {
+        try {
+          const items = await newsService.getNewsByGroup(code);
+          const meta =
+            groupsFromStore.find((g: any) => g.code === code) ||
+            subscriptions.find((s: any) => s.groupCode === code);
+          return (items || []).slice(0, 5).map((n: NewsItem) => ({
+            id: String(n.id),
+            title: n.title || "Group update",
+            date: n.createdAt || new Date().toISOString(),
+            description: n.content || n.description || "",
+            icon: (meta as any)?.icon || "newspaper-o",
+            color: (meta as any)?.color || Colors.tint,
+            group:
+              n.groupName ||
+              (meta as any)?.university ||
+              (meta as any)?.groupName ||
+              code,
+            groupCode: code,
+            type: "news" as const,
+          }));
+        } catch {
+          return [];
+        }
+      })
+    )
+      .then((chunks) => {
+        if (!cancelled) setFeedNews(chunks.flat());
+      })
+      .finally(() => {
+        if (!cancelled) setNewsLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
-  });
+  }, [token, subscribedGroupCodes, groupsFromStore, subscriptions]);
+
+  const joinedGroupActivity = joinedGroups
+    .filter((jg: any) => jg.status !== "PENDING")
+    .map((jg: any) => {
+      const g = groupsFromStore.find((x: any) => x.code === jg.groupCode);
+      return {
+        type: "joined_group" as const,
+        title: g?.university
+          ? `Joined ${g.university}`
+          : `Joined ${jg.groupCode}`,
+        date: jg.joinedAt || new Date().toISOString(),
+        description: "You became a member of this group.",
+        icon: "users" as const,
+        color: Colors.tint,
+        groupCode: jg.groupCode,
+      };
+    });
+
+  const pendingActivity = joinedGroups
+    .filter((jg: any) => jg.status === "PENDING")
+    .map((jg: any) => {
+      const g = groupsFromStore.find((x: any) => x.code === jg.groupCode);
+      return {
+        type: "pending_group" as const,
+        title: g?.university
+          ? `Membership pending: ${g.university}`
+          : `Membership pending: ${jg.groupCode}`,
+        date: jg.joinedAt || new Date().toISOString(),
+        description: "Waiting for a group admin to approve your request.",
+        icon: "hourglass-half" as const,
+        color: Colors.warning,
+        groupCode: jg.groupCode,
+      };
+    });
 
   const enrolledEventActivity = events
-    .filter((event: any) => enrollments.some((e: any) => e?.eventId === event.id))
+    .filter((event: any) =>
+      enrollments.some((e: any) => e?.eventId === event.id)
+    )
     .filter((event: any) => {
       if (showPastEvents) return true;
       if (!event.endTime) return true;
@@ -177,20 +221,22 @@ function TabOneScreenInner() {
       eventId: event.id,
     }));
 
-  const timeline = [...subscribedGroupNews, ...joinedGroupActivity, ...enrolledEventActivity].sort(
+  const timeline = [
+    ...feedNews,
+    ...joinedGroupActivity,
+    ...pendingActivity,
+    ...enrolledEventActivity,
+  ].sort(
     (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  const handleNotificationPress = (notificationId: string) => {
-    dispatch(markAsRead(notificationId));
-  };
+  const emptyBecauseNoFollows = subscribedGroupCodes.length === 0;
 
   return (
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      {/* Notification Banner */}
       {unreadNotifications.length > 0 && (
         <Card style={styles.notificationBanner}>
           <RNView style={styles.notificationContent}>
@@ -220,7 +266,7 @@ function TabOneScreenInner() {
 
       <Header
         title="Your Timeline"
-        subtitle="See your activity and news from groups you follow."
+        subtitle="News from groups you follow, plus your memberships and events."
         icon="📅"
         color={Colors.tint}
       />
@@ -235,18 +281,36 @@ function TabOneScreenInner() {
             thumbColor="#fff"
           />
         </RNView>
-        {timeline.length === 0 ? (
+        {newsLoading && timeline.length === 0 ? (
+          <ActivityIndicator color={Colors.tint} style={{ marginTop: 24 }} />
+        ) : timeline.length === 0 ? (
           <Card style={styles.timelineEmpty}>
-            <Text style={styles.timelineEmptyText}>No updates yet</Text>
-            <Text style={styles.timelineEmptySubtext}>
-              News from your subscribed groups will appear here.
+            <Text style={styles.timelineEmptyText}>
+              {emptyBecauseNoFollows
+                ? "Follow a group to get started"
+                : "No updates yet"}
             </Text>
+            <Text style={styles.timelineEmptySubtext}>
+              {emptyBecauseNoFollows
+                ? "Browse alumni groups, tap Follow, then request to join if you want to post."
+                : "When groups you follow share updates, they will show up here."}
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyCta}
+              onPress={() => router.push("/(tabs)/groups")}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.emptyCtaText}>Browse groups</Text>
+            </TouchableOpacity>
           </Card>
         ) : (
           <>
             {timeline.map((event: any, idx) => (
               <RNView
-                key={event.title + event.date + event.type + (event.group || "")}
+                key={
+                  event.id ||
+                  event.title + event.date + event.type + (event.group || "")
+                }
                 style={styles.eventRow}
               >
                 <RNView style={styles.iconColumn}>
@@ -265,15 +329,19 @@ function TabOneScreenInner() {
                   )}
                 </RNView>
                 <TouchableOpacity
-                  activeOpacity={event.eventId ? 0.92 : 1}
+                  activeOpacity={0.92}
                   onPress={() => {
                     if (event.eventId) router.push(`/event/${event.eventId}`);
+                    else if (event.groupCode)
+                      router.push(`/(tabs)/groups/${event.groupCode}`);
                   }}
                   style={{ flex: 1 }}
                 >
                   <Card style={styles.eventContent}>
                     <Text style={styles.eventTitle}>{event.title}</Text>
-                    <Text style={[styles.eventDate, { color: Colors.textSecondary }]}>
+                    <Text
+                      style={[styles.eventDate, { color: Colors.textSecondary }]}
+                    >
                       {new Date(event.date).toLocaleString()}
                     </Text>
                     {"group" in event && event.group && (
@@ -281,7 +349,9 @@ function TabOneScreenInner() {
                         {event.group}
                       </Badge>
                     )}
-                    <Text style={styles.eventDescription}>{event.description}</Text>
+                    <Text style={styles.eventDescription}>
+                      {event.description}
+                    </Text>
                   </Card>
                 </TouchableOpacity>
               </RNView>
@@ -318,99 +388,98 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notificationButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.sm,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
   },
   notificationButtonText: {
     color: "#fff",
-    ...typography.sm,
     fontWeight: "600",
   },
   timelineContainer: {
     width: "100%",
-    flexDirection: "column",
-    gap: spacing.xl,
+    marginTop: spacing.md,
   },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.xs,
+    marginBottom: spacing.md,
   },
   toggleLabel: {
     ...typography.sm,
-    color: Colors.text,
-    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  timelineEmpty: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+  },
+  timelineEmptyText: {
+    ...typography.lg,
+    fontWeight: "700",
+    marginBottom: spacing.xs,
+    textAlign: "center",
+  },
+  timelineEmptySubtext: {
+    ...typography.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+  },
+  emptyCta: {
+    backgroundColor: Colors.tint,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+  },
+  emptyCtaText: {
+    color: "#fff",
+    fontWeight: "700",
   },
   eventRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: spacing.sm,
-    minHeight: 80,
+    marginBottom: spacing.md,
   },
   iconColumn: {
+    width: 44,
     alignItems: "center",
-    width: 40,
-    position: "relative",
   },
   iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.xs,
-    zIndex: 1,
   },
   verticalLine: {
-    width: 4,
+    width: 2,
     flex: 1,
-    borderRadius: 2,
-    marginTop: spacing.xs,
-    zIndex: 0,
+    marginTop: 4,
   },
   eventContent: {
     flex: 1,
     marginLeft: spacing.sm,
   },
   eventTitle: {
-    ...typography.lg,
-    fontWeight: "bold",
-    marginBottom: spacing.xs,
+    ...typography.base,
+    fontWeight: "700",
   },
   eventDate: {
-    ...typography.sm,
-    marginBottom: spacing.xs,
+    ...typography.xs,
+    marginTop: 2,
   },
   groupBadge: {
     alignSelf: "flex-start",
-    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
   eventDescription: {
-    ...typography.base,
-  },
-  timelineEmpty: {
-    padding: spacing.xl,
-    alignItems: "center",
-  },
-  timelineEmptyText: {
-    ...typography.lg,
-    fontWeight: "600",
-    color: Colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  timelineEmptySubtext: {
     ...typography.sm,
-    color: Colors.textTertiary,
+    marginTop: spacing.xs,
+    color: Colors.textSecondary,
   },
 });
 
 export default function TabOneScreen() {
-  return (
-    <Provider store={store}>
-      <TabOneScreenInner />
-    </Provider>
-  );
+  return <TabOneScreenInner />;
 }

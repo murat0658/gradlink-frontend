@@ -59,6 +59,7 @@ import {
   fetchEnrollments,
   fetchSubscriptions,
 } from "../../../store";
+import { selectPendingGroupCodes } from "../../../store/selectors";
 import { AppEvent } from "../../../store/types";
 import { isUuid } from "../../../utils/validation";
 import Colors from "@/constants/Colors";
@@ -189,7 +190,11 @@ export default function GroupInfoScreen() {
   const joinedGroupCodes = useSelector((state: RootState) =>
     selectJoinedGroupCodes(state)
   );
+  const pendingGroupCodes = useSelector((state: RootState) =>
+    selectPendingGroupCodes(state)
+  );
   const joined = joinedGroupCodes.includes(code as string);
+  const pending = pendingGroupCodes.includes(code as string);
 
   const events = useSelector(selectEvents);
   const enrollments = useSelector(selectEnrollments);
@@ -443,11 +448,20 @@ export default function GroupInfoScreen() {
             ? groupAccessMessage(groupAccessStatus)
             : "Loading group..."}
         </Text>
+        {groupLookupDone && (
+          <TouchableOpacity
+            style={styles.browseGroupsButton}
+            onPress={() => router.push("/(tabs)/groups")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.browseGroupsButtonText}>Browse groups</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 
-  const cta = membershipCtas({ subscribed, joined });
+  const cta = membershipCtas({ subscribed, joined, pending });
   const groupEvents =
     groupEventsFromApi ?? events.filter((e: any) => e.groupCode === code);
   const isPast = (e: any) => e.endTime && new Date(e.endTime) < new Date();
@@ -493,15 +507,15 @@ export default function GroupInfoScreen() {
 
       Toast.show({
         type: "success",
-        text1: "Subscribed!",
-        text2: `You are now subscribed to ${group.university}`,
+        text1: "Following",
+        text2: `${group.university} updates will appear on your Timeline.`,
       });
     } catch (error: any) {
       console.error("❌ Failed to subscribe to group:", error);
       Toast.show({
         type: "error",
-        text1: "Subscription Failed",
-        text2: error.message || "Could not subscribe to this group",
+        text1: "Could not follow group",
+        text2: toastErrorText(error, "Could not follow this group"),
       });
     }
   };
@@ -539,8 +553,8 @@ export default function GroupInfoScreen() {
 
       Toast.show({
         type: "success",
-        text1: "Unsubscribed!",
-        text2: `You are no longer subscribed to ${group.university}`,
+        text1: "Unfollowed",
+        text2: `You will no longer see ${group.university} on your Timeline.`,
       });
     } catch (error: any) {
       console.error("❌ Failed to unsubscribe from group:", error);
@@ -552,8 +566,8 @@ export default function GroupInfoScreen() {
 
       Toast.show({
         type: "success",
-        text1: "Unsubscribed locally!",
-        text2: "Note: API call failed, but you've been unsubscribed locally.",
+        text1: "Unfollowed locally",
+        text2: "Note: API call failed, but you've been unfollowed locally.",
       });
     }
   };
@@ -824,6 +838,17 @@ export default function GroupInfoScreen() {
                 </Text>
               </TouchableOpacity>
               )}
+              {cta.showPending && (
+                <View style={[styles.joinButton, styles.pendingButton]}>
+                  <FontAwesome
+                    name="hourglass-half"
+                    size={14}
+                    color="#fff"
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={styles.joinButtonText}>Pending</Text>
+                </View>
+              )}
               {cta.showJoin && (
                 <TouchableOpacity
                   style={styles.joinButton}
@@ -834,13 +859,14 @@ export default function GroupInfoScreen() {
                       ).unwrap();
                       Toast.show({
                         type: "success",
-                        text1: "Application submitted",
-                        text2: "Pending approval.",
+                        text1: "Request sent",
+                        text2:
+                          "A group admin must approve before you become a member.",
                       });
                     } catch (error: any) {
                       Toast.show({
                         type: "error",
-                        text1: "Failed to join group",
+                        text1: "Could not request membership",
                         text2: toastErrorText(error),
                       });
                     }
@@ -853,7 +879,7 @@ export default function GroupInfoScreen() {
                     color="#fff"
                     style={{ marginRight: 4 }}
                   />
-                  <Text style={styles.joinButtonText}>Join</Text>
+                  <Text style={styles.joinButtonText}>{cta.joinLabel}</Text>
                 </TouchableOpacity>
               )}
             </>
@@ -1024,9 +1050,13 @@ export default function GroupInfoScreen() {
             <View style={styles.emptyNewsContainer}>
               <FontAwesome name="newspaper-o" size={36} color="#d1d5db" />
               <Text style={styles.emptyNewsSubtext}>
-                {subscribed
-                  ? "Join this group to post updates. You can still read the latest news below."
-                  : "Subscribe to follow this group. Join as a member if you want to post updates."}
+                {joined
+                  ? "You can post updates as a member."
+                  : pending
+                  ? "Your membership request is pending admin approval. You can still read news below."
+                  : subscribed
+                  ? "Request to join if you want to post. Following already puts this group's news on your Timeline."
+                  : "Follow to see updates on your Timeline. Request to join if you want to post."}
               </Text>
             </View>
           )}
@@ -1301,9 +1331,11 @@ export default function GroupInfoScreen() {
                           handleUnenroll(event.id);
                         } else if (canEnroll) {
                           handleEnroll(event.id);
+                        } else if (!trulyFull && premiumSeatsOnly) {
+                          router.push("/subscriptions");
                         }
                       }}
-                      disabled={enrollBlocked}
+                      disabled={enrollBlocked && !(premiumSeatsOnly && !trulyFull)}
                       activeOpacity={0.85}
                     >
                       <Text
@@ -1318,7 +1350,7 @@ export default function GroupInfoScreen() {
                           ? "Full"
                           : canEnroll
                           ? "Enroll"
-                          : "Premium seats"}
+                          : "Upgrade for seats"}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -1546,6 +1578,20 @@ const styles = StyleSheet.create({
     color: "#ef4444",
     fontWeight: "bold",
     marginTop: 40,
+    textAlign: "center",
+    paddingHorizontal: 24,
+  },
+  browseGroupsButton: {
+    alignSelf: "center",
+    marginTop: 20,
+    backgroundColor: "#4f46e5",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  browseGroupsButtonText: {
+    color: "#fff",
+    fontWeight: "700",
   },
   subscribeButton: {
     backgroundColor: "#4f46e5",
@@ -1898,6 +1944,11 @@ const styles = StyleSheet.create({
     elevation: 3,
     minWidth: 70,
     minHeight: 32,
+  },
+  pendingButton: {
+    backgroundColor: Colors.warning,
+    shadowColor: Colors.warning,
+    marginRight: 0,
   },
   joinButtonText: {
     color: "#fff",

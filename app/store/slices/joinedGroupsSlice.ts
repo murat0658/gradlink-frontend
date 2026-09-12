@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { fetchJoinedGroups } from "../thunks";
+import { fetchJoinedGroups, joinGroupAsync, leaveGroupAsync } from "../thunks";
+
+export type MembershipStatus = "ACTIVE" | "PENDING";
 
 export interface JoinedGroup {
   id: string;
@@ -7,6 +9,7 @@ export interface JoinedGroup {
   groupName: string;
   joinedAt: string;
   role: "USER" | "GROUP_ADMIN" | "FULL_ADMIN";
+  status: MembershipStatus;
 }
 
 export interface JoinedGroupsState {
@@ -20,6 +23,21 @@ const initialState: JoinedGroupsState = {
   loading: false,
   error: null,
 };
+
+function mapMembership(item: any): JoinedGroup {
+  const statusRaw = String(item.status || "ACTIVE").toUpperCase();
+  const status: MembershipStatus =
+    statusRaw === "PENDING" ? "PENDING" : "ACTIVE";
+  return {
+    id: String(item.id),
+    groupCode: item.groupCode ?? item.group?.code ?? "",
+    groupName:
+      item.groupName ?? item.group?.university ?? item.groupCode ?? "",
+    joinedAt: item.joinedAt ?? new Date().toISOString(),
+    role: item.role ?? "USER",
+    status,
+  };
+}
 
 const joinedGroupsSlice = createSlice({
   name: "joinedGroups",
@@ -35,13 +53,14 @@ const joinedGroupsSlice = createSlice({
         (group) => group.groupCode === action.payload
       );
       if (!existingMembership) {
-        // Add a placeholder membership (will be replaced by API response)
+        // Optimistic: join is an application until admin approves.
         state.items.push({
           id: `temp-${Date.now()}`,
           groupCode: action.payload,
           groupName: action.payload,
           joinedAt: new Date().toISOString(),
           role: "USER",
+          status: "PENDING",
         });
       }
     },
@@ -67,13 +86,7 @@ const joinedGroupsSlice = createSlice({
       .addCase(fetchJoinedGroups.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-        state.items = (action.payload || []).map((item: any) => ({
-          id: String(item.id),
-          groupCode: item.groupCode ?? item.group?.code ?? "",
-          groupName: item.groupName ?? item.group?.university ?? item.groupCode ?? "",
-          joinedAt: item.joinedAt ?? new Date().toISOString(),
-          role: item.role ?? "USER",
-        }));
+        state.items = (action.payload || []).map(mapMembership);
       })
       .addCase(fetchJoinedGroups.rejected, (state, action) => {
         state.loading = false;
@@ -81,6 +94,25 @@ const joinedGroupsSlice = createSlice({
           (typeof action.payload === "string" && action.payload) ||
           action.error.message ||
           "Failed to fetch joined groups";
+      })
+      .addCase(joinGroupAsync.fulfilled, (state, action) => {
+        const code = action.payload.groupCode;
+        const existing = state.items.find((g) => g.groupCode === code);
+        if (existing) {
+          existing.status = "PENDING";
+        } else {
+          state.items.push({
+            id: `pending-${code}`,
+            groupCode: code,
+            groupName: code,
+            joinedAt: new Date().toISOString(),
+            role: "USER",
+            status: "PENDING",
+          });
+        }
+      })
+      .addCase(leaveGroupAsync.fulfilled, (state, action) => {
+        state.items = state.items.filter((g) => g.groupCode !== action.payload);
       });
   },
 });

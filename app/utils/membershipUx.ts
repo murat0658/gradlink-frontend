@@ -1,39 +1,56 @@
 /**
  * Membership CTA visibility for group detail header.
- * Join is only offered after Subscribe; Leave replaces both when joined.
+ * Follow (Subscribe) → Request to join → Pending → Leave when active.
  */
 export type MembershipCtaState = {
   showSubscribe: boolean;
   showJoin: boolean;
   showLeave: boolean;
-  subscribeLabel: "Subscribe" | "Unsubscribe";
+  showPending: boolean;
+  subscribeLabel: "Follow" | "Unfollow";
+  joinLabel: "Request to join" | "Pending";
 };
 
 export function membershipCtas(options: {
   subscribed: boolean;
   joined: boolean;
+  pending?: boolean;
 }): MembershipCtaState {
-  const { subscribed, joined } = options;
+  const { subscribed, joined, pending = false } = options;
   if (joined) {
     return {
       showSubscribe: false,
       showJoin: false,
       showLeave: true,
-      subscribeLabel: "Unsubscribe",
+      showPending: false,
+      subscribeLabel: "Unfollow",
+      joinLabel: "Request to join",
+    };
+  }
+  if (pending) {
+    return {
+      showSubscribe: true,
+      showJoin: false,
+      showLeave: false,
+      showPending: true,
+      subscribeLabel: subscribed ? "Unfollow" : "Follow",
+      joinLabel: "Pending",
     };
   }
   return {
     showSubscribe: true,
     showJoin: subscribed,
     showLeave: false,
-    subscribeLabel: subscribed ? "Unsubscribe" : "Subscribe",
+    showPending: false,
+    subscribeLabel: subscribed ? "Unfollow" : "Follow",
+    joinLabel: "Request to join",
   };
 }
 
 /** User-facing copy when a group cannot be shown. */
 export function groupAccessMessage(status: number | null | undefined): string {
   if (status === 403) {
-    return "This group is private or inactive. You need membership to view it.";
+    return "This group is private or inactive. Browse public groups or ask an admin for access.";
   }
   if (status === 404) {
     return "Group not found.";
