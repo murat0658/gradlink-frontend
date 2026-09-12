@@ -13,6 +13,7 @@ describe("Membership CTA UX", () => {
       showPending: false,
       subscribeLabel: "Follow",
       joinLabel: "Request to join",
+      pendingLabel: "Cancel request",
     });
   });
 
@@ -24,10 +25,11 @@ describe("Membership CTA UX", () => {
       showPending: false,
       subscribeLabel: "Unfollow",
       joinLabel: "Request to join",
+      pendingLabel: "Cancel request",
     });
   });
 
-  it("pending application: show Pending, hide Join", () => {
+  it("pending application: Cancel request + Follow/Unfollow", () => {
     expect(
       membershipCtas({ subscribed: true, joined: false, pending: true })
     ).toEqual({
@@ -36,7 +38,8 @@ describe("Membership CTA UX", () => {
       showLeave: false,
       showPending: true,
       subscribeLabel: "Unfollow",
-      joinLabel: "Pending",
+      joinLabel: "Cancel request",
+      pendingLabel: "Cancel request",
     });
   });
 
@@ -48,6 +51,7 @@ describe("Membership CTA UX", () => {
       showPending: false,
       subscribeLabel: "Unfollow",
       joinLabel: "Request to join",
+      pendingLabel: "Cancel request",
     });
   });
 

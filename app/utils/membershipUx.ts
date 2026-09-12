@@ -1,6 +1,7 @@
 /**
  * Membership CTA visibility for group detail header.
- * Follow (Subscribe) → Request to join → Pending → Leave when active.
+ * Follow → Request to join → Cancel request (while pending) → Leave when active.
+ * Unfollow while pending should also withdraw the join request (handled in UI).
  */
 export type MembershipCtaState = {
   showSubscribe: boolean;
@@ -8,7 +9,8 @@ export type MembershipCtaState = {
   showLeave: boolean;
   showPending: boolean;
   subscribeLabel: "Follow" | "Unfollow";
-  joinLabel: "Request to join" | "Pending";
+  joinLabel: "Request to join" | "Cancel request";
+  pendingLabel: "Cancel request";
 };
 
 export function membershipCtas(options: {
@@ -25,6 +27,7 @@ export function membershipCtas(options: {
       showPending: false,
       subscribeLabel: "Unfollow",
       joinLabel: "Request to join",
+      pendingLabel: "Cancel request",
     };
   }
   if (pending) {
@@ -34,7 +37,8 @@ export function membershipCtas(options: {
       showLeave: false,
       showPending: true,
       subscribeLabel: subscribed ? "Unfollow" : "Follow",
-      joinLabel: "Pending",
+      joinLabel: "Cancel request",
+      pendingLabel: "Cancel request",
     };
   }
   return {
@@ -44,6 +48,7 @@ export function membershipCtas(options: {
     showPending: false,
     subscribeLabel: subscribed ? "Unfollow" : "Follow",
     joinLabel: "Request to join",
+    pendingLabel: "Cancel request",
   };
 }
 

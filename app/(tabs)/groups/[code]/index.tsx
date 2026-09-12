@@ -244,9 +244,21 @@ export default function GroupInfoScreen() {
   >([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [topics, setTopics] = useState<
-    { title: string; posts: number; pinned?: boolean; pinRequested?: boolean }[]
+    {
+      title: string;
+      posts: number;
+      pinned?: boolean;
+      pinRequested?: boolean;
+      author?: string;
+      preview?: string;
+      updatedAt?: string;
+    }[]
   >([]);
   const [topicsLoading, setTopicsLoading] = useState(false);
+  const [newTopicTitle, setNewTopicTitle] = useState("");
+  const [newTopicBody, setNewTopicBody] = useState("");
+  const [creatingTopic, setCreatingTopic] = useState(false);
+  const [showNewTopic, setShowNewTopic] = useState(false);
 
   const loadMembers = async () => {
     try {
@@ -281,12 +293,53 @@ export default function GroupInfoScreen() {
           posts: t.replyCount ?? t.posts ?? 0,
           pinned: Boolean(t.pinned ?? t.isPinned),
           pinRequested: Boolean(t.pinRequested),
+          author: t.authorId?.name || t.author?.name || t.authorName,
+          preview: typeof t.content === "string" ? t.content.trim() : undefined,
+          updatedAt: t.updatedAt || t.createdAt,
         }))
       );
     } catch {
       setTopics([]);
     } finally {
       setTopicsLoading(false);
+    }
+  };
+
+  const createDiscussionTopic = async () => {
+    if (!code || !joined) return;
+    const title = newTopicTitle.trim();
+    const content = newTopicBody.trim();
+    if (!title || !content) {
+      Toast.show({
+        type: "info",
+        text1: "Add a title and opening message.",
+      });
+      return;
+    }
+    setCreatingTopic(true);
+    try {
+      await apiService.createTopic(code as string, { title, content });
+      setNewTopicTitle("");
+      setNewTopicBody("");
+      setShowNewTopic(false);
+      await loadTopics();
+      Toast.show({
+        type: "success",
+        text1: "Discussion started",
+        text2: "Your topic is live in this group.",
+      });
+      router.push({
+        pathname: "/(tabs)/groups/[code]/[topicTitle]",
+        params: { code: String(code), topicTitle: title },
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not start topic",
+        text2: toastErrorText(error),
+      });
+    } finally {
+      setCreatingTopic(false);
     }
   };
 
@@ -517,53 +570,69 @@ export default function GroupInfoScreen() {
   };
 
   const handleUnsubscribe = async () => {
+    const wasPending = pending;
     try {
-      console.log("🔄 Attempting to unsubscribe from group:", code);
-      console.log("🔄 Current subscription state before unsubscribe:", {
-        subscribed,
-        subscribedGroupCodes,
-      });
-
-      // Make the API call to unsubscribe - this will update Redux state via extraReducers
       const result = await dispatch(
         unsubscribeFromGroupAsync(code as string) as any
       );
       console.log("🔄 Unsubscribe API call result:", result);
 
-      // Force a small delay to allow Redux state to update
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      console.log("🔄 Current subscription state after API call:", {
-        subscribed,
-        subscribedGroupCodes,
-      });
-
-      // If the subscription state still hasn't updated, force a manual update
       if (subscribedGroupCodes.includes(code as string)) {
-        console.log("⚠️ Subscription state not updated, forcing manual update");
         dispatch(unsubscribe(code as string));
       }
 
+      // Unfollow withdraws a pending join request so membership state stays consistent.
+      if (wasPending) {
+        try {
+          await dispatch(leaveGroupAsync(code as string) as any).unwrap();
+          dispatch(leaveGroup(code as string));
+        } catch (cancelError) {
+          console.warn("Could not cancel pending join on unfollow:", cancelError);
+        }
+      }
+
       setShowUnsubModal(false);
-      console.log("✅ Successfully unsubscribed from group:", code);
 
       Toast.show({
         type: "success",
         text1: "Unfollowed",
-        text2: `You will no longer see ${group.university} on your Timeline.`,
+        text2: wasPending
+          ? `You left the Timeline and canceled your join request for ${group.university}.`
+          : `You will no longer see ${group.university} on your Timeline.`,
       });
     } catch (error: any) {
       console.error("❌ Failed to unsubscribe from group:", error);
 
-      // Even if API fails, try to unsubscribe locally
-      console.log("⚠️ API failed, attempting local unsubscribe");
       dispatch(unsubscribe(code as string));
+      if (wasPending) {
+        dispatch(leaveGroup(code as string));
+      }
       setShowUnsubModal(false);
 
       Toast.show({
         type: "success",
         text1: "Unfollowed locally",
         text2: "Note: API call failed, but you've been unfollowed locally.",
+      });
+    }
+  };
+
+  const handleCancelJoinRequest = async () => {
+    try {
+      await dispatch(leaveGroupAsync(code as string) as any).unwrap();
+      dispatch(leaveGroup(code as string));
+      Toast.show({
+        type: "success",
+        text1: "Request canceled",
+        text2: "Your join request was withdrawn. You can request again later.",
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not cancel request",
+        text2: toastErrorText(error),
       });
     }
   };
@@ -835,15 +904,19 @@ export default function GroupInfoScreen() {
               </TouchableOpacity>
               )}
               {cta.showPending && (
-                <View style={[styles.joinButton, styles.pendingButton]}>
+                <TouchableOpacity
+                  style={[styles.joinButton, styles.pendingButton]}
+                  onPress={handleCancelJoinRequest}
+                  activeOpacity={0.85}
+                >
                   <FontAwesome
-                    name="hourglass-half"
+                    name="times"
                     size={14}
                     color="#fff"
                     style={{ marginRight: 4 }}
                   />
-                  <Text style={styles.joinButtonText}>Pending</Text>
-                </View>
+                  <Text style={styles.joinButtonText}>{cta.pendingLabel}</Text>
+                </TouchableOpacity>
               )}
               {cta.showJoin && (
                 <TouchableOpacity
@@ -1049,7 +1122,7 @@ export default function GroupInfoScreen() {
                 {joined
                   ? "You can post updates as a member."
                   : pending
-                  ? "Your membership request is pending admin approval. You can still read news below."
+                  ? "Join request pending admin approval. Tap Cancel request to withdraw it, or Unfollow to leave the Timeline and cancel the request."
                   : subscribed
                   ? "Request to join if you want to post. Following already puts this group's news on your Timeline."
                   : "Follow to see updates on your Timeline. Request to join if you want to post."}
@@ -1358,35 +1431,133 @@ export default function GroupInfoScreen() {
       )}
       {activeTab === "topics" && (
         <View style={styles.newsSection}>
-          <Text style={styles.newsHeader}>Discussion Topics</Text>
+          <Text style={styles.newsHeader}>Discussions</Text>
           <View style={styles.newsHeaderAccent} />
           <Text style={styles.newsSubtitle}>
-            Join the conversation on these topics. Premium members can request a pin.
+            Ask questions and keep conversations going with the group.
           </Text>
+
+          {joined ? (
+            showNewTopic ? (
+              <View style={styles.newTopicCard}>
+                <Text style={styles.newTopicLabel}>Start a discussion</Text>
+                <TextInput
+                  style={styles.newTopicTitleInput}
+                  value={newTopicTitle}
+                  onChangeText={setNewTopicTitle}
+                  placeholder="Topic title"
+                  placeholderTextColor="#9ca3af"
+                  maxLength={120}
+                />
+                <TextInput
+                  style={styles.newTopicBodyInput}
+                  value={newTopicBody}
+                  onChangeText={setNewTopicBody}
+                  placeholder="Opening message — what do you want to talk about?"
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  textAlignVertical="top"
+                  maxLength={2000}
+                />
+                <View style={styles.newTopicActions}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowNewTopic(false);
+                      setNewTopicTitle("");
+                      setNewTopicBody("");
+                    }}
+                    style={styles.newTopicCancel}
+                  >
+                    <Text style={styles.newTopicCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.newTopicSubmit,
+                      (!newTopicTitle.trim() ||
+                        !newTopicBody.trim() ||
+                        creatingTopic) && { opacity: 0.5 },
+                    ]}
+                    disabled={
+                      !newTopicTitle.trim() ||
+                      !newTopicBody.trim() ||
+                      creatingTopic
+                    }
+                    onPress={createDiscussionTopic}
+                  >
+                    <FontAwesome name="plus" size={12} color="#fff" />
+                    <Text style={styles.newTopicSubmitText}>
+                      {creatingTopic ? "Posting…" : "Post topic"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.startTopicBtn}
+                onPress={() => setShowNewTopic(true)}
+                activeOpacity={0.85}
+              >
+                <FontAwesome name="plus-circle" size={16} color={Colors.tint} />
+                <Text style={styles.startTopicBtnText}>Start a discussion</Text>
+              </TouchableOpacity>
+            )
+          ) : (
+            <Text style={styles.topicGateHint}>
+              Join this group to start or reply in discussions.
+            </Text>
+          )}
+
           {topicsLoading ? (
-            <Text style={{ color: "#888", marginTop: 12 }}>Loading topics…</Text>
+            <Text style={{ color: "#888", marginTop: 12 }}>Loading discussions…</Text>
+          ) : topics.length === 0 ? (
+            <View style={styles.topicsEmpty}>
+              <FontAwesome name="comments-o" size={28} color="#9ca3af" />
+              <Text style={styles.topicsEmptyTitle}>No discussions yet</Text>
+              <Text style={styles.topicsEmptyBody}>
+                {joined
+                  ? "Be the first to open a topic for this group."
+                  : "Once members start topics, they will show up here."}
+              </Text>
+            </View>
           ) : (
             topics.map((topic) => (
-            <TouchableOpacity
-              key={topic.title}
-              style={styles.topicItem}
-              onPress={() => {
-                router.push({
-                  pathname: "/(tabs)/groups/[code]/[topicTitle]",
-                  params: {
-                    code: String(code),
-                    topicTitle: topic.title,
-                  },
-                });
-              }}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.newsTitle}>{topic.title}</Text>
-              <Text style={styles.newsContent}>
-                {topic.posts} posts
-                {topic.pinned ? " · Pinned" : topic.pinRequested ? " · Pin requested" : ""}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                key={topic.title}
+                style={styles.topicItem}
+                onPress={() => {
+                  router.push({
+                    pathname: "/(tabs)/groups/[code]/[topicTitle]",
+                    params: {
+                      code: String(code),
+                      topicTitle: topic.title,
+                    },
+                  });
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={styles.topicItemTop}>
+                  <Text style={styles.newsTitle} numberOfLines={2}>
+                    {topic.title}
+                  </Text>
+                  {topic.pinned ? (
+                    <View style={styles.topicPinChip}>
+                      <FontAwesome name="thumb-tack" size={10} color="#fff" />
+                      <Text style={styles.topicPinChipText}>Pinned</Text>
+                    </View>
+                  ) : topic.pinRequested ? (
+                    <Text style={styles.topicPinRequested}>Pin requested</Text>
+                  ) : null}
+                </View>
+                {topic.preview ? (
+                  <Text style={styles.topicPreview} numberOfLines={2}>
+                    {topic.preview}
+                  </Text>
+                ) : null}
+                <Text style={styles.topicMeta}>
+                  {topic.author ? `${topic.author} · ` : ""}
+                  {topic.posts} {topic.posts === 1 ? "reply" : "replies"}
+                </Text>
+              </TouchableOpacity>
             ))
           )}
         </View>
@@ -1456,10 +1627,12 @@ export default function GroupInfoScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>
-                Unsubscribe from {group.university}?
+                Unfollow {group.university}?
               </Text>
               <Text style={styles.modalDesc}>
-                Are you sure you want to unsubscribe from this group?
+                {pending
+                  ? "This also cancels your pending join request. You can follow or request again later."
+                  : "You will stop seeing this group on your Timeline."}
               </Text>
               <View style={styles.modalActions}>
                 <TouchableOpacity
@@ -2045,15 +2218,151 @@ const styles = StyleSheet.create({
     color: "#888",
   },
   topicItem: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
-    marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  topicItemTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  topicPreview: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6b7280",
+  },
+  topicMeta: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#9ca3af",
+  },
+  topicPinChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#f59e0b",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  topicPinChipText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  topicPinRequested: {
+    color: "#f59e0b",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  startTopicBtn: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    backgroundColor: "#eef2ff",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  startTopicBtnText: {
+    color: Colors.tint,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  topicGateHint: {
+    marginTop: 12,
+    color: "#6b7280",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  topicsEmpty: {
+    marginTop: 24,
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  topicsEmptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1f2937",
+  },
+  topicsEmptyBody: {
+    fontSize: 13,
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  newTopicCard: {
+    marginTop: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: 14,
+    gap: 10,
+  },
+  newTopicLabel: {
+    fontWeight: "700",
+    color: "#1f2937",
+    fontSize: 14,
+  },
+  newTopicTitleInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: "#1f2937",
+    backgroundColor: "#f9fafb",
+  },
+  newTopicBodyInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 88,
+    fontSize: 14,
+    color: "#1f2937",
+    backgroundColor: "#f9fafb",
+  },
+  newTopicActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 12,
+  },
+  newTopicCancel: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  newTopicCancelText: {
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+  newTopicSubmit: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.tint,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  newTopicSubmitText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 13,
   },
   topicModalOverlay: {
     flex: 1,

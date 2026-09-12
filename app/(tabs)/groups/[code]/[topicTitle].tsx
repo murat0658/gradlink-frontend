@@ -1,43 +1,51 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  StyleSheet,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
   View as RNView,
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import Toast from "react-native-toast-message";
 import {
-  setTopicAnswers,
-  selectTopicAnswers,
-  selectUserProfile,
   RootState,
   ThreadAnswer,
+  selectTopicAnswers,
+  selectUserProfile,
+  setTopicAnswers,
 } from "@/app/store";
 import { apiService } from "../../../services/ApiService";
 import { isPremiumUser } from "../../../utils/status";
+import Colors, { borderRadius, spacing } from "@/constants/Colors";
 
-// Helper: get initials from name
+const MAX_REPLY = 1000;
+
 function getInitials(name: string) {
   return name
     .split(" ")
+    .filter(Boolean)
     .map((n) => n[0])
     .join("")
-    .toUpperCase();
+    .toUpperCase()
+    .slice(0, 2);
 }
 
-// Helper: relative time
 function getRelativeTime(dateString: string) {
   const now = new Date();
   const date = new Date(dateString);
   const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (Number.isNaN(diff) || diff < 0) return "";
   if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
   return date.toLocaleDateString();
 }
 
@@ -77,13 +85,24 @@ function buildReplyTree(replies: any[]): ThreadAnswer[] {
   return roots;
 }
 
+function countReplies(nodes: ThreadAnswer[] = []): number {
+  return nodes.reduce(
+    (sum, n) => sum + 1 + countReplies(n.replies || []),
+    0
+  );
+}
+
 function parseUpvoteCount(value: unknown, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-const ACCENT = "#4f46e5";
-const CURRENT_USER = "You";
+function avatarColor(name: string) {
+  const palette = ["#4f46e5", "#0d9488", "#db2777", "#ea580c", "#2563eb", "#7c3aed"];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash + name.charCodeAt(i) * 17) % palette.length;
+  return palette[Math.abs(hash) % palette.length];
+}
 
 export default function TopicThreadScreen() {
   const { code, topicTitle } = useLocalSearchParams();
@@ -97,10 +116,13 @@ export default function TopicThreadScreen() {
   );
   const profile = useSelector(selectUserProfile);
   const premium = isPremiumUser(profile);
+  const myName = profile?.name?.trim() || "";
+
   const [pinned, setPinned] = useState(false);
   const [pinRequested, setPinRequested] = useState(false);
   const [pinBusy, setPinBusy] = useState(false);
-  // Main discussion post
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [mainPost, setMainPost] = useState<ThreadAnswer>(
     storedMainPost?.[0] || {
       id: generateId(),
@@ -108,15 +130,25 @@ export default function TopicThreadScreen() {
       content: `Welcome to the discussion on "${topicTitle}"! Share your thoughts below.`,
       date: new Date().toISOString(),
       replies: [],
-      upvotes: 1,
+      upvotes: 0,
       collapsed: false,
     }
   );
-  // Track which answer (by id) is being replied to
   const [replyToId, setReplyToId] = useState<string | null>(null);
+  const [replyToAuthor, setReplyToAuthor] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [upvotedIds, setUpvotedIds] = useState<Set<string>>(new Set());
   const [postingReply, setPostingReply] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const replyCount = useMemo(
+    () => countReplies(mainPost.replies || []),
+    [mainPost.replies]
+  );
+
+  const isMe = (author: string) =>
+    Boolean(myName) && author.trim().toLowerCase() === myName.toLowerCase();
 
   const applyTopicPayload = (topic: any, replies: any[]) => {
     setPinned(Boolean(topic?.pinned ?? topic?.isPinned));
@@ -129,6 +161,7 @@ export default function TopicThreadScreen() {
       date: topic?.createdAt || prev.date,
       upvotes: Number(topic?.upvotes ?? prev.upvotes ?? 0),
       replies: buildReplyTree(replies),
+      collapsed: false,
     }));
   };
 
@@ -143,8 +176,18 @@ export default function TopicThreadScreen() {
 
   useEffect(() => {
     if (!groupCode || !title) return;
-    reloadThread().catch(() => {});
+    setLoading(true);
+    setLoadError(null);
+    reloadThread()
+      .catch((e: any) => {
+        setLoadError(e?.message || "Could not load this discussion.");
+      })
+      .finally(() => setLoading(false));
   }, [groupCode, title]);
+
+  useEffect(() => {
+    dispatch(setTopicAnswers({ key: topicKey, answers: [mainPost] }));
+  }, [mainPost, dispatch, topicKey]);
 
   const handlePinRequest = async () => {
     if (!groupCode || !title) return;
@@ -155,7 +198,7 @@ export default function TopicThreadScreen() {
       Toast.show({
         type: "success",
         text1: "Pin requested",
-        text2: "A group admin can pin this topic for everyone.",
+        text2: "A group admin can pin this for everyone.",
       });
     } catch (error: any) {
       Toast.show({
@@ -168,16 +211,8 @@ export default function TopicThreadScreen() {
     }
   };
 
-  // Sync local state to Redux on change
-  useEffect(() => {
-    dispatch(setTopicAnswers({ key: topicKey, answers: [mainPost] }));
-  }, [mainPost, dispatch, topicKey]);
-
-  // Recursive function to toggle collapse
   function toggleCollapse(tree: ThreadAnswer, id: string): ThreadAnswer {
-    if (tree.id === id) {
-      return { ...tree, collapsed: !tree.collapsed };
-    }
+    if (tree.id === id) return { ...tree, collapsed: !tree.collapsed };
     return {
       ...tree,
       replies: (tree.replies || []).map((r) => toggleCollapse(r, id)),
@@ -189,14 +224,23 @@ export default function TopicThreadScreen() {
     id: string,
     count: number
   ): ThreadAnswer {
-    if (tree.id === id) {
-      return { ...tree, upvotes: count };
-    }
+    if (tree.id === id) return { ...tree, upvotes: count };
     return {
       ...tree,
       replies: (tree.replies || []).map((r) => applyUpvoteCount(r, id, count)),
     };
   }
+
+  const startReply = (id: string, author: string) => {
+    setReplyToId(id);
+    setReplyToAuthor(author);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const clearReplyTarget = () => {
+    setReplyToId(null);
+    setReplyToAuthor(null);
+  };
 
   const handleUpvoteTopic = async () => {
     if (!groupCode || !title || upvotedIds.has(mainPost.id)) return;
@@ -244,10 +288,11 @@ export default function TopicThreadScreen() {
     }
   };
 
-  const handlePostReply = async (parentId: string | null) => {
+  const handlePostReply = async () => {
     if (!groupCode || !title || !replyContent.trim() || postingReply) return;
     setPostingReply(true);
     try {
+      const parentId = replyToId;
       const payload: { content: string; parentId?: string } = {
         content: replyContent.trim(),
       };
@@ -255,9 +300,10 @@ export default function TopicThreadScreen() {
         payload.parentId = parentId;
       }
       await apiService.addReply(groupCode, title, payload);
-      setReplyToId(null);
+      clearReplyTarget();
       setReplyContent("");
       await reloadThread();
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (error: any) {
       Toast.show({
         type: "error",
@@ -269,147 +315,140 @@ export default function TopicThreadScreen() {
     }
   };
 
-  // Recursive render of answers
-  function renderAnswers(answers: ThreadAnswer[], level = 1) {
-    // Cap the maximum indent to 5 levels
-    const cappedLevel = Math.min(level, 5);
-    const indent = cappedLevel * 10; // 10px per level, max 50px
+  function renderAnswers(answers: ThreadAnswer[], level = 0) {
+    const cappedLevel = Math.min(level, 4);
     return answers.map((answer) => {
-      const isCurrentUser = answer.author === CURRENT_USER;
+      const mine = isMe(answer.author);
+      const childCount = countReplies(answer.replies || []);
       return (
-        <View
+        <RNView
           key={answer.id}
-          style={[styles.answerItem, { marginLeft: indent }]}
+          style={[
+            styles.replyCard,
+            cappedLevel > 0 && styles.replyNested,
+            { marginLeft: cappedLevel * 12 },
+          ]}
         >
-          {/* Vertical line for tree */}
-          <RNView
-            style={[
-              styles.verticalLine,
-              { left: 0, opacity: cappedLevel > 1 ? 1 : 0 },
-            ]}
-          />
-          <RNView style={styles.answerHeaderRow}>
-            {/* Avatar */}
+          {cappedLevel > 0 && <RNView style={styles.threadRail} />}
+          <RNView style={styles.metaRow}>
             <RNView
               style={[
                 styles.avatar,
-                { backgroundColor: isCurrentUser ? ACCENT : "#a5b4fc" },
+                { backgroundColor: mine ? Colors.tint : avatarColor(answer.author) },
               ]}
             >
-              <Text style={styles.avatarText}>
-                {getInitials(answer.author)}
-              </Text>
+              <Text style={styles.avatarText}>{getInitials(answer.author)}</Text>
             </RNView>
-            <Text
-              style={[
-                styles.answerAuthor,
-                isCurrentUser && styles.currentUserAuthor,
-              ]}
-            >
-              {answer.author}
-            </Text>
-            {isCurrentUser && <Text style={styles.currentUserBadge}>You</Text>}
-            <Text style={styles.answerDate}>
-              {getRelativeTime(answer.date)}
-            </Text>
+            <RNView style={styles.metaText}>
+              <RNView style={styles.nameRow}>
+                <Text style={styles.authorName} numberOfLines={1}>
+                  {answer.author}
+                </Text>
+                {mine ? (
+                  <RNView style={styles.youChip}>
+                    <Text style={styles.youChipText}>You</Text>
+                  </RNView>
+                ) : null}
+              </RNView>
+              <Text style={styles.timeText}>{getRelativeTime(answer.date)}</Text>
+            </RNView>
           </RNView>
-          <Text style={styles.answerContent}>{answer.content}</Text>
-          <RNView style={styles.actionButtonsRow}>
+
+          <Text style={styles.bodyText}>{answer.content}</Text>
+
+          <RNView style={styles.actionsRow}>
             <TouchableOpacity
-              style={styles.upvoteButton}
+              style={styles.actionBtn}
               onPress={() => handleUpvoteReply(answer.id)}
               disabled={upvotedIds.has(answer.id)}
+              accessibilityLabel="Upvote"
             >
               <FontAwesome
                 name="arrow-up"
-                size={16}
-                color={upvotedIds.has(answer.id) ? ACCENT : "#888"}
+                size={14}
+                color={upvotedIds.has(answer.id) ? Colors.tint : Colors.textTertiary}
               />
               <Text
                 style={[
-                  styles.upvoteCount,
-                  upvotedIds.has(answer.id) && { color: ACCENT },
+                  styles.actionLabel,
+                  upvotedIds.has(answer.id) && { color: Colors.tint },
                 ]}
               >
                 {answer.upvotes}
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
-              style={styles.collapseButton}
-              onPress={() =>
-                setMainPost((prev) => toggleCollapse(prev, answer.id))
-              }
+              style={styles.actionBtn}
+              onPress={() => startReply(answer.id, answer.author)}
             >
-              <FontAwesome
-                name={answer.collapsed ? "plus" : "minus"}
-                size={16}
-                color="#888"
-              />
+              <FontAwesome name="reply" size={13} color={Colors.textSecondary} />
+              <Text style={styles.actionLabel}>Reply</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.replyButton}
-              onPress={() => {
-                setReplyToId(answer.id);
-                setReplyContent("");
-              }}
-            >
-              <Text style={styles.replyButtonText}>Reply</Text>
-            </TouchableOpacity>
-          </RNView>
-          {replyToId === answer.id && (
-            <RNView style={styles.replyForm}>
-              <Text style={styles.replyingToText}>
-                Replying to {answer.author}
-              </Text>
-              <TextInput
-                style={styles.replyInput}
-                value={replyContent}
-                onChangeText={setReplyContent}
-                placeholder="Write a reply..."
-                placeholderTextColor="#aaa"
-                multiline
-                textAlignVertical="top"
-                maxLength={280}
-              />
+
+            {childCount > 0 ? (
               <TouchableOpacity
-                style={[
-                  styles.postButton,
-                  (!replyContent.trim() || postingReply) && { opacity: 0.5 },
-                ]}
-                onPress={() => handlePostReply(answer.id)}
-                activeOpacity={0.85}
-                disabled={!replyContent.trim() || postingReply}
+                style={styles.actionBtn}
+                onPress={() =>
+                  setMainPost((prev) => toggleCollapse(prev, answer.id))
+                }
               >
-                <Text style={styles.postButtonText}>
-                  {postingReply ? "Posting…" : "Post"}
+                <FontAwesome
+                  name={answer.collapsed ? "chevron-down" : "chevron-up"}
+                  size={12}
+                  color={Colors.textSecondary}
+                />
+                <Text style={styles.actionLabel}>
+                  {answer.collapsed
+                    ? `Show ${childCount}`
+                    : `Hide ${childCount}`}
                 </Text>
               </TouchableOpacity>
-            </RNView>
-          )}
-          {/* Render replies if not collapsed */}
+            ) : null}
+          </RNView>
+
           {!answer.collapsed &&
             answer.replies &&
             answer.replies.length > 0 &&
             renderAnswers(answer.replies, level + 1)}
-        </View>
+        </RNView>
       );
     });
   }
 
+  const composerHint = replyToAuthor
+    ? `Replying to ${replyToAuthor}`
+    : "Add to the conversation…";
+
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+    >
+      <RNView style={styles.headerRow}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          accessibilityLabel="Back"
         >
-          <FontAwesome name="arrow-left" size={22} color={ACCENT} />
+          <FontAwesome name="arrow-left" size={18} color={Colors.tint} />
         </TouchableOpacity>
-        <Text style={styles.topicTitle} numberOfLines={1}>
-          {title}
-        </Text>
+        <RNView style={{ flex: 1 }}>
+          <Text style={styles.topicTitle} numberOfLines={2}>
+            {title}
+          </Text>
+          {!loading && !loadError ? (
+            <Text style={styles.headerMeta}>
+              {replyCount} {replyCount === 1 ? "reply" : "replies"}
+            </Text>
+          ) : null}
+        </RNView>
         {pinned ? (
-          <Text style={styles.pinStatus}>Pinned</Text>
+          <RNView style={styles.pinBadge}>
+            <FontAwesome name="thumb-tack" size={11} color="#fff" />
+            <Text style={styles.pinBadgeText}>Pinned</Text>
+          </RNView>
         ) : pinRequested ? (
           <Text style={styles.pinStatus}>Pin requested</Text>
         ) : premium ? (
@@ -419,366 +458,482 @@ export default function TopicThreadScreen() {
             style={styles.pinButton}
           >
             <Text style={styles.pinButtonText}>
-              {pinBusy ? "Requesting…" : "Request pin"}
+              {pinBusy ? "…" : "Request pin"}
             </Text>
           </TouchableOpacity>
         ) : null}
-      </View>
-      <ScrollView
-        style={styles.threadList}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      >
-        {/* Main post */}
-        <View style={styles.mainPost}>
-          <RNView style={styles.answerHeaderRow}>
-            <RNView style={[styles.avatar, { backgroundColor: "#a5b4fc" }]}>
-              <Text style={styles.avatarText}>
-                {getInitials(mainPost.author)}
-              </Text>
+      </RNView>
+
+      {loading ? (
+        <RNView style={styles.centered}>
+          <ActivityIndicator color={Colors.tint} />
+          <Text style={styles.muted}>Loading conversation…</Text>
+        </RNView>
+      ) : loadError ? (
+        <RNView style={styles.centered}>
+          <Text style={styles.errorText}>{loadError}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => {
+              setLoading(true);
+              setLoadError(null);
+              reloadThread()
+                .catch((e: any) =>
+                  setLoadError(e?.message || "Could not load this discussion.")
+                )
+                .finally(() => setLoading(false));
+            }}
+          >
+            <Text style={styles.retryText}>Try again</Text>
+          </TouchableOpacity>
+        </RNView>
+      ) : (
+        <>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.threadList}
+            contentContainerStyle={styles.threadContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <RNView style={styles.opCard}>
+              <RNView style={styles.metaRow}>
+                <RNView
+                  style={[
+                    styles.avatarLarge,
+                    {
+                      backgroundColor: isMe(mainPost.author)
+                        ? Colors.tint
+                        : avatarColor(mainPost.author),
+                    },
+                  ]}
+                >
+                  <Text style={styles.avatarTextLarge}>
+                    {getInitials(mainPost.author)}
+                  </Text>
+                </RNView>
+                <RNView style={styles.metaText}>
+                  <RNView style={styles.nameRow}>
+                    <Text style={styles.opAuthor} numberOfLines={1}>
+                      {mainPost.author}
+                    </Text>
+                    {isMe(mainPost.author) ? (
+                      <RNView style={styles.youChip}>
+                        <Text style={styles.youChipText}>You</Text>
+                      </RNView>
+                    ) : null}
+                  </RNView>
+                  <Text style={styles.timeText}>
+                    Started {getRelativeTime(mainPost.date)}
+                  </Text>
+                </RNView>
+              </RNView>
+              <Text style={styles.opBody}>{mainPost.content}</Text>
+              <RNView style={styles.actionsRow}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={handleUpvoteTopic}
+                  disabled={upvotedIds.has(mainPost.id)}
+                >
+                  <FontAwesome
+                    name="arrow-up"
+                    size={14}
+                    color={
+                      upvotedIds.has(mainPost.id)
+                        ? Colors.tint
+                        : Colors.textTertiary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.actionLabel,
+                      upvotedIds.has(mainPost.id) && { color: Colors.tint },
+                    ]}
+                  >
+                    {mainPost.upvotes}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => startReply(mainPost.id, mainPost.author)}
+                >
+                  <FontAwesome
+                    name="reply"
+                    size={13}
+                    color={Colors.textSecondary}
+                  />
+                  <Text style={styles.actionLabel}>Reply</Text>
+                </TouchableOpacity>
+              </RNView>
             </RNView>
-            <Text style={styles.mainPostAuthor}>{mainPost.author}</Text>
-            <Text style={styles.answerDate}>
-              {getRelativeTime(mainPost.date)}
-            </Text>
-          </RNView>
-          <Text style={styles.mainPostContent}>{mainPost.content}</Text>
-          <RNView style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              style={styles.upvoteButton}
-              onPress={handleUpvoteTopic}
-              disabled={upvotedIds.has(mainPost.id)}
-            >
-              <FontAwesome
-                name="arrow-up"
-                size={16}
-                color={upvotedIds.has(mainPost.id) ? ACCENT : "#888"}
-              />
-              <Text
-                style={[
-                  styles.upvoteCount,
-                  upvotedIds.has(mainPost.id) && { color: ACCENT },
-                ]}
-              >
-                {mainPost.upvotes}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.collapseButton}
-              onPress={() =>
-                setMainPost((prev) => ({ ...prev, collapsed: !prev.collapsed }))
-              }
-            >
-              <FontAwesome
-                name={mainPost.collapsed ? "plus" : "minus"}
-                size={16}
-                color="#888"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.replyButton}
-              onPress={() => {
-                setReplyToId(mainPost.id);
-                setReplyContent("");
-              }}
-            >
-              <Text style={styles.replyButtonText}>Reply</Text>
-            </TouchableOpacity>
-          </RNView>
-          {replyToId === mainPost.id && (
-            <RNView style={styles.replyForm}>
-              <Text style={styles.replyingToText}>
-                Replying to {mainPost.author}
-              </Text>
+
+            <RNView style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Conversation</Text>
+              <Text style={styles.sectionCount}>{replyCount}</Text>
+            </RNView>
+
+            {!mainPost.replies || mainPost.replies.length === 0 ? (
+              <RNView style={styles.emptyBox}>
+                <FontAwesome
+                  name="comments-o"
+                  size={28}
+                  color={Colors.textTertiary}
+                />
+                <Text style={styles.emptyTitle}>No replies yet</Text>
+                <Text style={styles.emptyBody}>
+                  Be the first to continue this discussion — use the box below.
+                </Text>
+              </RNView>
+            ) : (
+              renderAnswers(mainPost.replies)
+            )}
+          </ScrollView>
+
+          <RNView style={styles.composer}>
+            {replyToAuthor ? (
+              <RNView style={styles.replyingChip}>
+                <Text style={styles.replyingChipText} numberOfLines={1}>
+                  Replying to {replyToAuthor}
+                </Text>
+                <TouchableOpacity onPress={clearReplyTarget} hitSlop={8}>
+                  <FontAwesome name="times" size={14} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </RNView>
+            ) : null}
+            <RNView style={styles.composerRow}>
               <TextInput
-                style={styles.replyInput}
+                ref={inputRef}
+                style={styles.composerInput}
                 value={replyContent}
                 onChangeText={setReplyContent}
-                placeholder="Write a reply..."
-                placeholderTextColor="#aaa"
+                placeholder={composerHint}
+                placeholderTextColor={Colors.textTertiary}
                 multiline
+                maxLength={MAX_REPLY}
                 textAlignVertical="top"
-                maxLength={280}
               />
               <TouchableOpacity
                 style={[
-                  styles.postButton,
-                  (!replyContent.trim() || postingReply) && { opacity: 0.5 },
+                  styles.sendBtn,
+                  (!replyContent.trim() || postingReply) && styles.sendBtnDisabled,
                 ]}
-                onPress={() => handlePostReply(mainPost.id)}
-                activeOpacity={0.85}
+                onPress={handlePostReply}
                 disabled={!replyContent.trim() || postingReply}
+                accessibilityLabel="Post reply"
               >
-                <Text style={styles.postButtonText}>
-                  {postingReply ? "Posting…" : "Post"}
-                </Text>
+                {postingReply ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <FontAwesome name="send" size={16} color="#fff" />
+                )}
               </TouchableOpacity>
             </RNView>
-          )}
-        </View>
-        {/* Answers/comments as a tree */}
-        <Text style={styles.answersHeader}>Answers</Text>
-        {mainPost.collapsed ? null : !mainPost.replies ||
-          mainPost.replies.length === 0 ? (
-          <Text style={styles.noPosts}>
-            No answers yet. Be the first to reply!
-          </Text>
-        ) : (
-          renderAnswers(mainPost.replies)
-        )}
-      </ScrollView>
-    </View>
+            <Text style={styles.charCount}>
+              {replyContent.length}/{MAX_REPLY}
+            </Text>
+          </RNView>
+        </>
+      )}
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
-    paddingTop: 32,
-    paddingHorizontal: 0,
+    backgroundColor: Colors.backgroundSecondary,
+    paddingTop: Platform.OS === "web" ? 24 : 48,
   },
   headerRow: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    marginBottom: 8,
+    alignItems: "flex-start",
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
   },
   backButton: {
-    marginRight: 10,
-    padding: 4,
-    borderRadius: 8,
-    backgroundColor: "#f3f4f6",
+    padding: 8,
+    borderRadius: borderRadius.md,
+    backgroundColor: Colors.backgroundTertiary,
+    marginTop: 2,
   },
   topicTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: ACCENT,
-    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.text,
+    lineHeight: 24,
+  },
+  headerMeta: {
+    marginTop: 2,
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
   pinButton: {
-    backgroundColor: "#f59e0b",
-    borderRadius: 8,
+    backgroundColor: Colors.warning,
+    borderRadius: borderRadius.md,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    marginLeft: 8,
   },
   pinButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "700",
     fontSize: 12,
   },
   pinStatus: {
-    color: "#f59e0b",
+    color: Colors.warning,
     fontWeight: "700",
     fontSize: 12,
-    marginLeft: 8,
+    marginTop: 6,
   },
-  threadList: {
-    flex: 1,
-    paddingHorizontal: 8,
-  },
-  mainPost: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    borderLeftWidth: 5,
-    borderLeftColor: ACCENT,
-  },
-  mainPostAuthor: {
-    fontWeight: "bold",
-    color: ACCENT,
-    marginBottom: 2,
-    fontSize: 16,
-    marginRight: 8,
-  },
-  mainPostContent: {
-    fontSize: 16,
-    color: "#22223b",
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  answersHeader: {
-    fontSize: 15,
-    color: ACCENT,
-    fontWeight: "bold",
-    marginBottom: 8,
-    marginTop: 8,
-    marginLeft: 8,
-  },
-  noPosts: {
-    color: "#888",
-    marginTop: 8,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  answerItem: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-    width: "100%",
-  },
-  answerHeaderRow: {
+  pinBadge: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
-    flexWrap: "wrap",
-    maxWidth: "100%",
+    gap: 4,
+    backgroundColor: Colors.warning,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 4,
   },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  pinBadgeText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  centered: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 8,
+    gap: spacing.sm,
+    padding: spacing.lg,
   },
-  avatarText: {
-    color: "#fff",
-    fontWeight: "bold",
+  muted: { color: Colors.textSecondary, marginTop: spacing.sm },
+  errorText: { color: Colors.error, textAlign: "center" },
+  retryBtn: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: Colors.tint,
+    borderRadius: borderRadius.md,
+  },
+  retryText: { color: "#fff", fontWeight: "700" },
+  threadList: { flex: 1 },
+  threadContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  opCard: {
+    backgroundColor: Colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: spacing.md,
+  },
+  opAuthor: {
+    fontWeight: "700",
+    color: Colors.text,
     fontSize: 15,
   },
-  answerAuthor: {
-    fontWeight: "bold",
-    color: ACCENT,
-    marginRight: 6,
-    fontSize: 15,
-    flexShrink: 1,
-    maxWidth: "40%",
+  opBody: {
+    marginTop: spacing.sm,
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.text,
   },
-  currentUserAuthor: {
-    color: ACCENT,
-    textDecorationLine: "underline",
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
   },
-  currentUserBadge: {
-    backgroundColor: ACCENT,
-    color: "#fff",
-    fontSize: 11,
-    borderRadius: 6,
-    paddingHorizontal: 6,
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.tint,
+    backgroundColor: "#eef2ff",
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    marginRight: 6,
-    marginLeft: -4,
+    borderRadius: 999,
     overflow: "hidden",
   },
-  answerDate: {
-    fontSize: 12,
-    color: "#888",
-    marginRight: 8,
-    flexShrink: 1,
-  },
-  answerContent: {
-    fontSize: 15,
-    color: "#22223b",
-    marginBottom: 8,
-    marginTop: 4,
-    flexShrink: 1,
-    flexWrap: "wrap",
-    width: "100%",
-    maxWidth: "100%",
-  },
-  actionButtonsRow: {
-    flexDirection: "row",
+  emptyBox: {
     alignItems: "center",
-    marginTop: 4,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
-  upvoteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: "#e0e7ff",
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Colors.text,
   },
-  upvoteCount: {
-    marginLeft: 2,
-    fontSize: 13,
-    color: "#888",
-    fontWeight: "bold",
-  },
-  collapseButton: {
-    marginRight: 8,
-    padding: 4,
-  },
-  replyButton: {
-    backgroundColor: ACCENT,
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    marginLeft: 4,
-  },
-  replyButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+  emptyBody: {
     fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
   },
-  replyForm: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    marginTop: 8,
-    width: "100%",
-    maxWidth: "100%",
-    minWidth: 180,
-  },
-  replyingToText: {
-    color: ACCENT,
-    fontSize: 13,
-    marginBottom: 2,
-    fontWeight: "bold",
-    flexShrink: 1,
-    flexWrap: "wrap",
-    maxWidth: "100%",
-  },
-  replyInput: {
-    flex: 1,
-    minWidth: 180,
-    width: "100%",
-    fontSize: 15,
-    color: "#22223b",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+  replyCard: {
+    backgroundColor: Colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    minHeight: 60,
-    maxHeight: 120,
-    marginBottom: 6,
+    borderColor: Colors.border,
+    overflow: "hidden",
   },
-  postButton: {
-    backgroundColor: ACCENT,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    alignItems: "center",
-    alignSelf: "flex-end",
+  replyNested: {
+    backgroundColor: Colors.background,
   },
-  postButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
-  verticalLine: {
+  threadRail: {
     position: "absolute",
+    left: 0,
     top: 0,
     bottom: 0,
-    width: 2,
-    backgroundColor: ACCENT,
-    zIndex: 0,
-    left: 0, // Always align to left edge of answerItem
+    width: 3,
+    backgroundColor: Colors.tintSecondary,
+    opacity: 0.45,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  metaText: { flex: 1, minWidth: 0 },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  authorName: {
+    fontWeight: "700",
+    color: Colors.text,
+    fontSize: 14,
+    flexShrink: 1,
+  },
+  youChip: {
+    backgroundColor: Colors.tint,
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  youChipText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  timeText: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+    marginTop: 1,
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarLarge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  avatarTextLarge: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  bodyText: {
+    marginTop: spacing.sm,
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.text,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+  },
+  actionLabel: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: "600",
+  },
+  composer: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.background,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: Platform.OS === "ios" ? spacing.lg : spacing.md,
+  },
+  replyingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.backgroundTertiary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    marginBottom: spacing.sm,
+  },
+  replyingChipText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: "600",
+    marginRight: spacing.sm,
+  },
+  composerRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: spacing.sm,
+  },
+  composerInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: Colors.text,
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.tint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendBtnDisabled: { opacity: 0.45 },
+  charCount: {
+    alignSelf: "flex-end",
+    marginTop: 4,
+    fontSize: 11,
+    color: Colors.textTertiary,
   },
 });
