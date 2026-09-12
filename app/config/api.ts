@@ -26,6 +26,13 @@ export const API_ENDPOINTS = {
     ENROLL: "/api/events/:id/enroll",
     UNENROLL: "/api/events/:id/unenroll",
   },
+  // Jobs
+  JOBS: {
+    BASE: "/api/jobs",
+    CREATE: "/api/jobs",
+    APPLY: "/api/jobs/:id/apply",
+    APPLICATIONS: "/api/jobs/:id/applications",
+  },
   // Groups
   GROUPS: {
     BASE: "/api/groups",

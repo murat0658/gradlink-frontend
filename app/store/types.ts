@@ -18,12 +18,39 @@ export interface AppEvent {
   updatedAt: string;
 }
 
+// Job posting types
+export type EmploymentType =
+  | "FULL_TIME"
+  | "PART_TIME"
+  | "INTERNSHIP"
+  | "CONTRACT"
+  | "REMOTE";
+
+export interface JobPosting {
+  id: string;
+  title: string;
+  description?: string;
+  company: string;
+  location?: string;
+  employmentType: EmploymentType | string;
+  applyUrl?: string;
+  active: boolean;
+  groupCode: string;
+  groupName?: string;
+  createdById?: string;
+  createdByName?: string;
+  applicationCount?: number;
+  hasApplied?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 // Notification types
 export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: "event" | "general" | "group" | "topic";
+  type: "event" | "general" | "group" | "topic" | "job" | "system";
   isRead: boolean;
   timestamp: string;
   eventId?: string;
@@ -110,6 +137,7 @@ export interface LoadingState {
 export interface RootState {
   user: any;
   events: any;
+  jobs: any;
   notifications: any;
   subscriptions: any;
   enrollments: any;

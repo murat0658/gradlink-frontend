@@ -15,6 +15,7 @@ import {
   TextInput,
   RefreshControl,
   Switch,
+  Linking,
 } from "react-native";
 
 // Third-party libraries
@@ -60,7 +61,7 @@ import {
   fetchSubscriptions,
 } from "../../../store";
 import { selectPendingGroupCodes } from "../../../store/selectors";
-import { AppEvent } from "../../../store/types";
+import { AppEvent, JobPosting } from "../../../store/types";
 import { isUuid } from "../../../utils/validation";
 import Colors from "@/constants/Colors";
 import {
@@ -68,6 +69,23 @@ import {
   membershipCtas,
   toastErrorText,
 } from "../../../utils/membershipUx";
+
+const EMPLOYMENT_TYPES = [
+  "FULL_TIME",
+  "PART_TIME",
+  "INTERNSHIP",
+  "CONTRACT",
+  "REMOTE",
+] as const;
+
+function formatEmploymentType(type?: string): string {
+  if (!type) return "Full-time";
+  return type
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("-");
+}
 
 // Add a type for topic posts
 type TopicPost = {
@@ -171,6 +189,30 @@ export default function GroupInfoScreen() {
     };
   }, [token, code]);
 
+  useEffect(() => {
+    if (!token || !code) {
+      setGroupJobs([]);
+      return;
+    }
+    let cancelled = false;
+    setJobsLoading(true);
+    apiService
+      .getJobs({ groupCode: String(code), page: 0, size: 50, activeOnly: true })
+      .then((res) => {
+        if (cancelled) return;
+        setGroupJobs(unwrapPageContent<JobPosting>(res));
+      })
+      .catch(() => {
+        if (!cancelled) setGroupJobs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setJobsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, code, jobsRefreshKey]);
+
   const group =
     groupsFromStore.find((g: any) => g.code === code) || fetchedGroup;
 
@@ -215,24 +257,18 @@ export default function GroupInfoScreen() {
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [jobs] = useState<
-    { id: string; title: string; company: string; location: string; type: string }[]
-  >([
-    {
-      id: "gjob-1",
-      title: "Alumni Referral: Frontend Engineer",
-      company: group?.university ?? "University",
-      location: "Remote",
-      type: "Full-time",
-    },
-    {
-      id: "gjob-2",
-      title: "Research Assistant (Part-time)",
-      company: group?.university ?? "University",
-      location: "Campus",
-      type: "Part-time",
-    },
-  ]);
+  const [groupJobs, setGroupJobs] = useState<JobPosting[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [jobsRefreshKey, setJobsRefreshKey] = useState(0);
+  const [jobTitle, setJobTitle] = useState("");
+  const [jobCompany, setJobCompany] = useState("");
+  const [jobLocation, setJobLocation] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [jobEmploymentType, setJobEmploymentType] =
+    useState<(typeof EMPLOYMENT_TYPES)[number]>("FULL_TIME");
+  const [jobApplyUrl, setJobApplyUrl] = useState("");
+  const [isSubmittingJob, setIsSubmittingJob] = useState(false);
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
   const [members, setMembers] = useState<
     {
       id: string;
@@ -365,6 +401,91 @@ export default function GroupInfoScreen() {
       setApiNews([]);
     } finally {
       setIsLoadingNews(false);
+    }
+  };
+
+  const postJob = async () => {
+    if (!jobTitle.trim() || !jobCompany.trim()) {
+      Toast.show({
+        type: "info",
+        text1: "Title and company are required.",
+      });
+      return;
+    }
+    try {
+      setIsSubmittingJob(true);
+      await apiService.createJob({
+        title: jobTitle.trim(),
+        company: jobCompany.trim(),
+        location: jobLocation.trim() || undefined,
+        description: jobDescription.trim() || undefined,
+        employmentType: jobEmploymentType,
+        applyUrl: jobApplyUrl.trim() || undefined,
+        groupCode: String(code),
+      });
+      setJobTitle("");
+      setJobCompany("");
+      setJobLocation("");
+      setJobDescription("");
+      setJobApplyUrl("");
+      setJobEmploymentType("FULL_TIME");
+      setJobsRefreshKey((k) => k + 1);
+      Toast.show({
+        type: "success",
+        text1: "Job posted",
+        text2: "Members of this group were notified.",
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not post job",
+        text2: toastErrorText(error, "Could not post this job"),
+      });
+    } finally {
+      setIsSubmittingJob(false);
+    }
+  };
+
+  const applyToGroupJob = async (job: JobPosting) => {
+    if (job.hasApplied || applyingJobId) return;
+    if (job.applyUrl) {
+      try {
+        await Linking.openURL(job.applyUrl);
+      } catch {
+        Toast.show({
+          type: "error",
+          text1: "Could not open link",
+        });
+      }
+      return;
+    }
+    setApplyingJobId(job.id);
+    try {
+      await apiService.applyToJob(job.id);
+      setGroupJobs((prev) =>
+        prev.map((j) =>
+          j.id === job.id
+            ? {
+                ...j,
+                hasApplied: true,
+                applicationCount: (j.applicationCount ?? 0) + 1,
+              }
+            : j
+        )
+      );
+      Toast.show({
+        type: "success",
+        text1: "Application sent",
+        text2: `Interest recorded for ${job.title}`,
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not apply",
+        text2: toastErrorText(error, "Try again later"),
+      });
+    } finally {
+      setApplyingJobId(null);
     }
   };
 
@@ -1567,19 +1688,150 @@ export default function GroupInfoScreen() {
           <Text style={styles.newsHeader}>Job Opportunities</Text>
           <View style={styles.newsHeaderAccent} />
           <Text style={styles.newsSubtitle}>
-            Sample listings — job postings are coming soon.
+            Openings shared by members of this group.
           </Text>
-          {jobs.length === 0 ? (
+
+          {joined ? (
+            <View style={{ marginTop: 16, marginBottom: 8 }}>
+              <Text style={[styles.newsTitle, { marginBottom: 8 }]}>
+                Post a job
+              </Text>
+              <TextInput
+                style={styles.newTopicTitleInput}
+                placeholder="Job title"
+                placeholderTextColor="#9ca3af"
+                value={jobTitle}
+                onChangeText={setJobTitle}
+              />
+              <TextInput
+                style={styles.newTopicTitleInput}
+                placeholder="Company"
+                placeholderTextColor="#9ca3af"
+                value={jobCompany}
+                onChangeText={setJobCompany}
+              />
+              <TextInput
+                style={styles.newTopicTitleInput}
+                placeholder="Location (optional)"
+                placeholderTextColor="#9ca3af"
+                value={jobLocation}
+                onChangeText={setJobLocation}
+              />
+              <TextInput
+                style={styles.newTopicBodyInput}
+                placeholder="Description (optional)"
+                placeholderTextColor="#9ca3af"
+                value={jobDescription}
+                onChangeText={setJobDescription}
+                multiline
+                textAlignVertical="top"
+              />
+              <TextInput
+                style={styles.newTopicTitleInput}
+                placeholder="External apply URL (optional)"
+                placeholderTextColor="#9ca3af"
+                value={jobApplyUrl}
+                onChangeText={setJobApplyUrl}
+                autoCapitalize="none"
+              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                {EMPLOYMENT_TYPES.map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    onPress={() => setJobEmploymentType(type)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor:
+                        jobEmploymentType === type ? Colors.tint : "#f3f4f6",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: jobEmploymentType === type ? "#fff" : "#374151",
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {formatEmploymentType(type)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.shareNewsButton,
+                  (!jobTitle.trim() ||
+                    !jobCompany.trim() ||
+                    isSubmittingJob) && { opacity: 0.5 },
+                ]}
+                onPress={postJob}
+                disabled={
+                  !jobTitle.trim() || !jobCompany.trim() || isSubmittingJob
+                }
+                activeOpacity={0.85}
+              >
+                <Text style={styles.shareNewsButtonText}>
+                  {isSubmittingJob ? "Posting..." : "Post job"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={{ color: "#888", marginTop: 12, marginBottom: 8 }}>
+              Join this group to post job openings.
+            </Text>
+          )}
+
+          {jobsLoading ? (
+            <Text style={{ color: "#888", marginTop: 12 }}>Loading jobs…</Text>
+          ) : groupJobs.length === 0 ? (
             <Text style={{ color: "#888", marginTop: 12 }}>
               No job postings yet.
             </Text>
           ) : (
-            jobs.map((job) => (
+            groupJobs.map((job) => (
               <View key={job.id} style={styles.topicItem}>
                 <Text style={styles.newsTitle}>{job.title}</Text>
                 <Text style={styles.newsContent}>
-                  {job.company} • {job.location} • {job.type}
+                  {job.company}
+                  {job.location ? ` · ${job.location}` : ""}
+                  {` · ${formatEmploymentType(job.employmentType)}`}
                 </Text>
+                {!!job.description && (
+                  <Text style={[styles.newsContent, { marginTop: 4 }]} numberOfLines={3}>
+                    {job.description}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={[
+                    styles.shareNewsButton,
+                    {
+                      alignSelf: "flex-start",
+                      marginTop: 10,
+                      opacity: job.hasApplied || applyingJobId === job.id ? 0.55 : 1,
+                    },
+                  ]}
+                  disabled={job.hasApplied || applyingJobId === job.id}
+                  onPress={() => applyToGroupJob(job)}
+                >
+                  <Text style={styles.shareNewsButtonText}>
+                    {job.hasApplied
+                      ? "Applied"
+                      : job.applyUrl
+                        ? "Open link"
+                        : applyingJobId === job.id
+                          ? "Applying…"
+                          : "Apply"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ))
           )}

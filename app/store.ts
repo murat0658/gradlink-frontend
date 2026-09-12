@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 // Import slices
 import userReducer from "./store/slices/userSlice";
 import eventsReducer from "./store/slices/eventsSlice";
+import jobsReducer from "./store/slices/jobsSlice";
 import groupsReducer from "./store/slices/groupsSlice";
 import notificationsReducer from "./store/slices/notificationsSlice";
 import subscriptionsReducer from "./store/slices/subscriptionsSlice";
@@ -23,7 +24,7 @@ export * from "./store/slices";
 export * from "./store/types";
 
 // Export specific types that are commonly used
-export type { AppEvent, Notification, User } from "./store/types";
+export type { AppEvent, JobPosting, Notification, User } from "./store/types";
 
 // Import utilities
 export * from "./store/utils";
@@ -45,6 +46,7 @@ export const store = configureStore({
   reducer: {
     user: userReducer,
     events: eventsReducer,
+    jobs: jobsReducer,
     groups: groupsReducer,
     notifications: notificationsReducer,
     subscriptions: subscriptionsReducer,

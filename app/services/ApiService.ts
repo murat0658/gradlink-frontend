@@ -515,6 +515,95 @@ class ApiService {
   }
 
   // ========================================
+  // JOBS ENDPOINTS (Auth required)
+  // ========================================
+
+  async getJobs(params?: {
+    page?: number;
+    size?: number;
+    groupCode?: string;
+    activeOnly?: boolean;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
+    if (params?.groupCode) queryParams.append("groupCode", params.groupCode);
+    if (params?.activeOnly !== undefined)
+      queryParams.append("activeOnly", params.activeOnly.toString());
+
+    const queryString = queryParams.toString();
+    const endpoint = `/api/jobs${queryString ? `?${queryString}` : ""}`;
+    return this.requestWithRetry<any>(endpoint);
+  }
+
+  async getJob(jobId: string) {
+    return this.request<any>(`/api/jobs/${jobId}`);
+  }
+
+  async createJob(jobData: {
+    title: string;
+    description?: string;
+    company: string;
+    location?: string;
+    employmentType?: string;
+    applyUrl?: string;
+    groupCode: string;
+  }) {
+    const { groupCode, ...rest } = jobData;
+    return this.request<any>("/api/jobs", {
+      method: "POST",
+      body: JSON.stringify({
+        ...rest,
+        group: { code: groupCode },
+      }),
+    });
+  }
+
+  async updateJob(jobId: string, jobData: Partial<{
+    title: string;
+    description: string;
+    company: string;
+    location: string;
+    employmentType: string;
+    applyUrl: string;
+  }>) {
+    return this.request<any>(`/api/jobs/${jobId}`, {
+      method: "PUT",
+      body: JSON.stringify(jobData),
+    });
+  }
+
+  async deleteJob(jobId: string) {
+    return this.request(`/api/jobs/${jobId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async applyToJob(jobId: string, message?: string) {
+    return this.request<any>(`/api/jobs/${jobId}/apply`, {
+      method: "POST",
+      body: JSON.stringify(message ? { message } : {}),
+    });
+  }
+
+  async getJobApplications(
+    jobId: string,
+    params?: { page?: number; size?: number }
+  ) {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined)
+      queryParams.append("page", params.page.toString());
+    if (params?.size !== undefined)
+      queryParams.append("size", params.size.toString());
+    const queryString = queryParams.toString();
+    return this.request<any>(
+      `/api/jobs/${jobId}/applications${queryString ? `?${queryString}` : ""}`
+    );
+  }
+
+  // ========================================
   // NOTIFICATIONS ENDPOINTS (Auth required)
   // ========================================
 

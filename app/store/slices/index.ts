@@ -20,6 +20,16 @@ export {
 } from "./eventsSlice";
 
 export {
+  setJobs,
+  addJob,
+  updateJob,
+  removeJob,
+  markJobApplied,
+  setLoading as setJobsLoading,
+  setError as setJobsError,
+} from "./jobsSlice";
+
+export {
   setGroups,
   addGroup,
   updateGroup,
@@ -73,6 +83,7 @@ export default {
   // Export all named exports as default
   ...require("./userSlice"),
   ...require("./eventsSlice"),
+  ...require("./jobsSlice"),
   ...require("./groupsSlice"),
   ...require("./notificationsSlice"),
   ...require("./subscriptionsSlice"),

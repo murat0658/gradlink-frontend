@@ -109,6 +109,68 @@ export const unenrollFromEventAsync = createAsyncThunk(
   }
 );
 
+// Jobs thunks
+export const fetchJobs = createAsyncThunk(
+  "jobs/fetchJobs",
+  async (
+    params: {
+      page?: number;
+      size?: number;
+      groupCode?: string;
+      activeOnly?: boolean;
+    } = {},
+    { rejectWithValue }
+  ) => {
+    try {
+      return await apiService.getJobs(params);
+    } catch (error: any) {
+      let errorMessage = "Failed to fetch jobs";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      if (
+        error.message?.includes("Database connection issue") ||
+        error.message?.includes("Server is temporarily unavailable") ||
+        error.message?.includes("Access denied")
+      ) {
+        return [];
+      }
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+export const createJobAsync = createAsyncThunk(
+  "jobs/createJob",
+  async (jobData: {
+    title: string;
+    description?: string;
+    company: string;
+    location?: string;
+    employmentType?: string;
+    applyUrl?: string;
+    groupCode: string;
+  }) => {
+    return apiService.createJob(jobData);
+  }
+);
+
+export const applyToJobAsync = createAsyncThunk(
+  "jobs/applyToJob",
+  async ({ jobId, message }: { jobId: string; message?: string }) => {
+    const response = await apiService.applyToJob(jobId, message);
+    return { jobId, response };
+  }
+);
+
+export const deleteJobAsync = createAsyncThunk(
+  "jobs/deleteJob",
+  async (jobId: string) => {
+    await apiService.deleteJob(jobId);
+    return jobId;
+  }
+);
+
 // Groups thunks
 export const fetchGroups = createAsyncThunk(
   "groups/fetchGroups",

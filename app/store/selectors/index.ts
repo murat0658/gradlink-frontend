@@ -15,6 +15,11 @@ export const selectEvents = (state: RootState) => state.events.items;
 export const selectEventsLoading = (state: RootState) => state.events.loading;
 export const selectEventsError = (state: RootState) => state.events.error;
 
+// Jobs selectors
+export const selectJobs = (state: RootState) => state.jobs?.items ?? [];
+export const selectJobsLoading = (state: RootState) => state.jobs?.loading ?? false;
+export const selectJobsError = (state: RootState) => state.jobs?.error ?? null;
+
 // Groups selectors
 export const selectGroups = (state: RootState) => state.groups.items;
 export const selectGroupsLoading = (state: RootState) => state.groups.loading;
