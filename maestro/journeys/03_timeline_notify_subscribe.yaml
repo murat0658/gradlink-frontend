@@ -11,14 +11,30 @@ tags:
 - runFlow:
     file: ../shared/login.yaml
 
-# Timeline chrome + past-events toggle
-- tapOn: "Timeline"
+- runFlow:
+    when:
+      visible: ".*Failed to load.*"
+    commands:
+      - tapOn:
+          point: "92%,90%"
+
+# Timeline chrome + past-events toggle (deep link avoids tab-label false positives)
+- openLink: ${EXPO_URL}/--/(tabs)
 - extendedWaitUntil:
-    visible: "Your Timeline|Show past events|Timeline"
-    timeout: 20000
-- assertVisible: "Your Timeline|Timeline"
-- assertVisible: "Show past events|See your activity|No updates yet"
-- tapOn: "Show past events"
+    visible: "Your Timeline|Show past events|Continue|Timeline"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible:
+    text: "Your Timeline"
+- assertVisible:
+    text: "Show past events"
+- assertVisible: "See your activity|No updates yet|Show past events"
+- tapOn:
+    text: "Show past events"
 - runFlow:
     when:
       visible: "Dismiss"
@@ -61,7 +77,7 @@ tags:
     commands:
       - tapOn: "Continue"
 - assertVisible: "Choose Your Plan|Free|Premium"
-- assertVisible: "$0|$15/mo|Free|Premium"
+- assertVisible: "\\$0|\\$15/mo|Free|Premium"
 - assertVisible: "Premium profile badge|Alumni groups|Priority event seats|News and topics|Subscribe"
 
 # Profile edit → cancel (no accidental save)
@@ -92,7 +108,7 @@ tags:
 - assertNotVisible: "Save Changes"
 
 # Cross-tab navigation still healthy
-- tapOn: "Jobs"
+- openLink: ${EXPO_URL}/--/(tabs)/jobs
 - extendedWaitUntil:
     visible: "Sample data|.*Sample listings.*|Jobs|Continue"
     timeout: 15000
@@ -102,11 +118,13 @@ tags:
     commands:
       - tapOn: "Continue"
 - assertVisible: "Software Engineer (New Grad)|Product Designer Intern|Sample data"
-- tapOn:
-    text: "Groups"
-    index: 0
+- openLink: ${EXPO_URL}/--/(tabs)/groups
 - extendedWaitUntil:
     visible: "University Graduate Groups|.*members.*"
     timeout: 15000
-- tapOn: "Timeline"
-- assertVisible: "Your Timeline|Show past events|Timeline"
+- openLink: ${EXPO_URL}/--/(tabs)
+- extendedWaitUntil:
+    visible: "Your Timeline|Show past events"
+    timeout: 15000
+- assertVisible:
+    text: "Your Timeline"

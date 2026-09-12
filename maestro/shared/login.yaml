@@ -32,22 +32,29 @@ appId: host.exp.Exponent
           commands:
             - runFlow:
                 when:
-                  visible: ".*API Request failed.*|.*Access denied.*|.*Error message.*"
+                  visible: ".*API Request failed.*|.*Access denied.*|.*Error message.*|Authentication required"
                 commands:
                   - tapOn:
                       point: "92%,90%"
             - tapOn: "Email"
-            - eraseText
+            - eraseText: 100
+            - eraseText: 100
             - inputText: ${EMAIL}
             - tapOn:
                 text: "Welcome to GradLink"
                 optional: true
             - tapOn: "Password"
-            - eraseText
+            - eraseText: 100
+            - eraseText: 100
             - inputText: ${PASSWORD}
             - tapOn:
                 text: "Welcome to GradLink"
                 optional: true
+            - scrollUntilVisible:
+                element: "Sign In"
+                direction: DOWN
+                timeout: 5000
+                visibilityPercentage: 50
             - tapOn: "Sign In"
             - extendedWaitUntil:
                 visible: "Groups|Timeline|Profile|Your Timeline"

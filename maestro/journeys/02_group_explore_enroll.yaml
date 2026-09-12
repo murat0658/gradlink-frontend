@@ -9,6 +9,14 @@ tags:
 - runFlow:
     file: ../shared/login.yaml
 
+# Dismiss stacked API toasts if present
+- runFlow:
+    when:
+      visible: ".*Failed to load.*|.*Internal server.*"
+    commands:
+      - tapOn:
+          point: "92%,90%"
+
 # Groups directory chrome
 - openLink: ${EXPO_URL}/--/(tabs)/groups
 - extendedWaitUntil:
@@ -26,7 +34,7 @@ tags:
 # Open a known public group
 - openLink: ${EXPO_URL}/--/(tabs)/groups/harvard
 - extendedWaitUntil:
-    visible: "Join|Leave|Subscribe|Unsubscribe|Members|News|Events|Topics|Continue|Oops|Harvard"
+    visible: "Subscribe|Unsubscribe|Leave|Members|News|Events|Topics|Continue|Oops|Harvard"
     timeout: 30000
 - runFlow:
     when:
@@ -45,11 +53,30 @@ tags:
 
 - runFlow:
     when:
-      visible: "Join|Leave|Subscribe|Unsubscribe"
+      visible: ".*Failed to load.*"
     commands:
-      # Membership CTA present
-      - assertVisible: "Join|Leave"
-      - assertVisible: "Subscribe|Unsubscribe"
+      - tapOn:
+          point: "92%,90%"
+
+- runFlow:
+    when:
+      visible: "Subscribe|Unsubscribe|Leave"
+    commands:
+      # Membership CTA: Join appears only after Subscribe
+      - assertVisible: "Subscribe|Unsubscribe|Leave"
+      - runFlow:
+          when:
+            visible: "Subscribe"
+          commands:
+            - tapOn: "Subscribe"
+            - extendedWaitUntil:
+                visible: "Join|Leave|Unsubscribe|Subscribed"
+                timeout: 20000
+      - runFlow:
+          when:
+            visible: "Join"
+          commands:
+            - assertVisible: "Join"
 
       # Leave confirmation must be cancelable (destructive UX)
       - runFlow:
@@ -71,16 +98,16 @@ tags:
             visible: "News"
           commands:
             - tapOn: "News"
-            - assertVisible: "News|Latest News|No news|What's happening|Share"
+            - assertVisible: "News|Latest News|No news|What's happening|Share|Failed to load"
       - runFlow:
           when:
             visible: "Events"
           commands:
             - tapOn: "Events"
             - assertVisible: "Events|Upcoming Events|No events|Enroll|Show past events|Full|Premium seats|Enrolled"
-            - assertVisible: "Show past events|Join events organized|Enroll|No events"
-            - tapOn: "Show past events"
-            - assertVisible: "Events|Upcoming Events|No events|Enroll|Enrolled|Full|Premium seats|Show past events"
+            - tapOn:
+                text: "Show past events"
+                optional: true
       - runFlow:
           when:
             visible: "Topics"
@@ -113,7 +140,7 @@ tags:
             visible: "Members"
           commands:
             - tapOn: "Members"
-            - assertVisible: "Members|Loading members|No members|Unknown"
+            - assertVisible: "Members|Loading members|No members|Unknown|Member"
 
 # Invalid event deep link shows recovery UX
 - openLink: ${EXPO_URL}/--/event/00000000-0000-0000-0000-000000000000

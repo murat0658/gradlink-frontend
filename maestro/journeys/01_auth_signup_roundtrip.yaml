@@ -19,6 +19,20 @@ tags:
       - tapOn: "Continue"
 
 # Empty submit shows inline error
+- tapOn: "Email"
+- eraseText: 100
+- eraseText: 100
+- tapOn: "Password"
+- eraseText: 100
+- eraseText: 100
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- scrollUntilVisible:
+    element: "Sign In"
+    direction: DOWN
+    timeout: 5000
+    visibilityPercentage: 50
 - tapOn: "Sign In"
 - assertVisible: "Please enter both email and password."
 
@@ -32,16 +46,24 @@ tags:
       visible: "Continue"
     commands:
       - tapOn: "Continue"
-- assertVisible: "Create Account|Full Name|Email|Password|Sign up|Create"
+- assertVisible: "Create Account"
+- assertVisible: "Name|Email|Password"
+- assertVisible: "Sign Up"
 
-# Country picker open/close (keyboard-aware UX)
-- tapOn: "+1|+90|+44"
+# Country picker open/close (escape + for Maestro regex)
+- scrollUntilVisible:
+    element: "Phone"
+    direction: DOWN
+    timeout: 8000
+    visibilityPercentage: 40
+- tapOn:
+    text: "\\+1|\\+90|\\+44"
 - extendedWaitUntil:
     visible: "Close|United Kingdom|Germany|India"
     timeout: 10000
 - assertVisible: "United Kingdom"
 - tapOn: "Close"
-- assertVisible: "Create Account|Email|Password"
+- assertVisible: "Create Account|Email|Password|Sign Up"
 
 # Return to login
 - tapOn: "Sign in"
@@ -53,14 +75,21 @@ tags:
 
 # Wrong password stays on auth with failure feedback
 - tapOn: "Email"
-- eraseText
+- eraseText: 100
+- eraseText: 100
 - inputText: ${EMAIL}
 - tapOn: "Password"
-- eraseText
+- eraseText: 100
+- eraseText: 100
 - inputText: "DefinitelyWrongPass999!"
 - tapOn:
     text: "Welcome to GradLink"
     optional: true
+- scrollUntilVisible:
+    element: "Sign In"
+    direction: DOWN
+    timeout: 5000
+    visibilityPercentage: 50
 - tapOn: "Sign In"
 - extendedWaitUntil:
     visible: ".*[Ii]nvalid.*|.*[Ff]ailed.*|Authentication required|Please enter|Sign In|Welcome to GradLink"
