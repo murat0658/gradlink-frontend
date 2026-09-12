@@ -1,9 +1,15 @@
 // API Configuration
+// - EXPO_PUBLIC_API_BASE_URL set (incl. "") → use it ("" = same origin behind nginx)
+// - unset in __DEV__ → localhost
+// - unset in production builds → Contabo hostname fallback
 const REMOTE_API_BASE_URL = "https://vmi3096881.contaboserver.net";
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  (__DEV__ ? "http://localhost:8080" : REMOTE_API_BASE_URL);
+  process.env.EXPO_PUBLIC_API_BASE_URL != null
+    ? process.env.EXPO_PUBLIC_API_BASE_URL
+    : __DEV__
+      ? "http://localhost:8080"
+      : REMOTE_API_BASE_URL;
 
 // API Endpoints
 export const API_ENDPOINTS = {

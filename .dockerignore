@@ -1,0 +1,7 @@
+# Ignore local env and build output
+.env
+.env.*
+!.env.example
+dist
+.expo
+node_modules
