@@ -39,3 +39,18 @@ npm test -- --watchAll=false --ci
 | `06_notifications.yaml` | Notifications screen |
 | `07_logout.yaml` | Log out / auth screen |
 | `shared/login.yaml` | Shared login helper |
+
+## Rich journeys (multi-screen UX)
+
+```bash
+for f in maestro/journeys/*.yaml; do
+  echo "===== $f ====="
+  maestro test "$f" -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD" -e EXPO_URL="$EXPO_URL" || exit 1
+done
+```
+
+| File | Coverage |
+|---|---|
+| `journeys/01_auth_signup_roundtrip.yaml` | Empty submit → signup/country picker → wrong password → login |
+| `journeys/02_group_explore_enroll.yaml` | Group tabs, leave-cancel, events past toggle, bad event deep link |
+| `journeys/03_timeline_notify_subscribe.yaml` | Timeline → notifications Clear All cancel → plans → profile edit cancel → tabs |

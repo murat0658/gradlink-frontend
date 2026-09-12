@@ -1,0 +1,112 @@
+# Journey: timeline → notifications → subscriptions → profile edit cancel → tab smoke
+appId: host.exp.Exponent
+tags:
+  - journey
+  - timeline
+  - notifications
+  - subscriptions
+  - profile
+  - ux
+---
+- runFlow:
+    file: ../shared/login.yaml
+
+# Timeline chrome + past-events toggle
+- tapOn: "Timeline"
+- extendedWaitUntil:
+    visible: "Your Timeline|Show past events|Timeline"
+    timeout: 20000
+- assertVisible: "Your Timeline|Timeline"
+- assertVisible: "Show past events|See your activity|No updates yet"
+- tapOn: "Show past events"
+- runFlow:
+    when:
+      visible: "Dismiss"
+    commands:
+      - tapOn: "Dismiss"
+      - assertNotVisible: "Dismiss"
+
+# Notifications: empty or list, Clear All cancel path
+- openLink: ${EXPO_URL}/--/notifications
+- extendedWaitUntil:
+    visible: "Notifications|No notifications yet|Clear All|Continue"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Notifications"
+- assertVisible: "No notifications yet|Clear All|Just now|m ago|h ago"
+- runFlow:
+    when:
+      visible: "Clear All"
+    commands:
+      - tapOn: "Clear All"
+      - runFlow:
+          when:
+            visible: "Cancel"
+          commands:
+            - tapOn: "Cancel"
+            - assertVisible: "Clear All|Notifications"
+
+# Subscriptions pricing UX
+- openLink: ${EXPO_URL}/--/subscriptions
+- extendedWaitUntil:
+    visible: "Choose Your Plan|Free|Premium|Continue"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Choose Your Plan|Free|Premium"
+- assertVisible: "$0|$15/mo|Free|Premium"
+- assertVisible: "Premium profile badge|Alumni groups|Priority event seats|News and topics|Subscribe"
+
+# Profile edit → cancel (no accidental save)
+- openLink: ${EXPO_URL}/--/(tabs)/profile
+- extendedWaitUntil:
+    visible: "Edit Profile|Loading profile|Profile|Continue"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- scrollUntilVisible:
+    element: "Edit Profile"
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- tapOn: "Edit Profile"
+- extendedWaitUntil:
+    visible: "Save Changes|Cancel|Basic Information|Full Name"
+    timeout: 15000
+- assertVisible: "Basic Information|About You|Education|Save Changes|Cancel"
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Edit Profile|Test Alert|Profile"
+    timeout: 15000
+- assertVisible: "Edit Profile"
+- assertNotVisible: "Save Changes"
+
+# Cross-tab navigation still healthy
+- tapOn: "Jobs"
+- extendedWaitUntil:
+    visible: "Sample data|.*Sample listings.*|Jobs|Continue"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Software Engineer (New Grad)|Product Designer Intern|Sample data"
+- tapOn:
+    text: "Groups"
+    index: 0
+- extendedWaitUntil:
+    visible: "University Graduate Groups|.*members.*"
+    timeout: 15000
+- tapOn: "Timeline"
+- assertVisible: "Your Timeline|Show past events|Timeline"

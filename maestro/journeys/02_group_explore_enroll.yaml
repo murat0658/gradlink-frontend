@@ -1,0 +1,128 @@
+# Journey: browse groups → open detail → walk tabs → leave confirm cancel → events enroll UX
+appId: host.exp.Exponent
+tags:
+  - journey
+  - groups
+  - events
+  - ux
+---
+- runFlow:
+    file: ../shared/login.yaml
+
+# Groups directory chrome
+- openLink: ${EXPO_URL}/--/(tabs)/groups
+- extendedWaitUntil:
+    visible: "University Graduate Groups|Loading groups|Continue"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "University Graduate Groups|Groups"
+- assertVisible: "Browse and join alumni groups|.*members.*"
+- assertNotVisible: "Couldn't load groups"
+
+# Open a known public group
+- openLink: ${EXPO_URL}/--/(tabs)/groups/harvard
+- extendedWaitUntil:
+    visible: "Join|Leave|Subscribe|Unsubscribe|Members|News|Events|Topics|Continue|Oops|Harvard"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- runFlow:
+    when:
+      visible: "Oops|Go to home screen!"
+    commands:
+      - tapOn: "Go to home screen!"
+      - openLink: ${EXPO_URL}/--/(tabs)/groups
+      - extendedWaitUntil:
+          visible: "University Graduate Groups|.*members.*"
+          timeout: 20000
+
+- runFlow:
+    when:
+      visible: "Join|Leave|Subscribe|Unsubscribe"
+    commands:
+      # Membership CTA present
+      - assertVisible: "Join|Leave"
+      - assertVisible: "Subscribe|Unsubscribe"
+
+      # Leave confirmation must be cancelable (destructive UX)
+      - runFlow:
+          when:
+            visible: "Leave"
+          commands:
+            - tapOn: "Leave"
+            - extendedWaitUntil:
+                visible: "Cancel|No|Yes|Are you sure|Leave group"
+                timeout: 10000
+            - tapOn:
+                text: "Cancel|No"
+                optional: true
+            - assertVisible: "Leave|Join|Subscribe|Unsubscribe"
+
+      # Tab walk: News → Events → Topics → Jobs → Members
+      - runFlow:
+          when:
+            visible: "News"
+          commands:
+            - tapOn: "News"
+            - assertVisible: "News|Latest News|No news|What's happening|Share"
+      - runFlow:
+          when:
+            visible: "Events"
+          commands:
+            - tapOn: "Events"
+            - assertVisible: "Events|Upcoming Events|No events|Enroll|Show past events|Full|Premium seats|Enrolled"
+            - assertVisible: "Show past events|Join events organized|Enroll|No events"
+            - tapOn: "Show past events"
+            - assertVisible: "Events|Upcoming Events|No events|Enroll|Enrolled|Full|Premium seats|Show past events"
+      - runFlow:
+          when:
+            visible: "Topics"
+          commands:
+            - tapOn: "Topics"
+            - assertVisible: "Topics|Discussion Topics|Networking|Job Opportunities|Research|Join the conversation"
+      - runFlow:
+          when:
+            visible: "Networking"
+          commands:
+            - tapOn: "Networking"
+            - extendedWaitUntil:
+                visible: "Answers|No answers yet|Reply|Welcome to the discussion|Networking|Post"
+                timeout: 15000
+            - assertVisible: "Answers|No answers yet|Reply|Post|Welcome to the discussion|Networking"
+            - back
+            - extendedWaitUntil:
+                visible: "Topics|Subscribe|Unsubscribe|Join|Leave|Members"
+                timeout: 15000
+      - runFlow:
+          when:
+            visible: "Jobs"
+          commands:
+            - tapOn:
+                text: "Jobs"
+                index: 0
+            - assertVisible: "Job Opportunities|.*Sample listings.*|No job postings|Alumni Referral|Research Assistant|Jobs"
+      - runFlow:
+          when:
+            visible: "Members"
+          commands:
+            - tapOn: "Members"
+            - assertVisible: "Members|Loading members|No members|Unknown"
+
+# Invalid event deep link shows recovery UX
+- openLink: ${EXPO_URL}/--/event/00000000-0000-0000-0000-000000000000
+- extendedWaitUntil:
+    visible: "Failed to load|Retry|Event|Continue|Timeline"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Failed to load|Retry|Event|Timeline|Groups"

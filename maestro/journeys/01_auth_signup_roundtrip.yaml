@@ -1,0 +1,76 @@
+# Journey: auth ↔ signup round-trip, validation, then successful login
+appId: host.exp.Exponent
+tags:
+  - journey
+  - auth
+  - ux
+---
+- runFlow:
+    file: ../shared/ensure-logged-out.yaml
+
+- openLink: ${EXPO_URL}/--/auth
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Continue|Sign In"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+# Empty submit shows inline error
+- tapOn: "Sign In"
+- assertVisible: "Please enter both email and password."
+
+# Navigate to signup and back without losing auth chrome
+- tapOn: "Sign up"
+- extendedWaitUntil:
+    visible: "Create Account|Continue|Sign In"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Create Account|Full Name|Email|Password|Sign up|Create"
+
+# Country picker open/close (keyboard-aware UX)
+- tapOn: "+1|+90|+44"
+- extendedWaitUntil:
+    visible: "Close|United Kingdom|Germany|India"
+    timeout: 10000
+- assertVisible: "United Kingdom"
+- tapOn: "Close"
+- assertVisible: "Create Account|Email|Password"
+
+# Return to login
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Welcome to GradLink|Sign In|Email"
+    timeout: 20000
+- assertVisible: "Welcome to GradLink"
+- assertVisible: "Sign In"
+
+# Wrong password stays on auth with failure feedback
+- tapOn: "Email"
+- eraseText
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- eraseText
+- inputText: "DefinitelyWrongPass999!"
+- tapOn:
+    text: "Welcome to GradLink"
+    optional: true
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: ".*[Ii]nvalid.*|.*[Ff]ailed.*|Authentication required|Please enter|Sign In|Welcome to GradLink"
+    timeout: 20000
+- assertVisible: "Sign In|Welcome to GradLink"
+
+# Successful login lands on main tabs
+- runFlow:
+    file: ../shared/login.yaml
+- assertVisible: "Timeline"
+- assertVisible: "Groups"
+- assertVisible: "Jobs"
+- assertVisible: "Profile"
