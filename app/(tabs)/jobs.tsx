@@ -14,11 +14,11 @@ import Toast from "react-native-toast-message";
 import { Text } from "@/components/Themed";
 import { Card, Header } from "@/components/UI";
 import Colors, { spacing, typography, borderRadius, shadows } from "@/constants/Colors";
-import { AppDispatch } from "@/store";
-import { applyToJobAsync, fetchJobs } from "@/store/thunks";
-import { markJobApplied } from "@/store/slices/jobsSlice";
-import { selectJobs, selectJobsLoading } from "@/store/selectors";
-import { JobPosting } from "@/store/types";
+import { AppDispatch } from "../store";
+import { applyToJobAsync, fetchJobs } from "../store/thunks";
+import { markJobApplied } from "../store/slices/jobsSlice";
+import { selectJobs, selectJobsLoading } from "../store/selectors";
+import { JobPosting } from "../store/types";
 
 function formatEmploymentType(type?: string): string {
   if (!type) return "Full-time";

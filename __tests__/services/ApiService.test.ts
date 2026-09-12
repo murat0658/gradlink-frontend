@@ -608,6 +608,87 @@ describe("ApiService", () => {
     });
   });
 
+  describe("Jobs Management", () => {
+    beforeEach(() => {
+      apiService.setToken("test-token");
+    });
+
+    it("getJobs builds query params", async () => {
+      const page = { content: [{ id: "j1", title: "SWE" }], totalElements: 1 };
+      mockFetch(page);
+
+      const result = await apiService.getJobs({
+        page: 0,
+        size: 20,
+        groupCode: "alumni",
+        activeOnly: true,
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/jobs?page=0&size=20&groupCode=alumni&activeOnly=true",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer test-token",
+          }),
+        })
+      );
+      expect(result).toEqual(page);
+    });
+
+    it("createJob posts with nested group code", async () => {
+      const created = { id: "j1", title: "Intern", company: "Acme" };
+      mockFetch(created);
+
+      const result = await apiService.createJob({
+        title: "Intern",
+        company: "Acme",
+        location: "Remote",
+        employmentType: "INTERNSHIP",
+        groupCode: "alumni",
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/jobs",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            title: "Intern",
+            company: "Acme",
+            location: "Remote",
+            employmentType: "INTERNSHIP",
+            group: { code: "alumni" },
+          }),
+        })
+      );
+      expect(result).toEqual(created);
+    });
+
+    it("applyToJob posts optional message", async () => {
+      mockFetch({ id: "a1", status: "SUBMITTED" });
+
+      await apiService.applyToJob("job-1", "Interested");
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/jobs/job-1/apply",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ message: "Interested" }),
+        })
+      );
+    });
+
+    it("deleteJob soft-deletes via DELETE", async () => {
+      mockFetch({}, true, 200);
+
+      await apiService.deleteJob("job-1");
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:8080/api/jobs/job-1",
+        expect.objectContaining({ method: "DELETE" })
+      );
+    });
+  });
+
   describe("Notifications Management", () => {
     beforeEach(() => {
       apiService.setToken("test-token");

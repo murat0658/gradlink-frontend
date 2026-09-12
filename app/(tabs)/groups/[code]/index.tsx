@@ -189,30 +189,6 @@ export default function GroupInfoScreen() {
     };
   }, [token, code]);
 
-  useEffect(() => {
-    if (!token || !code) {
-      setGroupJobs([]);
-      return;
-    }
-    let cancelled = false;
-    setJobsLoading(true);
-    apiService
-      .getJobs({ groupCode: String(code), page: 0, size: 50, activeOnly: true })
-      .then((res) => {
-        if (cancelled) return;
-        setGroupJobs(unwrapPageContent<JobPosting>(res));
-      })
-      .catch(() => {
-        if (!cancelled) setGroupJobs([]);
-      })
-      .finally(() => {
-        if (!cancelled) setJobsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token, code, jobsRefreshKey]);
-
   const group =
     groupsFromStore.find((g: any) => g.code === code) || fetchedGroup;
 
@@ -269,6 +245,31 @@ export default function GroupInfoScreen() {
   const [jobApplyUrl, setJobApplyUrl] = useState("");
   const [isSubmittingJob, setIsSubmittingJob] = useState(false);
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !code) {
+      setGroupJobs([]);
+      return;
+    }
+    let cancelled = false;
+    setJobsLoading(true);
+    apiService
+      .getJobs({ groupCode: String(code), page: 0, size: 50, activeOnly: true })
+      .then((res) => {
+        if (cancelled) return;
+        setGroupJobs(unwrapPageContent<JobPosting>(res));
+      })
+      .catch(() => {
+        if (!cancelled) setGroupJobs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setJobsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, code, jobsRefreshKey]);
+
   const [members, setMembers] = useState<
     {
       id: string;

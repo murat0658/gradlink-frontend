@@ -1,0 +1,27 @@
+appId: host.exp.Exponent
+tags: [jobs, smoke]
+---
+- runFlow:
+    file: shared/login.yaml
+
+- openLink: ${EXPO_URL}/--/(tabs)/jobs
+- extendedWaitUntil:
+    visible: "Jobs|No job postings yet|Career listings|Continue"
+    timeout: 25000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- assertVisible: "Jobs"
+- assertVisible: "No job postings yet|Apply|Applied|Open link|Career listings from your alumni"
+
+- tapOn: "Groups"
+- extendedWaitUntil:
+    visible: "Groups|Browse|Continue"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"

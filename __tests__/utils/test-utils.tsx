@@ -7,6 +7,7 @@ import { RootState } from '../../app/store/types';
 // Import all reducers
 import userReducer from '../../app/store/slices/userSlice';
 import eventsReducer from '../../app/store/slices/eventsSlice';
+import jobsReducer from '../../app/store/slices/jobsSlice';
 import groupsReducer from '../../app/store/slices/groupsSlice';
 import notificationsReducer from '../../app/store/slices/notificationsSlice';
 import subscriptionsReducer from '../../app/store/slices/subscriptionsSlice';
@@ -20,6 +21,7 @@ export const createTestStore = (preloadedState?: Partial<RootState>) => {
     reducer: {
       user: userReducer,
       events: eventsReducer,
+      jobs: jobsReducer,
       groups: groupsReducer,
       notifications: notificationsReducer,
       subscriptions: subscriptionsReducer,
